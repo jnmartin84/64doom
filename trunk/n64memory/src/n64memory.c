@@ -102,10 +102,26 @@ void n64_free(void *buf)
 }
 
 
+/**
+RETURN VALUE
+
+    The memmove() function shall return s1; no return value is reserved to indicate an error.
+
+ERRORS
+
+    No errors are defined. In the event of an error creating a temp buffer to
+    meet the required copy semantics, return null.
+*/
 void *n64_memmove(void *dest, const void *src, size_t size)
 {
     int i;
     void *tmp = (void *)n64_malloc(size);
+
+    // no space to re-allocate, return null
+    if (0 == tmp)
+    {
+        return tmp;
+    }
 
     if (ALIGNED(dest) && ALIGNED(src))
     {
@@ -117,7 +133,7 @@ void *n64_memmove(void *dest, const void *src, size_t size)
         uint32_t *wtmp;
         uint8_t *btmp;
 
-        int size_in_uint32_ts = size >> 2;
+        int size_in_uint32_ts = size / 4;
         int size_in_bytes = size % 4;
 
         wtmp = (uint32_t*)tmp;

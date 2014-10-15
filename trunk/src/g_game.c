@@ -21,8 +21,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: g_game.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
-
 #include <libdragon.h>
 #include <string.h>
 #include <stdlib.h>
@@ -73,6 +71,7 @@ static const char rcsid[] = "$Id: g_game.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 // LZW codec
 #include "lzw.h"
 
+
 extern void n64_sleep_millis(int count);
 
 extern char *get_GAMEID();
@@ -84,7 +83,6 @@ int last_save_size = -1;
 
 #define SAVEGAMESIZE	0x2c000
 #define SAVESTRINGSIZE	24
-
 
 
 boolean	G_CheckDemoStatus (void); 
@@ -1230,14 +1228,7 @@ void G_LoadGame(char* name)
 
 //
 // G_DoLoadGame
-// This will restore:
-// game skill
-// game episode
-// game map
-// which guns they had
-// how much ammo they had for each gun
-// which keys they had
-// nothing more
+//
 void G_DoLoadGame(void)
 {
     char        *gameid = get_GAMEID();
@@ -1264,19 +1255,28 @@ void G_DoLoadGame(void)
 
         get_mempak_entry( 0, j, &entry );
 
-        if( entry.valid )
+        if (entry.valid)
         {
             any_entries = 1;
 
+            int lmn;
+
             // using value of get_GAMEID() without the ".WAD" suffix as identifier for entry
-            for(int lmn = 0; lmn < strlen(gameid)-1; lmn++)
+            for (lmn = 0; lmn < strlen(gameid)-1; lmn++)
             {
-                if(gameid[lmn] == '.') break;
-                if(entry.name[lmn] != gameid[lmn]) entry_found = 0;
+                if (gameid[lmn] == '.')
+                {
+                    break;
+                }
+
+                if (entry.name[lmn] != gameid[lmn])
+                {
+                    entry_found = 0;
+                }
             }
 
             // once we compare entry.name with gameid and they match, break out of the loop
-            if(entry_found)
+            if (entry_found)
             {
                 break;
             }
@@ -1289,12 +1289,9 @@ void G_DoLoadGame(void)
 
     // not finding an entry is NOT an error case that should case the game to hang
     // just print a nice message to screen; eventually, do this with Doom's message printing
-    if (!entry_found || !any_entries)
+    if ((!entry_found) || (!any_entries))
     {
-//        DebugOutput_String("Save-game not found.", 0);
         msg = "Must save a game to load!";
-//        n64_sleep_millis(500);
-//        return;
         goto the_end_of_loading;
     }
 
@@ -1302,11 +1299,7 @@ void G_DoLoadGame(void)
     // I am going to make this just print a message and return, instead of I_Error-ing
     if (any_entries && entry_found && (!entry.valid))
     {
-//        /*I_Error*/DebugOutput_String("Mempak entry found but not valid.", 0);
-//        /*I_Error*/DebugOutput_String("Valid mempak entry not found.", 0);
         msg = "Save game invalid. Not loading.";
-//        n64_sleep_millis(1000);
-//        return;
         goto the_end_of_loading;
     }
 
@@ -1320,13 +1313,10 @@ void G_DoLoadGame(void)
     // this size is the original un-compressed size
     // wasting 256 bytes to store a 4 byte int... oh well
 
-
 //cc1: warnings being treated as errors
 //g_game.c: In function 'G_DoLoadGame':
 //g_game.c:1321: error: dereferencing type-punned pointer will break strict-aliasing rules
-
     int *size_block_ptr = (int *)readbuffer;
-
     int dec_size = *size_block_ptr;
     //((int*)readbuffer)[0];
 
@@ -1336,7 +1326,7 @@ void G_DoLoadGame(void)
     // if we try to lzw_decode the savebuffer directly from the blocks we read into readbuffer,
     // it will fail due to all of the extra bytes stuck on the end, even if they are empty
     // sequence doesn't end with correct symbol, some kind of error like that
-    for (int i=0;i<dec_size;i++)
+    for (i=0;i<dec_size;i++)
     {
         to_decode[i] = readbuffer[MEMPAK_BLOCK_SIZE + i];
     }
@@ -1348,13 +1338,9 @@ void G_DoLoadGame(void)
     {
         I_Error("Error loading data!");
     }
-    else
-    {
-//        DebugOutput_String("Loaded game from mempak", 1);
-    }
 
     // must allocate savebuffer when loading in a saved game, it isn't allocated by default -- bug-fixed 2014/09/10 ??:??
-    savebuffer = Z_Malloc (_len(dec), PU_STATIC, NULL);
+    savebuffer = Z_Malloc(_len(dec), PU_STATIC, NULL);
 
     // copy the data from "dec" into "savebuffer" so the rest of the original G_DoLoadGame code can do its thing like before
     n64_memcpy(savebuffer, dec, _len(dec));
@@ -1373,37 +1359,35 @@ void G_DoLoadGame(void)
 ///usr/mips64-elf/lib/gcc/mips64-elf/4.4.0/../../../../mips64-elf/include/string.h:29: note: expected 'const char *' but argument is of type 'byte *'
     if (strcmp ((char *)save_p, vcheck))
     {
-//        DebugOutput_String("Save-game failed version check", 0);
-//        n64_sleep_millis(1000);
-//	return;				// bad version
         msg = "Save game failed version check.";
-        // done
         Z_Free(savebuffer);
         goto the_end_of_loading;
     }
 
     save_p += VERSIONSIZE;
 
-    gameskill = *save_p++; 
-    gameepisode = *save_p++; 
-    gamemap = *save_p++; 
-    for (i=0 ; i<MAXPLAYERS ; i++) 
-	playeringame[i] = *save_p++; 
+    gameskill = *save_p++;
+    gameepisode = *save_p++;
+    gamemap = *save_p++;
+    for (i=0 ; i<MAXPLAYERS ; i++)
+    {
+	playeringame[i] = *save_p++;
+    }
 
-    // load a base level 
-    G_InitNew (gameskill, gameepisode, gamemap); 
-    // get the times 
-    a = *save_p++; 
-    b = *save_p++; 
-    c = *save_p++; 
-    leveltime = (a<<16) + (b<<8) + c; 
-	 
+    // load a base level
+    G_InitNew (gameskill, gameepisode, gamemap);
+    // get the times
+    a = *save_p++;
+    b = *save_p++;
+    c = *save_p++;
+    leveltime = (a<<16) + (b<<8) + c;
+
     // dearchive all the modifications
-    P_UnArchivePlayers (); 
-    P_UnArchiveWorld (); 
-    P_UnArchiveThinkers (); 
-    P_UnArchiveSpecials (); 
- 
+    P_UnArchivePlayers ();
+    P_UnArchiveWorld ();
+    P_UnArchiveThinkers ();
+    P_UnArchiveSpecials ();
+
     if (*save_p != 0x1d)
     {
 	I_Error ("Bad savegame");
@@ -1414,7 +1398,7 @@ void G_DoLoadGame(void)
 
 the_end_of_loading:
 
-    players[consoleplayer].message = msg;//"Loaded game from mempak.";
+    players[consoleplayer].message = msg;
 
     if (setsizeneeded)
     {
@@ -1433,18 +1417,15 @@ the_end_of_loading:
 void
 G_SaveGame
 ( int	slot,
-  char*	description ) 
-{ 
-    savegameslot = slot; 
-    strcpy (savedescription, description); 
-    sendsave = true; 
-} 
+  char*	description )
+{
+    savegameslot = slot;
+    strcpy (savedescription, description);
+    sendsave = true;
+}
 
 
 #define BYTES_PER_BLOCK 256
-
-//#define BYTES_TO_BLOCKS(bytes)   (bytes / BYTES_PER_BLOCK)
-//#define BYTES_TO_BLOCKS(bytes) (bytes >> 8)
 
 #define BYTES_TO_BLOCKS(bytes) ((bytes + (BYTES_PER_BLOCK - 1)) / BYTES_PER_BLOCK)
 
@@ -1459,6 +1440,8 @@ void G_DoSaveGame(void)
     char*	description;
     int		length;
     int		i;
+    int         j;
+    int         k;
 
     if (M_CheckParm("-cdrom"))
     {
@@ -1532,11 +1515,8 @@ void G_DoSaveGame(void)
 //cc1: warnings being treated as errors
 //g_game.c: In function 'G_DoSaveGame':
 //g_game.c:1522: error: dereferencing type-punned pointer will break strict-aliasing rules
-
     int *size_block_ptr = (int *)size_block;
-
     *size_block_ptr = last_save_size;
-
 //    ((int*)size_block)[0] = last_save_size;
 
     int total_blocks = 1 + num_blocks + 1;
@@ -1544,30 +1524,29 @@ void G_DoSaveGame(void)
     byte *tmp_blocks = malloc(MEMPAK_BLOCK_SIZE * total_blocks);
     if (NULL == tmp_blocks)
     {
-//        DebugOutput_String("Could not allocate memory to create save-game entry.", 0);
         msg = "No memory to create save.";
-//        n64_sleep_millis(500);
         err = -1;
         goto the_end_of_saving;
     }
 
-
-    for( int j=0; j<last_block_size;j++)
+    for (j=0; j<last_block_size;j++)
     {
         final_block[j] = enc[(num_blocks * MEMPAK_BLOCK_SIZE) + j];
     }
 
-    for(int k=0;k<MEMPAK_BLOCK_SIZE;k++)
+    for (k=0;k<MEMPAK_BLOCK_SIZE;k++)
     {
         tmp_blocks[k] = size_block[k];
     }
 
-    for (int j=0;j<num_blocks;j++)
+    for (j=0;j<num_blocks;j++)
     {
-        for (int k=0;k<MEMPAK_BLOCK_SIZE;k++)
+        for (k=0;k<MEMPAK_BLOCK_SIZE;k++)
+        {
             tmp_blocks[((j+1)*MEMPAK_BLOCK_SIZE)+k] = enc[(j*MEMPAK_BLOCK_SIZE)+k];
+        }
     }
-    for (int k=0;k<last_block_size;k++)
+    for (k=0;k<last_block_size;k++)
     {
         tmp_blocks[((num_blocks+1)*MEMPAK_BLOCK_SIZE)+k] = final_block[k];
     }
@@ -1577,7 +1556,7 @@ void G_DoSaveGame(void)
     int old_entry_existed = 0;
     int old_entry_size = -1;
     char *gameid = get_GAMEID();
-    for (int j = 0; j < 16; j++)
+    for (j = 0; j < 16; j++)
     {
         entry_structure_t entry;
         get_mempak_entry(0, j, &entry);
@@ -1586,33 +1565,37 @@ void G_DoSaveGame(void)
 
         if (entry.valid)
         {
-            for(int lmn = 0; lmn < strlen(gameid)-1; lmn++)
+            int lmn;
+
+            for (lmn = 0; lmn < strlen(gameid)-1; lmn++)
             {
-                if(gameid[lmn] == '.') break;
-                if(entry.name[lmn] != gameid[lmn]) matches = 0;
+                if (gameid[lmn] == '.')
+                {
+                    break;
+                }
+                if (entry.name[lmn] != gameid[lmn])
+                {
+                    matches = 0;
+                }
             }
 
-            if(matches)
+            if (matches)
             {
                 old_entry_existed = 1;
                 old_entry_size = entry.blocks;
 
                 if (save_size_in_blocks > (available_free_blocks + old_entry_size))
                 {
-                    char ermac[256];
-                    sprintf(ermac, "Not enough free blocks on mempak to save; need %d, have %d.", save_size_in_blocks, (available_free_blocks + old_entry_size));
-                    DebugOutput_String(ermac, 0);
-                    n64_sleep_millis(500);
                     msg = "Not enough mempak space for new save.";
                     err = -1;
                     goto the_end_of_saving;
                 }
 
                 err |= delete_mempak_entry(0, &entry);
-                if( err )
+                if (err)
                 {
-                      msg = "Can't remove old data, can't save.";
-                      goto the_end_of_saving;
+                    msg = "Can't remove old data, can't save.";
+                    goto the_end_of_saving;
                 }
 
                 break;
@@ -1623,9 +1606,13 @@ void G_DoSaveGame(void)
     entry_structure_t doom_save_entry;
     doom_save_entry.blocks = total_blocks;
     doom_save_entry.region = 'A';
-    for (int i=0;i<strlen(gameid)-1;i++)
+    for (i=0;i<strlen(gameid)-1;i++)
     {
-        if (gameid[i] == '.') break;
+        if (gameid[i] == '.')
+        {
+            break;
+        }
+
         doom_save_entry.name[i] = gameid[i];
     }
 
@@ -1640,7 +1627,6 @@ void G_DoSaveGame(void)
     _del(in);
     _del(enc);
     free(tmp_blocks);
-
 
 //    char str[40];
 //    sprintf(str, "Saved game to mempak. %d blocks used.",total_blocks);
