@@ -1,0 +1,6 @@
+OFILES_LD  = $(CURDIR)/build/n64memory.o
+
+# Rules for compiling system stuff
+$(CURDIR)/build/n64memory.o: $(CURDIR)/src/n64memory.c
+	mkdir -p $(CURDIR)/build
+	$(CC) $(CFLAGS) -c -o $(CURDIR)/build/n64memory.o $(CURDIR)/src/n64memory.c
