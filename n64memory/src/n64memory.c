@@ -109,8 +109,14 @@ RETURN VALUE
 
 ERRORS
 
-    No errors are defined. In the event of an error creating a temp buffer to
-    meet the required copy semantics, return null.
+    No errors are defined.
+
+NOTES FROM JNMARTIN84
+    My code attempts to create a temporary buffer in order to meet the required semantics of memmove
+    which include being able to copy overlapping buffers in a way that is indistinguishable from using
+    a temporary buffer.
+    In the event of an error creating a temp buffer to meet the required copy semantics,
+    the n64_memmove function will return null.
 */
 void *n64_memmove(void *dest, const void *src, size_t size)
 {
@@ -120,7 +126,7 @@ void *n64_memmove(void *dest, const void *src, size_t size)
     // no space to re-allocate, return null
     if (0 == tmp)
     {
-        return tmp;
+        return 0;
     }
 
     if (ALIGNED(dest) && ALIGNED(src))

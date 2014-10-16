@@ -4,4 +4,6 @@ Sample-based MUS playback and digital sound code along with tons of moral and te
 
 Generic C hashtable from here: https://github.com/dennisfrancis/generic-hashtable
 
+LZW codec from here: http://rosettacode.org/wiki/LZW_compression#C
+
 Play-testing and video capture from: Borman @ Assembler forums
