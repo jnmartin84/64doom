@@ -37,6 +37,14 @@ int active_allocations()
 }
 
 
+//
+// These function do not perform any error checking.
+// If calls to malloc fail, these will fail in a way
+// that causes the Nintendo 64 to lock up. Error checking
+// could be added in a manner similar to "errno" .
+//
+
+
 void mapadd(kv_t *set, uint32_t address, int size)
 {
     kv_t *kv = mapfind(set, address);
