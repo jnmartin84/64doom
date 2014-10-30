@@ -2,7 +2,7 @@
 
 = Introduction =
 
-With a simple toolkit (which you can download from this project site: [https://64doom.googlecode.com/svn/trunk/64DOOM_BUILDER.zip DOWNLOAD TOOLKIT]) you can build your own 64Doom ROM with any of the supported game versions.
+With a simple toolkit (which you can download from this project site: [https://64doom.googlecode.com/svn/trunk/64DOOM_BUILDER.zip DOWNLOAD TOOLKIT]) you can build your own 64Doom ROM that includes any of the supported game versions.
 
 
 = Details =
