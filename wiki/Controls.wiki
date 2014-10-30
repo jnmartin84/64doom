@@ -6,7 +6,7 @@
 
 
 = Details =
-
+{{{
 D-PAD UP / ANALOG STICK UP :: move forward
 --
 D-PAD DOWN / ANALOG STICK DOWN :: move backward
@@ -38,3 +38,4 @@ L + R :: enable/disable debug output and GOD MODE
 L + Z :: press 5 times in a row to skip to next level
 --
 R + Z :: increases gamma correction
+}}}
