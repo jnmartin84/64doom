@@ -16,7 +16,7 @@ will need at least one WAD file from the various
 versions of Doom. Make sure the WAD file is named
 as described in the following section, and located
 under the "wadfiles" sub-directory under the directory
-that you unpacked "MAKE_YOUR_OWN_64DOOM.ZIP"
+that you unpacked "64DOOM_BUILDER.ZIP"
 into.
 
 
