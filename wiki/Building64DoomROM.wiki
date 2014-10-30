@@ -7,8 +7,8 @@ With the toolkit (available for download from this project site) you can build y
 
 = Details =
 {{{
-BUILD YOUR OWN 64DOOM --- Updated 2014/09/16
---------------------------------------------------
+BUILD YOUR OWN 64DOOM ROM
+-------------------------
 
 
 In order to build a working 64DOOM Z64 file, you
@@ -16,7 +16,7 @@ will need at least one WAD file from the various
 versions of Doom. Make sure the WAD file is named
 as described in the following section, and located
 under the "wadfiles" sub-directory under the directory
-that you unpacked "MAKE_YOUR_OWN_64DOOM_YYYYMMDD_HHMM.ZIP"
+that you unpacked "MAKE_YOUR_OWN_64DOOM.ZIP"
 into.
 
 
