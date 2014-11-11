@@ -33,7 +33,10 @@ TNT             -- TNT.WAD
 
 then just run "make_doom.sh" as follows:
 1) From cygwin, bash make_doom.sh
-(NOTE: If you already have Cygwin installed, before you try to run the script, you need to make sure that you remove all of the EXEs (EXCEPT FOR CHKSUM64.EXE AND N64TOOL.EXE) and DLLs from the 64DOOM_BUILDER directory that gets created when you unzip the toolkit zip file, or it will fail in a couple of different ways.)
+(NOTE: If you already have Cygwin installed, before you try to run the script,
+you need to make sure that you remove all of the EXEs (EXCEPT FOR CHKSUM64.EXE
+AND N64TOOL.EXE) and DLLs from the 64DOOM_BUILDER directory that gets created 
+when you unzip the toolkit zip file, or it will fail in a couple of different ways.)
 2) From Windows, double click MAKE_DOOM.BAT
 3) From Linux, build or find copies of N64TOOL
     and CHKSUM64 and then try 1)
