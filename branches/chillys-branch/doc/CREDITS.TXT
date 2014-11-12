@@ -1,0 +1,9 @@
+Doom source from here: https://github.com/id-Software/DOOM
+
+Sample-based MUS playback and digital sound code along with tons of moral and technical support from: ChillyWilly @ Everdrive forums
+
+Generic C hashtable from here: https://github.com/dennisfrancis/generic-hashtable
+
+LZW codec from here: http://rosettacode.org/wiki/LZW_compression#C
+
+Play-testing and video capture from: Borman @ Assembler forums
