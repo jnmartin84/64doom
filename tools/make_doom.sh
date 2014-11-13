@@ -4,9 +4,9 @@
 # variable definitions #
 ########################
 export ROOTDIR=.
-export PWD=$ROOTDIR/pwd
-export CAT=$ROOTDIR/cat
-export RM=$ROOTDIR/rm
+export PWD=pwd
+export CAT=cat
+export RM=rm
 export N64TOOL=$ROOTDIR/n64tool
 export CHKSUM64=$ROOTDIR/chksum64
 
@@ -17,7 +17,7 @@ export MIDI_ROM_OFFSET=1048576B
 
 export IDPATH=$ROOTDIR/identifiers
 export IDFILE=identifier_ULTIMATEDOOM
-export ID_ROM_OFFSET_HIGH=5242878B
+export ID_ROM_OFFSET_HIGH=5242880B
 export ID_ROM_OFFSET=$ID_ROM_OFFSET_HIGH
 
 export WADPATH=$ROOTDIR/wadfiles

@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id:$
@@ -89,6 +89,7 @@ extern char *get_GAMEID();
 extern void *n64_malloc(size_t size_to_alloc);
 extern void n64_free(void *buf);
 
+extern int clear_screen;
 
 //
 // D-DoomLoop()
@@ -101,8 +102,6 @@ extern void n64_free(void *buf);
 //
 void D_DoomLoop(void);
 
-
-static volatile int should_sound = 0;
 
 char*		wadfiles[MAXWADFILES];
 
@@ -161,23 +160,6 @@ void D_DoAdvanceDemo(void);
 event_t         events[MAXEVENTS];
 int             eventhead;
 int 		eventtail;
-
-
-void sound_callback(void)
-{
-    disable_interrupts();
-
-    if (should_sound)
-    {
-        I_UpdateSound();
-        // Sound mixing for the buffer is snychronous.
-        // Synchronous sound output is explicitly called.
-        // Update sound output.
-        I_SubmitSound();
-    }
-
-    enable_interrupts();
-}
 
 
 //
@@ -442,7 +424,7 @@ void D_DoomLoop(void)
 {
 /*    if (demorecording)
 	G_BeginRecording ();
-		
+
     if (M_CheckParm ("-debugfile"))
     {
 	char    filename[20];
@@ -450,7 +432,7 @@ void D_DoomLoop(void)
 	printf ("debug output to: %s\n",filename);
 	debugfile = fopen (filename,"w");
     }*/
-	
+
 //    I_InitGraphics ();
 
     while (1)
@@ -1126,16 +1108,6 @@ void D_DoomMain(void)
 	G_LoadGame (file);
     }*/
 
-    if (!should_sound)
-    {
-        // install sound callback
-        register_AI_handler(sound_callback);
-        set_AI_interrupt(1);
-        should_sound = 1;
-        sound_callback();
-        printf("D_DoomMain: AI interrupt handler installed.\n");
-    }
-
 
     if (gameaction != ga_loadgame)
     {
@@ -1151,6 +1123,7 @@ void D_DoomMain(void)
 
     console_clear();
     console_close();
+    clear_screen = 2;
 
     D_DoomLoop();  // never returns
 }
