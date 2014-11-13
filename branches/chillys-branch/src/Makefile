@@ -1,29 +1,39 @@
-ROOTDIR			=$(N64_INST)
+ifdef $(N64_INST)
+ROOTDIR = $(N64_INST)
+else
+ROOTDIR = /opt/toolchains/n64
+endif
 
-GCCN64PREFIX = $(ROOTDIR)/bin/mips64-elf-
-CHKSUM64PATH = $(ROOTDIR)/bin/chksum64
-MKDFSPATH = $(ROOTDIR)/bin/mkdfs
-MKSPRITEPATH = $(ROOTDIR)/bin/mksprite
-HEADERPATH = $(ROOTDIR)/lib
-N64TOOL = $(ROOTDIR)/bin/n64tool
-HEADERNAME = header
+HEADERDIR = $(ROOTDIR)/headers
+HEADER = $(HEADERDIR)/header
 
-LIBS = -ldragon -lc -lm -ldragonsys -ln64memory
-LINK_FLAGS = -G0 -L$(ROOTDIR)/lib -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64ld.x
-PROG_NAME = doom
-CFLAGS = -std=gnu99 -march=vr4300 -mtune=vr4300 -fno-strict-aliasing -Wall -G0 -O3 -I$(ROOTDIR)/include -I$(ROOTDIR)/mips64-elf/include
+TOOLDIR = $(ROOTDIR)/bin
+CHKSUM64 = $(TOOLDIR)/chksum64
+MKDFS = $(TOOLDIR)/mkdfs
+N64TOOL = $(TOOLDIR)/n64tool
+
+LDSCRIPTSDIR = $(ROOTDIR)/ldscripts
+LINK_FLAGS = -T$(LDSCRIPTSDIR)/n64.ld -Map map.txt -nostdlib
+
+LIBPATH = -L$(ROOTDIR)/mips64-elf/lib -L$(ROOTDIR)/mips64-elf/lib/gcc/mips64-elf/4.8.3 -L$(ROOTDIR)/mips64-elf/mips64-elf/lib
+INCPATH = -I$(CURDIR)/include -I$(ROOTDIR)/mips64-elf/include -I$(ROOTDIR)/mips64-elf/mips64-elf/include
+CCFLAGS = -std=gnu99 -march=vr4300 -mtune=vr4300 -G 0 -Ofast -Wall -c $(INCPATH)
+CCFLAGS += -DSTBI_NO_HDR
+HWCCFLAGS = -std=gnu99 -march=vr4300 -mtune=vr4300 -O1 -G 0 -Wall $(INCPATH)
 ASFLAGS = -mtune=vr4300 -march=vr4300
 
-CC = $(GCCN64PREFIX)gcc
-AS = $(GCCN64PREFIX)as
-LD = $(GCCN64PREFIX)ld
-OBJCOPY = $(GCCN64PREFIX)objcopy
+N64PREFIX = $(ROOTDIR)/mips64-elf/bin/mips64-elf-
+CC = $(N64PREFIX)gcc
+AS = $(N64PREFIX)as
+LD = $(N64PREFIX)ld
+OBJCOPY = $(N64PREFIX)objcopy
 
+PROG_NAME = doom
+LIBS = -ln64memory -ldragon -lc -lm -ldragonsys -lnosys
 O=obj
-
-OBJS=						\
-		$(O)/dll.o			\
-		$(O)/hash.o			\
+OBJS=							\
+		$(O)/dll.o				\
+		$(O)/hash.o				\
 		$(O)/n64_i_video.o		\
 		$(O)/n64_rom_fs.o		\
 		$(O)/buf_draw.o			\
@@ -86,17 +96,16 @@ OBJS=						\
 		$(O)/hu_stuff.o			\
 		$(O)/hu_lib.o			\
 		$(O)/s_sound.o			\
-		$(O)/info.o			\
+		$(O)/info.o				\
 		$(O)/sounds.o			\
 		$(O)/i_main.o
 
-
-$(PROG_NAME).bin: $(PROG_NAME).elf 
+$(PROG_NAME).bin: $(PROG_NAME).elf
 	$(OBJCOPY) $(PROG_NAME).elf $(PROG_NAME).bin -O binary
 	rm -f $(PROG_NAME).elf
 
 $(PROG_NAME).elf : $(OBJS)
-	$(LD) -o $(PROG_NAME).elf $(OBJS) $(LINK_FLAGS)
+	$(LD) -o $(PROG_NAME).elf $(OBJS) $(LINK_FLAGS) $(LIBPATH) $(LIBS)
 
 all: $(PROG_NAME).bin
 
@@ -104,9 +113,8 @@ clean:
 	rm -f *.elf *.bin
 	rm -f $(O)/*.o
 
-$(O)/%.o:	%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+$(O)/%.o: %.c
+	$(CC) $(CCFLAGS) $< -o $@
 
-#############################################################
-#
-#############################################################
+$(O)/%.o: %.s
+	$(AS) $(ASFLAGS) $< -o $@

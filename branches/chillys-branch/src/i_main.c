@@ -95,6 +95,7 @@ void check_and_init_mempak(void)
 
 
 extern int center_x, center_y;
+extern int mouse;
 
 int main(int argc, char **argv)
 {
@@ -115,6 +116,16 @@ int main(int argc, char **argv)
     console_set_render_mode(RENDER_AUTOMATIC);
 
     controller_init();
+    // look for mouse
+    mouse = -1; // no mouse
+    for (j=0; j<4; j++)
+    {
+        if (identify_controller(j) == CONTROLLER_MOUSE)
+        {
+            mouse = j; // found mouse
+            break;
+        }
+    }
 
     // center joystick...
     controller_scan();

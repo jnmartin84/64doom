@@ -64,6 +64,8 @@ extern const int MIDI_FILESIZE;
 // number of channels available for sound effects
 extern int numChannels;
 
+static volatile int should_sound = 0;
+
 
 /**********************************************************************/
 
@@ -73,11 +75,12 @@ typedef unsigned char UBYTE;
 typedef char BYTE;
 
 #define SAMPLERATE 11025
+//#define SAMPLERATE 22050
 
 // NUM_VOICES = SFX_VOICES + MUS_VOICES
-#define NUM_VOICES 64
+#define NUM_VOICES 40
 #define SFX_VOICES 16
-#define MUS_VOICES 48
+#define MUS_VOICES 24
 
 
 typedef struct MUSheader
@@ -152,9 +155,11 @@ static ULONG BEATS_PER_PASS = 4;       // 4 = 35Hz, 2 = 70Hz, 1 = 140Hz
 
 static int sound_status = 0;
 
+#if 0
 /*static*/ short __attribute__((aligned(8))) pcmout1[316 * 2]; // 1260 stereo samples
 /*static*/ short __attribute__((aligned(8))) pcmout2[316 * 2];
 /*static*/ int pcmflip = 0;
+#endif
 
 volatile int snd_ticks; // advanced by sound thread
 
@@ -236,6 +241,8 @@ static int mus_playing  = 0;
 static uint32_t lifetime_max_mus_sample_alloc = 0;
 static uint32_t mus_sample_memory_allocated = 0;
 
+static int audio_queued = 1;
+static int lastbuf = 0;
 
 /**********************************************************************/
 
@@ -258,6 +265,12 @@ void __attribute__((aligned(8))) *sample_buffers[256];
 int __attribute__((aligned(8))) used_instruments[256];
 
 int used_instrument_count = -1;
+
+// Need swap routines because the MIDI file was made on the Amiga and
+//   is in big endian format. :)
+
+#define WSWAP(x) x
+#define LSWAP(x) x
 
 // Swap 16bit, that is, MSB and LSB byte.
 unsigned short SWAPSHORT(unsigned short x)
@@ -388,50 +401,29 @@ static void *getsfx (char *sfxname, int *len)
 
 
 /////////////////////////////////////////////////////////////////////////////////////////
-//Buffer filling
+// Audio Callback - next buffer
 /////////////////////////////////////////////////////////////////////////////////////////
 
-/**********************************************************************/
-// Need swap routines because the MIDI file was made on the Amiga and
-//   is in big endian format. :)
-
-#define WSWAP(x) x
-#define LSWAP(x) x
-
-void n64_fillBuffer()
+void sound_callback(void)
 {
-    int numSamples;
-    int fillbuf;
+    short *fillbuf;
 
     sound_status = 2;
 
-    numSamples = 0;
-    fillbuf = pcmflip ? (int)pcmout2 : (int)pcmout1;
-    while (numSamples < NUM_SAMPLES)
+    if (!should_sound)
+        return;
+
+    if (audio_queued)
     {
-        fill_buffer((short *)(fillbuf + (numSamples << 2)));
-        numSamples += NUM_SAMPLES;
-    }
-}
+        fillbuf = audio_get_next_buffer(&lastbuf);
+        if (!fillbuf)
+            return;
 
-/////////////////////////////////////////////////////////////////////////////////////////
-//Audio output
-/////////////////////////////////////////////////////////////////////////////////////////
-
-int audioOutput()
-{
-    short *playbuf;
-
-    snd_ticks += 1;
-    playbuf = pcmflip ? pcmout1 : pcmout2;
-    pcmflip ^= 1;
-
-    if (audio_can_write())
-    {
-        audio_write(playbuf);
+        snd_ticks++;
+        fill_buffer(fillbuf);
     }
 
-    return 0;
+	audio_queued = audio_send_buffer(lastbuf);
 }
 
 /**********************************************************************/
@@ -440,7 +432,7 @@ void I_InitSound (void)
 {
     int i;
 
-    audio_init(SAMPLERATE, 2);
+    audio_init_ex(SAMPLERATE, 2, 1260, sound_callback);
 
     sound_status = 1;
 
@@ -478,28 +470,38 @@ void I_InitSound (void)
     // Finished initialization.
     printf("I_InitSound: Sound module ready.\n");
 
-//    numChannels = SFX_VOICES;
     numChannels = NUM_VOICES;
+
+    if (!should_sound)
+    {
+        audio_set_num_samples(NUM_SAMPLES);
+        should_sound = 1;
+        audio_queued = 1;
+        disable_interrupts();
+        sound_callback();
+        enable_interrupts();
+        printf("I_InitSound: AI kickstarted.\n");
+    }
 }
 
 /**********************************************************************/
 // ... update sound buffer and audio device at runtime...
 void I_UpdateSound (void)
 {
-    n64_fillBuffer();
 }
 
 /**********************************************************************/
 // ... update sound buffer and audio device at runtime...
 void I_SubmitSound (void)
 {
-    audioOutput();
 }
 
 /**********************************************************************/
 // ... shut down and relase at program termination.
 void I_ShutdownSound (void)
 {
+    should_sound = 0; // stop audio playback
+    audio_close();
 }
 
 /**********************************************************************/

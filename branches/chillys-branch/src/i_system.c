@@ -98,16 +98,18 @@ double get_elapsed_seconds()
     return (double)(get_ticks() / COUNTS_PER_SECOND);//(double)(get_ticks_ms()) / 1000.0;
 }
 
+extern volatile int snd_ticks; // advanced by sound thread
 
 unsigned long get_doom_ticks(void)
 {
-    return (get_ticks_ms() * TICRATE) / 1000L;//2294 >> 16;
+//    return (get_ticks_ms() * TICRATE) / 1000L;//2294 >> 16;
+    return snd_ticks;
 }
 
 
 //
 // I_GetTime
-// returns time in 1/70th second tics
+// returns time in 1/35th second tics
 //
 unsigned long I_GetTime(void)
 {

@@ -12,17 +12,11 @@ extern void *n64_memset(void *p, int v, size_t n);
 
 
 #define PI_BASE_REG		0x04600000
-#define PI_STATUS_REG		(PI_BASE_REG+0x10)
-
-#define ADDRESS_LOW 0
-#define ADDRESS_HIGH 2
-#define ADDRESS_OFFSET ADDRESS_HIGH
+#define PI_STATUS_REG	(PI_BASE_REG+0x10)
 
 #define MIDI_ROM_base_address	(0xB0101000)
-//GAMEID_ROM_base_address == (MIDI_ROM_base_address + 0x400000)
-#define GAMEID_ROM_base_address	(0xB0501000 - ADDRESS_OFFSET)
-//WAD_ROM_base_address == (GAMEID_ROM_base_address + 0x10)
-#define WAD_ROM_base_address	(0xB0501010 - ADDRESS_OFFSET)
+#define GAMEID_ROM_base_address	(0xB0501000)
+#define WAD_ROM_base_address	(0xB0501010)
 
 #define WAD_size_DOOMSHAREWARE 4196020
 #define WAD_size_DOOM2 14943400
@@ -59,6 +53,7 @@ static int last_opened_file = -1;
 
 
 static uint8_t __attribute__((aligned(8))) dmaBuf[65536];
+
 static inline void dma_and_copy(void *buf, int count, int ROM_base_address, int current_ROM_seek)
 {
     data_cache_hit_writeback_invalidate(dmaBuf, (count + 3) & ~3);

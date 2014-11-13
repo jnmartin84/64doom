@@ -65,6 +65,7 @@ int center_x = 0;
 int center_y = 0;
 int shift = 0;
 
+int mouse = -1;
 
 void pressed_key(struct controller_data pressed_data);
 void held_key(struct controller_data pressed_data);
@@ -118,6 +119,24 @@ void held_key(struct controller_data pressed_data)
     {
         mouse_x = last_x << 1;
         mouse_y = last_y << 1;
+
+        if (mouse_x || mouse_y)
+        {
+            event_t ev;
+
+            ev.type = ev_mouse;
+            ev.data1 = 0;
+            ev.data2 = mouse_x;
+            ev.data3 = mouse_y;
+
+            D_PostEvent(&ev);
+        }
+    }
+
+    if (mouse != -1)
+    {
+        mouse_x = pressed_data.c[mouse].x << 2;
+        mouse_y = pressed_data.c[mouse].y << 2;
 
         if (mouse_x || mouse_y)
         {
@@ -286,13 +305,13 @@ void pressed_key(struct controller_data pressed_data)
     }
     if (pressed.left)
     {
-        doom_input_event.data1 = KEY_LEFTARROW;
+        doom_input_event.data1 = (mouse == -1) ? KEY_LEFTARROW : ',';
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
     if (pressed.right)
     {
-        doom_input_event.data1 = KEY_RIGHTARROW;
+        doom_input_event.data1 = (mouse == -1) ? KEY_RIGHTARROW : '.';
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
@@ -301,6 +320,22 @@ void pressed_key(struct controller_data pressed_data)
         doom_input_event.data1 = KEY_ESCAPE;
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
+    }
+
+    if (mouse != -1)
+    {
+        if (pressed_data.c[mouse].A)
+        {
+            doom_input_event.data1 = KEY_RCTRL;
+            doom_input_event.type = ev_keydown;
+            D_PostEvent(&doom_input_event);
+        }
+        if (pressed_data.c[mouse].B)
+        {
+            doom_input_event.data1 = ' ';
+            doom_input_event.type = ev_keydown;
+            D_PostEvent(&doom_input_event);
+        }
     }
 }
 
@@ -315,9 +350,6 @@ void released_key(struct controller_data pressed_data)
     event_t doom_input_event;
 
     struct SI_condat pressed = pressed_data.c[0];
-
-    last_x = pressed.x - center_x;
-    last_y = pressed.y - center_y;
 
     if (pressed.A)
     {
@@ -381,13 +413,13 @@ void released_key(struct controller_data pressed_data)
     }
     if (pressed.left)
     {
-        doom_input_event.data1 = KEY_LEFTARROW;
+        doom_input_event.data1 = (mouse == -1) ? KEY_LEFTARROW : ',';
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
     if (pressed.right)
     {
-        doom_input_event.data1 = KEY_RIGHTARROW;
+        doom_input_event.data1 = (mouse == -1) ? KEY_RIGHTARROW : '.';
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
@@ -396,6 +428,22 @@ void released_key(struct controller_data pressed_data)
         doom_input_event.data1 = KEY_ESCAPE;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
+    }
+
+    if (mouse != -1)
+    {
+        if (pressed_data.c[mouse].A)
+        {
+            doom_input_event.data1 = KEY_RCTRL;
+            doom_input_event.type = ev_keyup;
+            D_PostEvent(&doom_input_event);
+        }
+        if (pressed_data.c[mouse].B)
+        {
+            doom_input_event.data1 = ' ';
+            doom_input_event.type = ev_keyup;
+            D_PostEvent(&doom_input_event);
+        }
     }
 }
 

@@ -1,8 +1,13 @@
+ifdef $(N64_INST)
 ROOTDIR = $(N64_INST)
+else
+ROOTDIR = /opt/toolchains/n64
+endif
+
 CFLAGS = -std=gnu99 -O0 -G0 -Wall -Werror -mtune=vr4300 -march=vr4300 -I$(CURDIR)/include -I$(ROOTDIR)/include -I$(ROOTDIR)/mips64-elf/include
 ASFLAGS = -mtune=vr4300 -march=vr4300
-N64PREFIX = $(N64_INST)/bin/mips64-elf-
-INSTALLDIR = $(N64_INST)
+N64PREFIX = $(ROOTDIR)/mips64-elf/bin/mips64-elf-
+INSTALLDIR = $(ROOTDIR)/mips64-elf
 CC = $(N64PREFIX)gcc
 AS = $(N64PREFIX)as
 LD = $(N64PREFIX)ld
