@@ -70,6 +70,7 @@ int mouse = -1;
 void pressed_key(struct controller_data pressed_data);
 void held_key(struct controller_data pressed_data);
 void released_key(struct controller_data pressed_data);
+void mouse_handler(struct controller_data pressed_data);
 
 
 //
@@ -95,12 +96,38 @@ void I_GetEvent(void)
     struct controller_data keys_pressed = get_keys_down();
     struct controller_data keys_held = get_keys_held();
     struct controller_data keys_released = get_keys_up();
+    struct controller_data keys_curr = get_keys_pressed();
 
     pressed_key(keys_pressed);
     held_key(keys_held);
     released_key(keys_released);
+    mouse_handler(keys_curr);
 }
 
+
+void mouse_handler(struct controller_data pressed_data)
+{
+    short mouse_x;
+    short mouse_y;
+
+    if (mouse != -1)
+    {
+        mouse_x = pressed_data.c[mouse].x << 2;
+        mouse_y = pressed_data.c[mouse].y << 2;
+
+        if (mouse_x || mouse_y)
+        {
+            event_t ev;
+
+            ev.type = ev_mouse;
+            ev.data1 = 0;
+            ev.data2 = mouse_x;
+            ev.data3 = mouse_y;
+
+            D_PostEvent(&ev);
+        }
+    }
+}
 
 //
 // held_key
@@ -119,24 +146,6 @@ void held_key(struct controller_data pressed_data)
     {
         mouse_x = last_x << 1;
         mouse_y = last_y << 1;
-
-        if (mouse_x || mouse_y)
-        {
-            event_t ev;
-
-            ev.type = ev_mouse;
-            ev.data1 = 0;
-            ev.data2 = mouse_x;
-            ev.data3 = mouse_y;
-
-            D_PostEvent(&ev);
-        }
-    }
-
-    if (mouse != -1)
-    {
-        mouse_x = pressed_data.c[mouse].x << 2;
-        mouse_y = pressed_data.c[mouse].y << 2;
 
         if (mouse_x || mouse_y)
         {
