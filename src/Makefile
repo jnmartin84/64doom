@@ -110,7 +110,7 @@ $(PROG_NAME).elf : $(OBJS)
 all: $(PROG_NAME).bin
 
 clean:
-	rm -f *.elf *.bin
+	rm -f *.elf *.bin map.txt
 	rm -f $(O)/*.o
 
 $(O)/%.o: %.c

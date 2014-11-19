@@ -67,6 +67,8 @@ int shift = 0;
 
 int mouse = -1;
 
+extern int clear_screen;
+
 void pressed_key(struct controller_data pressed_data);
 void held_key(struct controller_data pressed_data);
 void released_key(struct controller_data pressed_data);
@@ -204,10 +206,12 @@ void pressed_key(struct controller_data pressed_data)
         if (PROFILE_MEMORY)
         {
             I_FinishUpdate = &debug_renderer;
+            clear_screen = 2;
         }
         else
         {
             I_FinishUpdate = &renderer;
+            clear_screen = 2;
         }
     }
 
