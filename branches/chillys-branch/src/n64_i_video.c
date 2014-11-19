@@ -116,14 +116,19 @@ static uint32_t NULL_FREE_COL;
 
 // globals
 
-double average_fps = 0.0;
-double instant_fps = -1.0;
-double last_time;
 int PROFILE_MEMORY = 0;
-unsigned long last_tics;
+unsigned int last_ticks = 0;
+unsigned int last_update = 0;
+unsigned int afps = 0;
 
 int clear_screen = 0;
 
+extern volatile int snd_ticks; // advanced by sound thread
+
+// comment out to not show FPS on regular screen
+#define ALWAYS_SHOW_FPS
+// comment out to translate screen buffer to video using asm
+//#define C_RENDERER
 
 #define pack_16bit_colors_long_alt(c1,c2)    (c2 | (c1 << 16))
 
@@ -168,18 +173,179 @@ void renderer(void)
 {
     uint32_t	*screen;
     uint16_t	*video_ptr;
-    int		x;
-    int		y;
-    int		yprime;
-    uint32_t	b1234;
-    byte	b1,b2,b3,b4;
-    uint32_t    *long_ptr;
-#if 0
-    uint32_t    long_color_12;
-    uint32_t    long_color_34;
+    int		    y;
+#ifdef C_RENDERER
+    int		    x;
 #endif
 
     update_count += 1;
+
+#ifdef ALWAYS_SHOW_FPS
+    if (snd_ticks - last_ticks >= 35)
+    {
+        afps = update_count - last_update;
+        last_update = update_count;
+        last_ticks = snd_ticks;
+    }
+#endif
+
+    _dc = lockVideo(1);
+
+    if (clear_screen)
+    {
+        rdp_sync(SYNC_PIPE);
+        rdp_set_default_clipping();
+        rdp_enable_primitive_fill();
+        rdp_attach_display(_dc);
+        rdp_sync(SYNC_PIPE);
+        rdp_set_primitive_color(BLACK_COL);
+        rdp_draw_filled_rectangle(0, 0, 320, 240);
+        rdp_detach_display();
+
+        graphics_set_color(graphics_make_color(0xFF, 0xFF, 0xFF, 0xFF), graphics_make_color(0, 0, 0, 0xFF));
+
+        clear_screen--;
+    }
+
+    for (y=0;y<200;y++)
+    {
+        video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[y20tab[y]];
+        screen = (uint32_t*)&(screens[0][ytab[y]]);
+
+#ifndef C_RENDERER
+        asm
+        (
+            ".set   push\n"
+            ".set   noreorder\n\t"
+            "ori    $10,%0,0\n\t"
+            "ori    $11,%1,0\n\t"
+            "ori    $12,%2,0\n\t"
+            "ori    $13,$0,40\n"
+            "0:\n\t"
+
+            "lw     $2,($11)\n\t"
+            "lw     $3,4($11)\n\t"
+
+            "srl    $4,$2,22\n\t"
+            "srl    $5,$2,6\n\t"
+            "andi   $4,$4,0x03FC\n\t"
+            "andi   $5,$5,0x03FC\n\t"
+            "addu   $4,$4,$12\n\t"
+            "addu   $5,$5,$12\n\t"
+            "lhu    $6,($4)\n\t"
+            "lhu    $7,($5)\n\t"
+            "srl    $4,$2,14\n\t"
+            "sll    $5,$2,2\n\t"
+            "andi   $4,$4,0x03FC\n\t"
+            "andi   $5,$5,0x03FC\n\t"
+            "addu   $4,$4,$12\n\t"
+            "addu   $5,$5,$12\n\t"
+            "lhu    $8,($4)\n\t"
+            "lhu    $9,($5)\n\t"
+            "sll    $6,$6,16\n\t"
+            "sll    $7,$7,16\n\t"
+            "or     $6,$6,$8\n\t"
+            "or     $7,$7,$9\n\t"
+
+            "sw     $6,($10)\n\t"
+            "sw     $7,4($10)\n\t"
+
+            "srl    $4,$3,22\n\t"
+            "srl    $5,$3,6\n\t"
+            "andi   $4,$4,0x03FC\n\t"
+            "andi   $5,$5,0x03FC\n\t"
+            "addu   $4,$4,$12\n\t"
+            "addu   $5,$5,$12\n\t"
+            "lhu    $6,($4)\n\t"
+            "lhu    $7,($5)\n\t"
+            "srl    $4,$3,14\n\t"
+            "sll    $5,$3,2\n\t"
+            "andi   $4,$4,0x03FC\n\t"
+            "andi   $5,$5,0x03FC\n\t"
+            "addu   $4,$4,$12\n\t"
+            "addu   $5,$5,$12\n\t"
+            "lhu    $8,($4)\n\t"
+            "lhu    $9,($5)\n\t"
+            "sll    $6,$6,16\n\t"
+            "sll    $7,$7,16\n\t"
+            "or     $6,$6,$8\n\t"
+            "or     $7,$7,$9\n\t"
+
+            "sw     $6,8($10)\n\t"
+            "sw     $7,12($10)\n\t"
+            "addiu  $10,$10,16\n\t"     // inc display ptr
+
+            "addiu  $13,$13,-1\n\t"
+            "bne    $13,$0,0b\n\t"
+            "addiu  $11,$11,8\n"        // inc screen buf
+            ".set pop\n"
+            :                                               // outputs
+            : "r" (video_ptr), "r" (screen), "r" (palarray) // inputs
+            : "$0","$2","$3","$4","$5","$6","$7","$8","$9","$10","$11","$12","$13" // clobbered
+        );
+#else
+        for (x=0;x<320;x+=4)
+        {
+            uint32_t	b1234;
+            byte	    b1,b2,b3,b4;
+            uint32_t    *long_ptr = (uint32_t*)(&video_ptr[x]);
+
+            b1234 = screen[x >> 2];
+            b1 = (b1234 >> 24) & 0xFF;
+            b2 = (b1234 >> 16) & 0xFF;
+            b3 = (b1234 >>  8) & 0xFF;
+            b4 = (b1234      ) & 0xFF;
+
+            long_ptr[0] = pack_16bit_colors_long_alt((palarray[b1] & 0xffff), (palarray[b2] & 0xffff));
+            long_ptr[1] = pack_16bit_colors_long_alt((palarray[b3] & 0xffff), (palarray[b4] & 0xffff));
+        }
+#endif
+    }
+
+#ifdef ALWAYS_SHOW_FPS
+    {
+        char text[3];
+
+        if (afps > 9)
+        {
+            int tens = afps/10;
+            int ones = afps - tens * 10;
+            text[0] = '0' + tens;
+            text[1] = '0' + ones;
+            text[2] = 0;
+        }
+        else
+        {
+            text[0] = ' ';
+            text[1] = '0' + afps;
+            text[2] = 0;
+        }
+
+        graphics_draw_text(_dc, 8,  8, text);
+    }
+#endif
+
+    unlockVideo(_dc);
+}
+
+
+void debug_renderer(void)
+{
+    uint32_t	*screen;
+    uint16_t	*video_ptr;
+    int		    y;
+#ifdef C_RENDERER
+    int         x;
+#endif
+
+    update_count += 1;
+
+    if (snd_ticks - last_ticks >= 35)
+    {
+        afps = update_count - last_update;
+        last_update = update_count;
+        last_ticks = snd_ticks;
+    }
 
     _dc = lockVideo(1);
 
@@ -199,85 +365,88 @@ void renderer(void)
 
     for (y=0;y<200;y++)
     {
-        yprime = ytab[y];
-
         video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[y20tab[y]];
-        screen = (uint32_t*)&(screens[0][yprime]);
+        screen = (uint32_t*)&(screens[0][ytab[y]]);
 
+#ifndef C_RENDERER
+        asm
+        (
+            ".set   push\n"
+            ".set   noreorder\n\t"
+            "ori    $10,%0,0\n\t"
+            "ori    $11,%1,0\n\t"
+            "ori    $12,%2,0\n\t"
+            "ori    $13,$0,40\n"
+            "0:\n\t"
+
+            "lw     $2,($11)\n\t"
+            "lw     $3,4($11)\n\t"
+
+            "srl    $4,$2,22\n\t"
+            "srl    $5,$2,6\n\t"
+            "andi   $4,$4,0x03FC\n\t"
+            "andi   $5,$5,0x03FC\n\t"
+            "addu   $4,$4,$12\n\t"
+            "addu   $5,$5,$12\n\t"
+            "lhu    $6,($4)\n\t"
+            "lhu    $7,($5)\n\t"
+            "srl    $4,$2,14\n\t"
+            "sll    $5,$2,2\n\t"
+            "andi   $4,$4,0x03FC\n\t"
+            "andi   $5,$5,0x03FC\n\t"
+            "addu   $4,$4,$12\n\t"
+            "addu   $5,$5,$12\n\t"
+            "lhu    $8,($4)\n\t"
+            "lhu    $9,($5)\n\t"
+            "sll    $6,$6,16\n\t"
+            "sll    $7,$7,16\n\t"
+            "or     $6,$6,$8\n\t"
+            "or     $7,$7,$9\n\t"
+
+            "sw     $6,($10)\n\t"
+            "sw     $7,4($10)\n\t"
+
+            "srl    $4,$3,22\n\t"
+            "srl    $5,$3,6\n\t"
+            "andi   $4,$4,0x03FC\n\t"
+            "andi   $5,$5,0x03FC\n\t"
+            "addu   $4,$4,$12\n\t"
+            "addu   $5,$5,$12\n\t"
+            "lhu    $6,($4)\n\t"
+            "lhu    $7,($5)\n\t"
+            "srl    $4,$3,14\n\t"
+            "sll    $5,$3,2\n\t"
+            "andi   $4,$4,0x03FC\n\t"
+            "andi   $5,$5,0x03FC\n\t"
+            "addu   $4,$4,$12\n\t"
+            "addu   $5,$5,$12\n\t"
+            "lhu    $8,($4)\n\t"
+            "lhu    $9,($5)\n\t"
+            "sll    $6,$6,16\n\t"
+            "sll    $7,$7,16\n\t"
+            "or     $6,$6,$8\n\t"
+            "or     $7,$7,$9\n\t"
+
+            "sw     $6,8($10)\n\t"
+            "sw     $7,12($10)\n\t"
+            "addiu  $10,$10,16\n\t"     // inc display ptr
+
+            "addiu  $13,$13,-1\n\t"
+            "bne    $13,$0,0b\n\t"
+            "addiu  $11,$11,8\n"        // inc screen buf
+            ".set pop\n"
+            :                                               // outputs
+            : "r" (video_ptr), "r" (screen), "r" (palarray) // inputs
+            : "$0","$2","$3","$4","$5","$6","$7","$8","$9","$10","$11","$12","$13" // clobbered
+        );
+#else
         for (x=0;x<320;x+=4)
         {
-            long_ptr = (uint32_t*)(&video_ptr[x]);
-
-            b1234 = screen[x >> 2];
-            b1 = (b1234 >> 24) & 0xFF;
-            b2 = (b1234 >> 16) & 0xFF;
-            b3 = (b1234 >>  8) & 0xFF;
-            b4 = (b1234      ) & 0xFF;
-
-#if 0
-            long_color_12 = pack_16bit_colors_long_alt((palarray[b1] & 0xffff), (palarray[b2] & 0xffff));
-            long_color_34 = pack_16bit_colors_long_alt((palarray[b3] & 0xffff), (palarray[b4] & 0xffff));
-
-            long_ptr[0] = long_color_12;
-            long_ptr[1] = long_color_34;
-#endif
-
-            long_ptr[0] = pack_16bit_colors_long_alt((palarray[b1] & 0xffff), (palarray[b2] & 0xffff));
-            long_ptr[1] = pack_16bit_colors_long_alt((palarray[b3] & 0xffff), (palarray[b4] & 0xffff));
-        }
-    }
-
-    unlockVideo(_dc);
-}
-
-
-void debug_renderer(void)
-{
-    uint32_t	*screen;
-    uint16_t	*video_ptr;
-    int		x;
-    int		y;
-    int		yprime;
-    uint32_t	b1234;
-    byte	b1,b2,b3,b4;
-    uint32_t    *long_ptr;
-    uint32_t    long_color_12;
-    uint32_t    long_color_34;
-
-    if(last_tics > 0)
-    {
-        instant_fps = (double)(COUNTS_PER_SECOND / (get_ticks() - last_tics));
-
-        average_fps += instant_fps;
-        average_fps /= 2.0;
-    }
-
-    last_tics = get_ticks();
-    last_time = get_elapsed_seconds();
-
-    update_count += 1;
-
-    _dc = lockVideo(1);
-
-    rdp_sync(SYNC_PIPE);
-    rdp_set_default_clipping();
-    rdp_enable_primitive_fill();
-    rdp_attach_display(_dc);
-    rdp_sync(SYNC_PIPE);
-    rdp_set_primitive_color(BLACK_COL);
-    rdp_draw_filled_rectangle(0, 0, 320, 20);
-    rdp_detach_display();
-
-    for (y=0;y<200;y++)
-    {
-        yprime = ytab[y];
-
-        video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[y20tab[y]];
-        screen = (uint32_t*)&(screens[0][yprime]);
-
-        for (x=0;x<320;x+=4)
-        {
-            long_ptr = (uint32_t*)(&video_ptr[x]);
+            uint32_t	b1234;
+            byte	    b1,b2,b3,b4;
+            uint32_t    *long_ptr = (uint32_t*)(&video_ptr[x]);
+            uint32_t    long_color_12;
+            uint32_t    long_color_34;
 
             b1234 = screen[x >> 2];
             b1 = (b1234 >> 24) & 0xFF;
@@ -293,6 +462,7 @@ void debug_renderer(void)
             long_ptr[0] = long_color_12;
             long_ptr[1] = long_color_34;
         }
+#endif
     }
 
     if (PROFILE_MEMORY)
@@ -425,10 +595,7 @@ void render_memory_usage(uint16_t *buffer)
         graphics_draw_text(_dc,   0,  80, legend_string);
 
         graphics_set_color(NULL_FREE_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%.0f", "FPS", instant_fps);
-        graphics_draw_text(_dc,   0,  100, legend_string);
-        graphics_set_color(NULL_FREE_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%.0f", "FPS (avg)", average_fps);
+        sprintf(legend_string, "%s:%3d", "FPS (avg)", afps);
         graphics_draw_text(_dc, 100,  100, legend_string);
     }
 }
