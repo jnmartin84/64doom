@@ -43,6 +43,7 @@ C LEFT :: switch to previous weapon
 C RIGHT :: switch to next weapon
 C UP :: toggle auto-map
 C DOWN :: ENTER key
+Z :: toggle run on/off
 A :: shoot
 B :: use (open doors, flip switches)
 START :: ESCAPE key
