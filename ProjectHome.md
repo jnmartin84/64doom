@@ -1,0 +1,3 @@
+The Nintendo 64 was the only console of its time left out of receiving a faithful Doom port. PlayStation, Saturn, Jaguar, 3DO, 32X and even the SNES all received ports of the original, but the N64 was given a re-badged version of a game that was originally meant to be a very different product. This port attempts to rectify that issue.
+
+This is a faithful port of the original Linux Doom source code released by iD Software in the late 1990s. It uses libdragon (http://www.dragonminded.com/n64dev/libdragon/) for N64-specific input and output functionality and is built with GCC.
