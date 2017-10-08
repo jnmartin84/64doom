@@ -17,7 +17,7 @@ R_DrawColumn:
 	.set	noreorder
 
 	#	reserve stack
-	#	save called-saved registers to stack
+	#	save caller-saved registers to stack
 	addiu	sp,	sp,	-112
 	sd		s7,	0(sp)
 	sd		s6,	8(sp)
