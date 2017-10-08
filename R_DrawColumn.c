@@ -1,6 +1,6 @@
 void R_DrawColumn (void)
 {
-	int			count;
+	int		count;
 	byte*		dest;
 	fixed_t		frac;
 	fixed_t		fracstep;
