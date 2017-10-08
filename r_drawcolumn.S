@@ -18,29 +18,19 @@ R_DrawColumn:
 
 	#	reserve stack
 	#	save caller-saved registers to stack
-	addiu	sp,	sp,	-112
-	sd	s7,	0(sp)
-	sd	s6,	8(sp)
-	sd	s5,	16(sp)
+	addiu	sp,	sp,	-32
 	sd	s4,	24(sp)
-	sd	s3,	32(sp)
-	sd	s2,	40(sp)
-	sd	s1,	48(sp)
-	sd	s0,	56(sp)
-	sd	a2,	64(sp)
-	sd	a1,	72(sp)
-	sd	a0,	80(sp)
-	sd	v1,	88(sp)
-	sd	v0,	96(sp)
-	sd	ra,	104(sp)
+	sd	s3,	16(sp)
+	sd	s2,	8(sp)
+	sd	ra,	0(sp)
 
-	#	s1 == dc_yh
-	lw	s1,	%gp_rel(dc_yh)(gp)
+	#	t1 == dc_yh
+	lw	t1,	%gp_rel(dc_yh)(gp)
 	#	s2 == dc_yl
 	lw	s2,	%gp_rel(dc_yl)(gp)
 	
 	#	count == dc_yh - dc_yl
-	subu	s3,	s1,	s2
+	subu	s3,	t1,	s2
 
 	#	(count < 0) ? goto _R_DrawColumnEnd; : /* do nothing */ ;
 	bltz	s3,	_R_DrawColumn_end
@@ -58,15 +48,17 @@ R_DrawColumn:
 	#	_ylookup(a0,a1,a2)
 	jal	_ylookup
 	#	delay slot
-	#	s5 =  dc_x
-	lw	s5,	%gp_rel(dc_x)(gp)	
-
+	nop
+	
 	#	v0 now contains ylookup result
 	#	store ylookup result in s4
 	addu	s4,	v0,	zero
 
+	#	t5 =  dc_x
+	lw	t5,	%gp_rel(dc_x)(gp)	
+
 	#	a0 = dc_x
-	addu	a0,	s5,	zero
+	addu	a0,	t5,	zero
 
 	#	a1 = scaledviewwidth
 	lw	a1,	%gp_rel(scaledviewwidth)(gp)
@@ -77,50 +69,52 @@ R_DrawColumn:
 	#	_columnofs(a0,a1,a2)
 	jal	_columnofs
 	#	delay slot
-	#	fracstep = dc_iscale;
-	#	s1 = fracstep
-	lw	s1,	%gp_rel(dc_iscale)(gp)
+	nop
 
 	#	a0 now contains columnofs lookup result
-	#	store columnofs lookup result in s6
-	addu	s6,	v0,	zero
+	#	store columnofs lookup result in t6
+	addu	t6,	v0,	zero
+
+	#	fracstep = dc_iscale;
+	#	t1 = fracstep
+	lw	t1,	%gp_rel(dc_iscale)(gp)
 
 	#	dest = ylookup + columnofs
-	#	s6 = dest
-	addu	s6,	s4,	s6 
+	#	t6 = dest
+	addu	t6,	s4,	t6 
 
 	#	s2 = dc_yl
-	#	s5 = centery
-	lw	s5,	%gp_rel(centery)(gp)
+	#	t5 = centery
+	lw	t5,	%gp_rel(centery)(gp)
 
 	#	s2 = dc_yl - centery
-	subu	s2,	s2,	s5
+	subu	s2,	s2,	t5
 
 	#	frac = dc_texturemid + (dc_yl-centery)*fracstep;
-	mult	s2,	s1
+	multu	s2,	t1
 	#	s2 = (dc_yl-centery)*fracstep`
 	mflo	s2
 
-	#	s5 = dc_texturemid
-	lw	s5,	%gp_rel(dc_texturemid)(gp)
-	#	s5 = frac
-	addu	s5,	s5,	s2
+	#	t5 = dc_texturemid
+	lw	t5,	%gp_rel(dc_texturemid)(gp)
+	#	t5 = frac
+	addu	t5,	t5,	s2
 
 	#	subproc
 	#	name:
 	#		_R_DrawColumn_count
 	#	inputs:
-	#		s1 == fracstep
+	#		t1 == fracstep
 	#		s3 == count
-	#		s5 == frac
-	#		s6 == dest
+	#		t5 == frac
+	#		t6 == dest
 
 	#	(s3 <= 0) ? goto _R_DrawColumn_end; : /* do nothing */ ;
 _R_DrawColumn_count:	
 	blez	s3,	_R_DrawColumn_end
 	#	delay slot
 	#	s2 = (frac>>FRACBITS)
-	sra	s2,	s5,	FRACBITS
+	sra	s2,	t5,	FRACBITS
 
 	#	s3--
 	addi	s3,	s3,	-1 
@@ -128,52 +122,42 @@ _R_DrawColumn_count:
 	#	s2 = source_index = s2 & 127
 	andi	s2,	s2,	127
 
-	#	s7 = dc_source
-	lw	s7,	%gp_rel(dc_source)(gp)
+	#	t7 = dc_source
+	lw	t7,	%gp_rel(dc_source)(gp)
 	#	s2 = src = dc_source+source_index
-	add	s2,	s7,	s2
+	addu	s2,	t7,	s2
 	#	s4 = byte at src
-	lb	s4,	0(s2)
-	#	s7 = dc_colormap
-	lw	s7,	%gp_rel(dc_colormap)(gp)
-	#	s7 = dst = dc_colormap+src
-	addu	s7,	s7,	s4
+	lbu	s4,	0(s2)
+	#	t7 = dc_colormap
+	lw	t7,	%gp_rel(dc_colormap)(gp)
+	#	t7 = dst = dc_colormap+src
+	addu	t7,	t7,	s4
 
 	#	*dest = dst
 	#	s2 = memory[dst]
-	lb	s2,	0(s7)
+	lbu	s2,	0(t7)
 	#	memory[dest] = s2
-	sb	s2,	0(s6)
+	sb	s2,	0(t6)
 
 	#	add SCREENWIDTH to dest
-	addiu	s6,	s6,	SCREENWIDTH
+	addiu	t6,	t6,	SCREENWIDTH
 
 	#	goto	_R_DrawColumn_count;
 	b	_R_DrawColumn_count
 	#	delay slot
 	#	add fracstep to frac
-	addu	s5,	s5,	s1
+	addu	t5,	t5,	t1
 
 	#	restore caller-saved registers from stack
 	#	return stack
 	#	jump register to saved return address
 _R_DrawColumn_end:
-	ld	ra,	104(sp)
-	ld	v0,	96(sp)
-	ld	v1,	88(sp)
-	ld	a0,	80(sp)
-	ld	a1,	72(sp)
-	ld	a2,	64(sp)
-	ld	s0,	56(sp)
-	ld	s1,	48(sp)
-	ld	s2,	40(sp)
-	ld	s3,	32(sp)
+	ld	ra,	0(sp)
+	ld	s2,	8(sp)
+	ld	s3,	16(sp)
 	ld	s4,	24(sp)
-	ld	s5,	16(sp)
-	ld	s6,	8(sp)
-	ld	s7,	0(sp)
 
-	addiu	sp,	sp,	112
+	addiu	sp,	sp,	32
 
 	jr	ra
 	#	delay slot
