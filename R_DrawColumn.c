@@ -1,9 +1,9 @@
 void R_DrawColumn (void)
 {
-	int		count;
-	byte*	dest;
-	fixed_t	frac;
-    fixed_t	fracstep;
+	int			count;
+	byte*		dest;
+	fixed_t		frac;
+	fixed_t		fracstep;
 
 	// dc_yh is top pixel?
 	// dc_yl is bottom pixel?
