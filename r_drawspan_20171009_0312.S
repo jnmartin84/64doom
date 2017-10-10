@@ -1,8 +1,5 @@
 #include "mips.h"
 
-#define SCREENWIDTH 320
-#define FRACBITS 16
-
 //
 // R_DrawSpan
 // With DOOM style restrictions on view orientation,
@@ -48,12 +45,17 @@ R_DrawSpan:
 	subu	s0,	t1,	t0
 	#	{s0:count,	t0:ds_x1, t1:ds_x2}
 	
+	#	(count <= 0) ? (goto _R_DrawSpan_end; } : { /* do nothing */ ; }
+	blezl	s0, _R_DrawSpan_end
+	#	delay slot
+	nop
+	
 	#	s1 = xfrac = ds_xfrac
-	lw	s1,	%gp_rel(ds_xfrac)(gp)
+	lwu	s1,	%gp_rel(ds_xfrac)(gp)
 	#	{s0:count, s1:xfrac, t0:ds_x1, t1:ds_x2}
 
 	#	s2 = yfrac = ds_yfrac
-	lw	s2,	%gp_rel(ds_yfrac)(gp)
+	lwu	s2,	%gp_rel(ds_yfrac)(gp)
 	#	{s0:count, s1:xfrac, s2:yfrac, t0:ds_x1, t1:ds_x2}
 
 	# dest = _ylookup(ds_y,scaledviewwidth,viewheight) + _columnofs(ds_x1,scaledviewwidth,viewheight);
@@ -123,12 +125,12 @@ R_DrawSpan:
 	#	v0:_columnofs}
 	
 	#	t0 = ds_xstep
-	lw	t0,	%gp_rel(ds_xstep)(gp)
+	lwu	t0,	%gp_rel(ds_xstep)(gp)
 	#	{s0:count, s1:xfrac, s2:yfrac, s3:_ylookup, s4:_columnofs, t0:ds_xstep, 
 	#	t8:dest, v0:_columnofs}
 
 	#	t1 = ds_ystep
-	lw	t1,	%gp_rel(ds_ystep)(gp)
+	lwu	t1,	%gp_rel(ds_ystep)(gp)
 	#	{s0:count, s1:xfrac, s2:yfrac, s3:_ylookup, s4:_columnofs, t0:ds_xstep, 
 	#	t1:ds_ystep, t8:dest, v0:_columnofs}
 	
@@ -160,25 +162,25 @@ _R_DrawSpan_count:
 	#	// Current texture index in u,v.
 	#	spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
 	#	t4 = yfrac >> (16-6)
-	srl	t4,	s2, (16-6)
+	sra	t4,	s2, 10
 	#	{s0:count, s1:xfrac, s2:yfrac, s3:_ylookup, s4:_columnofs, t0:ds_xstep, 
 	#	t1:ds_ystep, t2:ds_source, t3:ds_colormap, t4:yfrac>>10, t8:dest, 
 	#	v0:_columnofs}
 	
-	#	t5 = xfrac >> 16
-	srl	t5,	s1,	16
-	#	{s0:count, s1:xfrac, s2:yfrac, s3:_ylookup, s4:_columnofs, t0:ds_xstep, 
-	#	t1:ds_ystep, t2:ds_source, t3:ds_colormap, t4:yfrac>>10, t5:xfrac>>16,
-	#	t8:dest, v0:_columnofs}
-	
 	#	t4 = t4 & (63*64)
-	andi	t4,	t4,	(63*64)
+	andi	t4,	t4,	0xfc0 # (63*64)
 	#	{s0:count, s1:xfrac, s2:yfrac, s3:_ylookup, s4:_columnofs, t0:ds_xstep, 
 	#	t1:ds_ystep, t2:ds_source, t3:ds_colormap, t4:(yfrac>>10)&4032,
 	#	t5:xfrac>>16, t8:dest, v0:_columnofs}
 
+	#	t5 = xfrac >> 16
+	sra	t5,	s1,	16
+	#	{s0:count, s1:xfrac, s2:yfrac, s3:_ylookup, s4:_columnofs, t0:ds_xstep, 
+	#	t1:ds_ystep, t2:ds_source, t3:ds_colormap, t4:yfrac>>10, t5:xfrac>>16,
+	#	t8:dest, v0:_columnofs}
+	
 	#	t5 = t5 & 63
-	andi	t5,	t5,	63
+	andi	t5,	t5,	0x3f # 63
 	#	{s0:count, s1:xfrac, s2:yfrac, s3:_ylookup, s4:_columnofs, t0:ds_xstep, 
 	#	t1:ds_ystep, t2:ds_source, t3:ds_colormap, t4:(yfrac>>10)&4032,
 	#	t5:(frac>>16)&63, t8:dest, v0:_columnofs}
@@ -192,7 +194,6 @@ _R_DrawSpan_count:
 	#	last_spot = spot
 	#	for debugging...
 	sw	t6,	%gp_rel(last_spot)(gp)
-
 	
 	#	t7 = &ds_source[spot]
 	addu	t7,	t2,	t6
@@ -209,8 +210,8 @@ _R_DrawSpan_count:
 	#	t5:(frac>>16)&63, t6:spot, t7:&ds_source[spot], t8:dest, 
 	#	t9:ds_source[spot], v0:_columnofs}
 	
-	#	t4 = &ds_colormap[t7]
-	addu	t4,	t6,	t7
+	#	t4 = &ds_colormap[t9]
+	addu	t4,	t3,	t9
 	#	{s0:count, s1:xfrac, s2:yfrac, s3:_ylookup, s4:_columnofs, t0:ds_xstep, 
 	#	t1:ds_ystep, t2:ds_source, t3:ds_colormap, t4:&ds_colormap[t7],
 	#	t5:(frac>>16)&63, t6:spot, t7:&ds_source[spot], t8:dest, 
