@@ -1,13 +1,21 @@
 #include "mips.h"
 
 SWAPSHORT:
+	.global	SWAPSHORT
+	.set	noreorder
+
 	srl	t0,	a0,	8
 	sll	t1,	a0,	8
 	or	v0,	t0,	t1
 	jr	ra	
 	nop
 
+	.set	reorder
+
 SWAPLONG:
+	.global	SWAPLONG
+	.set	noreorder
+
 	srl	t0,	a0,	24
 	srl	t1,	a0,	8
 	andi	t1,	t1,	0xff00
@@ -20,3 +28,5 @@ SWAPLONG:
 
 	jr	ra
 	nop
+
+	.set	reorder
