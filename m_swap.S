@@ -14,8 +14,9 @@ SwapSHORT:
 	srl	t0,	a0,	8
 	sll	t1,	a0,	8
 	or	v0,	t0,	t1
-
-	jr	ra	
+	andi	v0,	v0,	0xFFFF
+	
+	jr	ra
 	nop
 
 	.set	macro

@@ -58,16 +58,21 @@ R_DrawColumn:
 	addu	t6,	v1,	t6 
 	subu	a2,	a2,	t5
 
-_R_DrawColumn_mul_start:
-	blez	a2,	R_DrawColumn_mul_done
-	nop
+#	addu	a3,	zero,	zero
+#_R_DrawColumn_mul_start:
+#	blez	a2,	_R_DrawColumn_mul_done
+#	nop
 
-	addu	t1,	t1,	t1
+#	addu	a3,	a3,	t1
+#	addiu	a2,	a2,	-1
 
-	b	_R_DrawColumn_mul_start
-	addiu	a2,	a2,	-1
+#	b	_R_DrawColumn_mul_start
+#	nop
 
-	addu	a2,	t1,	zero
+#	addu	a2,	a3,	zero
+
+	multu	a2,	t1
+	mflo	a2
 
 _R_DrawColumn_mul_done:
 	lw	t5,	%gp_rel(dc_texturemid)(gp)

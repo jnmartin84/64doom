@@ -14,8 +14,7 @@
 //
 // Draws the actual span.
 /* void R_DrawSpan (void) */
-//# :: ifndef RDPRENDER
-#if 1
+#ifndef RDPRENDER
 	.set	nomips16
 	.set	nomicromips
 	.ent	R_DrawSpan
