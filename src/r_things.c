@@ -22,14 +22,8 @@
 //
 //-----------------------------------------------------------------------------
 
-
-static const char
-rcsid[] = "$Id: r_things.c,v 1.5 1997/02/03 16:47:56 b1 Exp $";
-
-
 #include <stdio.h>
 #include <stdlib.h>
-
 
 #include "doomdef.h"
 #include "m_swap.h"
@@ -43,15 +37,14 @@ rcsid[] = "$Id: r_things.c,v 1.5 1997/02/03 16:47:56 b1 Exp $";
 #include "doomstat.h"
 
 
-extern void *n64_memcpy(void *d, const void *s, size_t n);
-extern void *n64_memset2(void *p, int v, size_t n);
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+
+extern void R_DrawTranslatedColumn(void);
 
 
 #define MINZ				(FRACUNIT*4)
 #define BASEYCENTER			100
-
-//void R_DrawColumn (void);
-//void R_DrawFuzzColumn (void);
 
 
 typedef struct
@@ -130,7 +123,7 @@ R_InstallSpriteLump
 	if (sprtemp[frame].rotate == false)
 	{
             char ermac[256];
-	    sprintf(ermac,"R_InitSprites: Sprite %s frame %c has "
+	    sprintf(ermac,"R_InstallSpriteLump: Sprite %s frame %c has "
 		     "multip rot=0 lump", spritename, 'A'+frame);
             I_Error(ermac);
 	}
@@ -138,7 +131,7 @@ R_InstallSpriteLump
 	if (sprtemp[frame].rotate == true)
 	{
             char ermac[256];
-	    sprintf(ermac, "R_InitSprites: Sprite %s frame %c has rotations "
+	    sprintf(ermac, "R_InstallSpriteLump: Sprite %s frame %c has rotations "
 		     "and a rot=0 lump", spritename, 'A'+frame);
 	    I_Error(ermac);
 	}
@@ -155,7 +148,7 @@ R_InstallSpriteLump
     if (sprtemp[frame].rotate == false)
     {
 	char ermac[256];
-	sprintf(ermac, "R_InitSprites: Sprite %s frame %c has rotations "
+	sprintf(ermac, "R_InstallSpriteLump: Sprite %s frame %c has rotations "
 		 "and a rot=0 lump", spritename, 'A'+frame);
 	I_Error(ermac);
     }
@@ -167,7 +160,7 @@ R_InstallSpriteLump
     if (sprtemp[frame].lump[rotation] != -1)
     {
 	char ermac[256];
-	sprintf(ermac, "R_InitSprites: Sprite %s : %c : %c "
+	sprintf(ermac, "R_InstallSpriteLump: Sprite %s : %c : %c "
 		 "has two lumps mapped to it",
 		 spritename, 'A'+frame, '1'+rotation);
 	I_Error(ermac);
@@ -228,7 +221,7 @@ void R_InitSpriteDefs (char** namelist)
     for (i=0 ; i<numsprites ; i++)
     {
 	spritename = namelist[i];
-	n64_memset2 (sprtemp,-1, sizeof(sprtemp));
+	__n64_memset_ASM (sprtemp,-1, sizeof(sprtemp)); // was n64_memset2
 		
 	maxframe = -1;
 	intname = *(int *)namelist[i];
@@ -281,7 +274,7 @@ void R_InitSpriteDefs (char** namelist)
 		{
 		char ermac[256];
 		// no rotations were found for that frame at all
-		sprintf(ermac, "R_InitSprites: No patches found "
+		sprintf(ermac, "R_InitSpriteDefs: No patches found "
 			 "for %s frame %c", namelist[i], frame+'A');
 		I_Error(ermac);
 		break;
@@ -297,7 +290,7 @@ void R_InitSpriteDefs (char** namelist)
 		    if (sprtemp[frame].lump[rotation] == -1)
 		    {
 			char ermac[256];
-			sprintf(ermac,"R_InitSprites: Sprite %s frame %c "
+			sprintf(ermac,"R_InitSpriteDefs: Sprite %s frame %c "
 				 "is missing rotations",
 				 namelist[i], frame+'A');
 			I_Error(ermac);
@@ -310,7 +303,7 @@ void R_InitSpriteDefs (char** namelist)
 	sprites[i].numframes = maxframe;
 	sprites[i].spriteframes = 
 	    Z_Malloc (maxframe * sizeof(spriteframe_t), PU_STATIC, NULL);
-	n64_memcpy (sprites[i].spriteframes, sprtemp, maxframe*sizeof(spriteframe_t));
+	__n64_memcpy_ASM (sprites[i].spriteframes, sprtemp, maxframe*sizeof(spriteframe_t));
     }
 
 }
@@ -452,6 +445,7 @@ R_DrawVisSprite
     else if (vis->mobjflags & MF_TRANSLATION)
     {
 	colfunc = R_DrawTranslatedColumn;
+
 	dc_translation = translationtables - 256 +
 	    ( (vis->mobjflags & MF_TRANSLATION) >> (MF_TRANSSHIFT-8) );
     }
@@ -467,7 +461,9 @@ R_DrawVisSprite
 	texturecolumn = frac>>FRACBITS;
 #ifdef RANGECHECK
 	if (texturecolumn < 0 || texturecolumn >= SHORT(patch->width))
-	    I_Error ("R_DrawSpriteRange: bad texturecolumn");
+        {
+	    I_Error ("R_DrawVisSprite: bad texturecolumn");
+        }
 #endif
 	column = (column_t *) ((byte *)patch +
 			       LONG(patch->columnofs[texturecolumn]));
@@ -540,14 +536,24 @@ void R_ProjectSprite (mobj_t* thing)
     // decide which patch to use for sprite relative to player
 #ifdef RANGECHECK
     if ((unsigned)thing->sprite >= numsprites)
-	I_Error ("R_ProjectSprite: invalid sprite number %i ",
-		 thing->sprite);
+    {
+        char ermac[256];
+        sprintf(ermac, "R_ProjectSprite: invalid sprite number %i", thing->sprite);
+        I_Error(ermac);
+/*	I_Error ("R_ProjectSprite: invalid sprite number %i ",
+		 thing->sprite);*/
+    }
 #endif
     sprdef = &sprites[thing->sprite];
 #ifdef RANGECHECK
     if ( (thing->frame&FF_FRAMEMASK) >= sprdef->numframes )
-	I_Error ("R_ProjectSprite: invalid sprite frame %i : %i ",
-		 thing->sprite, thing->frame);
+    {
+        char ermac[256];
+        sprintf(ermac, "R_ProjectSprite: invalid sprite frame %i : %i", thing->sprite, thing->frame);
+        I_Error(ermac);
+/*	I_Error ("R_ProjectSprite: invalid sprite frame %i : %i ",
+		 thing->sprite, thing->frame);*/
+    }
 #endif
     sprframe = &sprdef->spriteframes[ thing->frame & FF_FRAMEMASK];
 
@@ -693,14 +699,24 @@ void R_DrawPSprite (pspdef_t* psp)
     // decide which patch to use
 #ifdef RANGECHECK
     if ( (unsigned)psp->state->sprite >= numsprites)
-	I_Error ("R_ProjectSprite: invalid sprite number %i ",
-		 psp->state->sprite);
+    {
+        char ermac[256];
+        sprintf(ermac, "R_DrawPSprite: invalid sprite number %i", psp->state->sprite);
+        I_Error(ermac);
+/*	I_Error ("R_DrawPSprite: invalid sprite number %i ",
+		 psp->state->sprite);*/
+    }
 #endif
     sprdef = &sprites[psp->state->sprite];
 #ifdef RANGECHECK
     if ( (psp->state->frame & FF_FRAMEMASK)  >= sprdef->numframes)
-	I_Error ("R_ProjectSprite: invalid sprite frame %i : %i ",
-		 psp->state->sprite, psp->state->frame);
+    {
+        char ermac[256];
+        sprintf(ermac, "R_DrawPSprite: invalid sprite frame %i : %i", psp->state->sprite, psp->state->frame);
+        I_Error(ermac);
+/*	I_Error ("R_DrawPSprite: invalid sprite frame %i : %i ",
+		 psp->state->sprite, psp->state->frame);*/
+    }
 #endif
     sprframe = &sprdef->spriteframes[ psp->state->frame & FF_FRAMEMASK ];
 

@@ -22,10 +22,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: p_sight.c,v 1.3 1997/01/28 22:08:28 b1 Exp $";
-
-
 #include "doomdef.h"
 
 #include "i_system.h"
@@ -153,9 +149,14 @@ boolean P_CrossSubsector (int num)
 	
 #ifdef RANGECHECK
     if (num>=numsubsectors)
-	I_Error ("P_CrossSubsector: ss %i with numss = %i",
+    {
+        char ermac[256];
+        sprintf(ermac, "P_CrossSubsector: ss %i with numss = %i", num, numsubsectors);
+        I_Error(ermac);
+/*	I_Error ("P_CrossSubsector: ss %i with numss = %i",
 		 num,
-		 numsubsectors);
+		 numsubsectors);*/
+    }
 #endif
 
     sub = &subsectors[num];

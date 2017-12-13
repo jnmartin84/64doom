@@ -22,10 +22,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
-static const char
-rcsid[] = "$Id: st_lib.c,v 1.4 1997/02/03 16:47:56 b1 Exp $";
-
 #include <ctype.h>
 
 #include "doomdef.h"
@@ -88,21 +84,17 @@ STlib_initNum
 //  based on differences from the old number.
 // Note: worth the trouble?
 //
-void
-STlib_drawNum
-( st_number_t*	n,
-  boolean	refresh )
+void STlib_drawNum(st_number_t* n, boolean refresh)
 {
-
-    int		numdigits = n->width;
-    int		num = *n->num;
+    int numdigits = n->width;
+    int num = *n->num;
     
-    int		w = SHORT(n->p[0]->width);
-    int		h = SHORT(n->p[0]->height);
-    int		x = n->x;
-    const int		y = n->y;
+    int w = SHORT(n->p[0]->width);
+    int h = SHORT(n->p[0]->height);
+    int x = n->x;
+    const int y = n->y;
     
-    int		neg;
+    int neg;
 
     n->oldnum = *n->num;
 
@@ -110,27 +102,33 @@ STlib_drawNum
 
     if (neg)
     {
-	if (numdigits == 2 && num < -9)
-	    num = -9;
-	else if (numdigits == 3 && num < -99)
-	    num = -99;
-	
-	num = -num;
+        if (numdigits == 2 && num < -9)
+        {
+            num = -9;	
+        }
+        else if (numdigits == 3 && num < -99)
+        {			
+            num = -99;
+	    }
+        num = -num;
     }
 
     // clear the area
     x = n->x - numdigits*w;
 
+
+#ifdef RANGECHECK
     unsigned int c = y - ST_Y;
 
-    if (/*n->*/c > y)
+    if (c > y)
     {
-	char ermac[256];
-        sprintf(ermac,"drawNum: n->y - ST_Y < 0; %d - %d < 0", /*n->*/y, ST_Y);
+	    char ermac[256];
+        sprintf(ermac,"STlib_drawNum: n->y - ST_Y < 0; %d - %d < 0", y, ST_Y);
         I_Error(ermac);
     }
+#endif 
 
-    V_CopyRect(x, /*n->*/y - ST_Y, BG, w*numdigits, h, x, /*n->*/y, FG);
+    V_CopyRect(x, y - ST_Y, BG, w*numdigits, h, x, y, FG);
 
     // if non-number, do not draw it
     if (num == 1994)
@@ -140,29 +138,31 @@ STlib_drawNum
 
     // in the special case of 0, you draw 0
     if (!num)
-	V_DrawPatch(x - w, /*n->*/y, FG, n->p[ 0 ]);
+	V_DrawPatch(x - w, y, FG, n->p[ 0 ]);
 
     // draw the new number
     while (num && numdigits--)
     {
-	x -= w;
-	V_DrawPatch(x, /*n->*/y, FG, n->p[ num % 10 ]);
-	num /= 10;
+        x -= w;
+        V_DrawPatch(x, y, FG, n->p[ num % 10 ]);
+        num /= 10;
     }
 
     // draw a minus sign if necessary
     if (neg)
-	V_DrawPatch(x - 8, /*n->*/y, FG, sttminus);
+    {
+        V_DrawPatch(x - 8, y, FG, sttminus);
+    }
 }
 
 
 //
-void
-STlib_updateNum
-( st_number_t*		n,
-  boolean		refresh )
+void STlib_updateNum(st_number_t* n, boolean refresh)
 {
-    if (*n->on) STlib_drawNum(n, refresh);
+    if (*n->on)
+    {
+        STlib_drawNum(n, refresh);
+    }
 }
 
 
@@ -190,8 +190,10 @@ STlib_updatePercent
   int			refresh )
 {
     if (refresh && *per->n.on)
-	V_DrawPatch(per->n.x, per->n.y, FG, per->p);
-    
+	{
+	    V_DrawPatch(per->n.x, per->n.y, FG, per->p);
+    }
+	
     STlib_updateNum(&per->n, refresh);
 }
 
@@ -215,7 +217,6 @@ STlib_initMultIcon
 }
 
 
-
 void
 STlib_updateMultIcon
 ( st_multicon_t*	mi,
@@ -226,31 +227,30 @@ STlib_updateMultIcon
     int			x;
     int			y;
 
-    if (*mi->on
-	&& (mi->oldinum != *mi->inum || refresh)
-	&& (*mi->inum!=-1))
+    if (*mi->on && (mi->oldinum != *mi->inum || refresh) && (*mi->inum!=-1))
     {
-	if (mi->oldinum != -1)
-	{
-	    x = mi->x - SHORT(mi->p[mi->oldinum]->leftoffset);
-	    y = mi->y - SHORT(mi->p[mi->oldinum]->topoffset);
-	    w = SHORT(mi->p[mi->oldinum]->width);
-	    h = SHORT(mi->p[mi->oldinum]->height);
+		if (mi->oldinum != -1)
+		{
+			x = mi->x - SHORT(mi->p[mi->oldinum]->leftoffset);
+			y = mi->y - SHORT(mi->p[mi->oldinum]->topoffset);
+			w = SHORT(mi->p[mi->oldinum]->width);
+			h = SHORT(mi->p[mi->oldinum]->height);
 
-	    if (y - ST_Y < 0)
-		I_Error("updateMultIcon: y - ST_Y < 0");
+#ifdef RANGECHECK
+			if (y - ST_Y < 0)
+			I_Error("STlib_updateMultIcon: y - ST_Y < 0");
+#endif
 
-	    V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
-	}
-	V_DrawPatch(mi->x, mi->y, FG, mi->p[*mi->inum]);
-	mi->oldinum = *mi->inum;
+			V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
+		}
+
+		V_DrawPatch(mi->x, mi->y, FG, mi->p[*mi->inum]);
+		mi->oldinum = *mi->inum;
     }
 }
 
 
-
-void
-STlib_initBinIcon
+void STlib_initBinIcon
 ( st_binicon_t*		b,
   int			x,
   int			y,
@@ -267,35 +267,35 @@ STlib_initBinIcon
 }
 
 
-
-void
-STlib_updateBinIcon
-( st_binicon_t*		bi,
-  boolean		refresh )
+void STlib_updateBinIcon(st_binicon_t* bi, boolean refresh)
 {
     int			x;
     int			y;
     int			w;
     int			h;
 
-    if (*bi->on
-	&& (bi->oldval != *bi->val || refresh))
+    if (*bi->on && (bi->oldval != *bi->val || refresh))
     {
-	x = bi->x - SHORT(bi->p->leftoffset);
-	y = bi->y - SHORT(bi->p->topoffset);
-	w = SHORT(bi->p->width);
-	h = SHORT(bi->p->height);
+		x = bi->x - SHORT(bi->p->leftoffset);
+		y = bi->y - SHORT(bi->p->topoffset);
+		w = SHORT(bi->p->width);
+		h = SHORT(bi->p->height);
 
-	if (y - ST_Y < 0)
-	    I_Error("updateBinIcon: y - ST_Y < 0");
+#ifdef RANGECHECK
+		if (y - ST_Y < 0)
+		{
+			I_Error("STlib_updateBinIcon: y - ST_Y < 0");
+		}
+#endif
 
-	if (*bi->val)
-	    V_DrawPatch(bi->x, bi->y, FG, bi->p);
-	else
-	    V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
-
-	bi->oldval = *bi->val;
+		if (*bi->val)
+		{
+			V_DrawPatch(bi->x, bi->y, FG, bi->p);
+		}
+		else
+		{
+			V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
+		}
+		bi->oldval = *bi->val;
     }
-
 }
-

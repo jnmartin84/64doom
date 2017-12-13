@@ -21,9 +21,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -51,7 +48,8 @@ rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 #include "i_net.h"
 
 
-extern void *n64_memset(void *p, int v, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 
 // For some odd reason...
@@ -257,7 +255,8 @@ void I_InitNetwork (void)
     struct hostent*	hostentry;	// host information entry*/
 	
     doomcom = malloc (sizeof (*doomcom) );
-    n64_memset (doomcom, 0, sizeof(*doomcom) );
+//    n64_memset (doomcom, 0, sizeof(*doomcom) );
+    __n64_memset_ZERO_ASM (doomcom, 0, sizeof(*doomcom) );
     
     // set up for network
 /*    i = M_CheckParm ("-dup");
@@ -353,7 +352,7 @@ void I_NetCmd (void)
     else
     {
 	char ermac[256];
-	sprintf(ermac, "Bad net cmd: %i\n", doomcom->command);
+	sprintf(ermac, "I_NetCmd: Bad net cmd: %i\n", doomcom->command);
 	I_Error(ermac);
     }
 }

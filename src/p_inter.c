@@ -22,11 +22,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
-static const char
-rcsid[] = "$Id: p_inter.c,v 1.4 1997/02/03 22:45:11 b1 Exp $";
-
-
 // Data.
 #include "doomdef.h"
 #include "dstrings.h"
@@ -661,7 +656,7 @@ P_TouchSpecialThing
 	break;
 		
       default:
-	I_Error ("P_SpecialThing: Unknown gettable thing");
+	I_Error ("P_TouchSpecialThing: Unknown gettable thing");
     }
 	
     if (special->flags & MF_COUNTITEM)

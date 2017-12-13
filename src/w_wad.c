@@ -46,19 +46,18 @@
 
 #include "hash.h"
 
-
-extern void n64_free(void *buf);
-extern void *n64_malloc(size_t size_to_alloc);
-extern void *n64_memcpy(void *d, const void *s, size_t n);
-extern void *n64_memset(void *p, int v, size_t n);
 extern long rom_tell(int fd);
 extern int rom_lseek(int fd, off_t offset, int whence);
 extern int rom_open(int FILE_START, int size);
 extern int rom_close(int fd);
 extern int rom_read(int fd, void *buf, size_t nbyte);
 
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
+
+
 extern uint32_t final_screen[];
-extern void master_blaster();
 
 static char error[256];
 static hashtable_t ht;
@@ -111,7 +110,7 @@ void ExtractFileBase(char* path, char* dest)
     }
 
     // copy up to eight characters
-    n64_memset(dest, 0, 8);
+    __n64_memset_ZERO_ASM(dest, 0, 8);
     length = 0;
 
     while ((*src) && (*src != '.'))
@@ -207,8 +206,6 @@ void W_AddFile (char *filename)
     filelump_t*		fileinfo;
     int			storehandle;
 
-    int old_numlumps = numlumps;
-
     // open the file and add to directory
 
     // handle reload indicator.
@@ -231,8 +228,9 @@ void W_AddFile (char *filename)
         // Homebrew levels?
         if (strncmp(header.identification,"PWAD",4))
         {
-            sprintf(error,"%s: Wad file %s doesn't have IWAD or PWAD id\n", header.identification, filename);
+            sprintf(error,"W_AddFile: %s != IWAD/PWAD in %s\n", header.identification, filename);
             I_Error(error);
+            exit(-1);
         }
 
         // ???modifiedgame = true;
@@ -246,36 +244,23 @@ void W_AddFile (char *filename)
     rom_read(handle, fileinfo, length);
     numlumps += header.numlumps;
 
-    // Fill in lumpinfo
-    if (numlumps > 0)
-    {
-        lumpinfo_t *tmp_new_lumpinfo = (lumpinfo_t *)n64_malloc(numlumps * sizeof(lumpinfo_t));
-	// clear new lumpinfo memory
-	n64_memset(tmp_new_lumpinfo, 0, numlumps * sizeof(lumpinfo_t));
-        // copy old lumpinfo into new one
-	n64_memcpy(tmp_new_lumpinfo, lumpinfo, old_numlumps * sizeof(lumpinfo_t));
-
-	// swap the lumpinfos and free the old one
-	lumpinfo_t *tmp_old_lumpinfo = lumpinfo;
-	lumpinfo = tmp_new_lumpinfo;
-	n64_free(tmp_old_lumpinfo);
-    }
-    else
-    {
-        lumpinfo = (lumpinfo_t *)n64_malloc(numlumps * sizeof(lumpinfo_t));
-        n64_memset(lumpinfo, 0, numlumps * sizeof(lumpinfo_t));
-    }
-
+/*
+206    // Fill in lumpinfo
+207    lumpinfo = realloc (lumpinfo, numlumps*sizeof(lumpinfo_t));
+208
+209    if (!lumpinfo)
+210	I_Error ("Couldn't realloc lumpinfo");
+*/
+    lumpinfo = (lumpinfo_t *)n64_realloc(lumpinfo, numlumps*sizeof(lumpinfo_t));
 
     if (!lumpinfo)
     {
-	I_Error("Couldn't realloc lumpinfo");
+        I_Error("W_AddFile: Couldn't n64_realloc lumpinfo");
     }
 
     lump_p = &lumpinfo[startlump];
 
     storehandle = reloadname ? -1 : handle;
-
 
     // hash the lumps
     for (i=startlump ; i<numlumps ; i++,lump_p++, fileinfo++)
@@ -377,12 +362,13 @@ void W_InitMultipleFiles (char** filenames)
 
     for ( ; *filenames ; filenames++)
     {
-	W_AddFile(*filenames);
+		printf("W_InitMultipleFiles: adding %s\n", *filenames);
+		W_AddFile(*filenames);
     }
 
     if (!numlumps)
     {
-	I_Error("W_InitFiles: no files found");
+	I_Error("W_InitMultipleFiles: no files found");
     }
 
     // set up caching
@@ -391,10 +377,10 @@ void W_InitMultipleFiles (char** filenames)
 
     if (!lumpcache)
     {
-        I_Error("Couldn't allocate lumpcache");
+        I_Error("W_InitMultipleFiles: Couldn't allocate lumpcache");
     }
 
-    n64_memset(lumpcache,0, size);
+    __n64_memset_ZERO_ASM(lumpcache, 0, size);
 }
 
 
@@ -545,12 +531,11 @@ void* W_CacheLumpNum(int lump, int tag)
     if (!lumpcache[lump])
     {
 	// read the lump in
-
         ptr = Z_Malloc(W_LumpLength(lump), tag, &lumpcache[lump]);
 
-        if ((ptr == NULL) || (ptr != lumpcache[lump]))
-        {
-            sprintf(error, "cache allocation error on lump %i\n", lump);
+        if (ptr == NULL || ptr != lumpcache[lump])
+	{
+            sprintf(error, "W_CacheLumpNum: !=cache allocation error on lump %i\n", lump);
             I_Error(error);
 	}
 

@@ -22,10 +22,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: p_floor.c,v 1.4 1997/02/03 16:47:54 b1 Exp $";
-
-
 #include "z_zone.h"
 #include "doomdef.h"
 #include "p_local.h"

@@ -6,8 +6,8 @@
 #include "hash.h"
 
 
-extern void n64_free(void *buf);
-extern void *n64_malloc(size_t size_to_alloc);
+//extern void n64_free(void *buf);
+//extern void *n64_malloc(size_t size_to_alloc);
 
 
 /*

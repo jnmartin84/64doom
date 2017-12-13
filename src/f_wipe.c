@@ -33,7 +33,7 @@
 #include "f_wipe.h"
 
 
-extern void *n64_memcpy(void *d, const void *s, size_t n);
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 
 //
@@ -64,7 +64,8 @@ void wipe_shittyColMajorXform(short* array, int width, int height)
         }
     }
 
-    n64_memcpy(array, dest, width*height*2);
+//    n64_memcpy(array, dest, width*height*2);
+    __n64_memcpy_ASM(array, dest, width*height*2);
 
     Z_Free(dest);
 }
@@ -72,7 +73,8 @@ void wipe_shittyColMajorXform(short* array, int width, int height)
 
 int wipe_initColorXForm(int width, int height, int ticks)
 {
-    n64_memcpy(wipe_scr, wipe_scr_start, width*height);
+//    n64_memcpy(wipe_scr, wipe_scr_start, width*height);
+    __n64_memcpy_ASM(wipe_scr, wipe_scr_start, width*height);
     return 0;
 }
 
@@ -147,7 +149,8 @@ int wipe_initMelt(int width, int height, int ticks)
     int r;
 
     // copy start screen to main screen
-    n64_memcpy(wipe_scr, wipe_scr_start, width*height);
+//    n64_memcpy(wipe_scr, wipe_scr_start, width*height);
+    __n64_memcpy_ASM(wipe_scr, wipe_scr_start, width*height);
 
     // makes this wipe faster (in theory)
     // to have stuff in column-major format

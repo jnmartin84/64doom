@@ -18,6 +18,8 @@ At long last, the full source + ROM building toolkit release of 64Doom, the best
 
 "n64memory" directory contains C source, header file and Makefile used to build libn64memory required to build 64Doom
 
+"libdragon" directory contains C source, header file and Makefile used to build customized libdragon required to build 64Doom
+
 "src" directory contains all 64Doom C source, header files and Makefile used to build a .bin file that can be turned
   into a working 64Doom Z64 ROM file
 
@@ -54,4 +56,4 @@ R + Z :: increase gamma correction
 
 Enjoy.
 
-- Jason (jnmartin84), 2016/11/23
+- Jason (jnmartin84), 2017/12/12

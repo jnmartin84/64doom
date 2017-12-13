@@ -22,8 +22,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: r_segs.c,v 1.3 1997/01/29 20:10:19 b1 Exp $";
-
 #include <stdlib.h>
 
 #include "i_system.h"
@@ -35,7 +33,7 @@ static const char rcsid[] = "$Id: r_segs.c,v 1.3 1997/01/29 20:10:19 b1 Exp $";
 #include "r_sky.h"
 
 
-extern void *n64_memcpy(void *d, const void *s, size_t n);
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 
 // OPTIMIZE: closed two sided lines as single sided
@@ -390,7 +388,12 @@ R_StoreWallRange
 		
 #ifdef RANGECHECK
     if (start >=viewwidth || start > stop)
-	I_Error ("Bad R_RenderWallRange: %i to %i", start , stop);
+    {
+        char ermac[256];
+        sprintf(ermac, "Bad R_RenderWallRange: %i to %i", start, stop);
+        I_Error(ermac);
+//	I_Error ("Bad R_RenderWallRange: %i to %i", start , stop);
+    }
 #endif
     
     sidedef = curline->sidedef;
@@ -720,7 +723,7 @@ R_StoreWallRange
     if ( ((ds_p->silhouette & SIL_TOP) || maskedtexture)
 	 && !ds_p->sprtopclip)
     {
-	n64_memcpy (lastopening, ceilingclip+start, 2*(rw_stopx-start));
+	__n64_memcpy_ASM (lastopening, ceilingclip+start, 2*(rw_stopx-start));
 	ds_p->sprtopclip = lastopening - start;
 	lastopening += rw_stopx - start;
     }
@@ -728,7 +731,7 @@ R_StoreWallRange
     if ( ((ds_p->silhouette & SIL_BOTTOM) || maskedtexture)
 	 && !ds_p->sprbottomclip)
     {
-	n64_memcpy (lastopening, floorclip+start, 2*(rw_stopx-start));
+	__n64_memcpy_ASM (lastopening, floorclip+start, 2*(rw_stopx-start));
 	ds_p->sprbottomclip = lastopening - start;
 	lastopening += rw_stopx - start;	
     }

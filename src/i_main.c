@@ -22,27 +22,27 @@
 //
 //-----------------------------------------------------------------------------
 
-
+#include <inttypes.h>
 #include <libdragon.h>
 
 #include "doomdef.h"
-
 #include "m_argv.h"
 #include "d_main.h"
+#include "g_game.h"
 
+extern void *__n64_memset_ZERO_ASM(void *ptr, int value, size_t num);
+extern void *__n64_memset_ASM(void *ptr, int value, size_t num);
 
+extern double get_elapsed_seconds(void);
+extern void exception_handler(exception_t *exception);
 extern void I_InitGraphics(void);
-void (*I_FinishUpdate)(void);
-void renderer(void);
-void debug_renderer(void);
+extern void I_FinishUpdate(void);
 
-extern int ytab[];
-extern int y10tab[];
-extern int y20tab[];
-extern int ytabh[];
-extern int y10tabh[];
-extern int y20tabh[];
+extern uint32_t ytab[];
+extern uint32_t y10tab[];
+extern uint32_t y20tab[];
 
+#define SCREENW 320
 
 void check_and_init_mempak(void)
 {
@@ -93,8 +93,9 @@ void check_and_init_mempak(void)
     }
 }
 
-
+extern byte* savebuffer;
 extern int center_x, center_y;
+extern void DoNothing (void);
 
 int main(int argc, char **argv)
 {
@@ -102,12 +103,7 @@ int main(int argc, char **argv)
 
     init_interrupts();
 
-#if 0
-    display_init(RESOLUTION_640x480, DEPTH_32_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
-#endif
-#if 1
     display_init(RESOLUTION_320x240, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
-#endif
 
     rdp_init();
 
@@ -124,7 +120,7 @@ int main(int argc, char **argv)
     center_y = pressed.y;
 
     printf("64Doom by jnmartin84\n");
-    printf("https://code.google.com/p/64doom/\n");
+    printf("github.com/jnmartin84/64doom/\n");
     printf("built %s %s\n", __DATE__, __TIME__);
 
     int available_memory_size = *(int *)(0x80000318);
@@ -136,32 +132,27 @@ int main(int argc, char **argv)
         printf("It is required to run 64Doom.\n");
         printf("Please turn off the Nintendo 64,\ninstall Expansion Pak,\nand try again.\n");
         printf("***********************************\n");
-        return -1;
+        //return -1;
     }
 
     printf("Expansion Pak found.\n");
     printf("Available memory: %d bytes\n", *(int *)(0x80000318));
 
-    printf("Checking for Mempak:");
+    printf("Checking for Mempak:\n");
     check_and_init_mempak();
+
+    savebuffer = (byte *)n64_malloc(SAVEGAMESIZE);
 
     I_InitGraphics();
 
     for (j=0;j<240;j++)
     {
-        ytab[j]   = ((j   )*320);
-        y10tab[j] = ((j+10)*320);
-	y20tab[j] = ((j+20)*320);
+        ytab[j]   = ((j   )*SCREENW);
+        y10tab[j] = ((j+10)*SCREENW);
+	y20tab[j] = ((j+20)*SCREENW);
     }
 
-    for (j=0;j<480;j++)
-    {
-        ytabh[j]   = ((j   )*640);
-        y10tabh[j] = ((j+10)*640);
-	y20tabh[j] = ((j+20)*640);
-    }
-
-    I_FinishUpdate = &renderer;
+//    I_FinishUpdate = &different_renderer;
 
     D_DoomMain();
 

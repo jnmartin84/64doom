@@ -47,8 +47,18 @@
 
 #include "am_map.h"
 
+#include <libdragon.h>
 
-extern void *n64_memset2(void *p, int v, size_t n);
+extern void graphics_draw_line( display_context_t disp, int x0, int y0, int x1, int y1, uint32_t color );
+
+// for RDPRENDER
+extern uint32_t palarray[256];
+extern void *__safe_buffer[];
+extern display_context_t _dc;
+
+
+//extern void *n64_memset2(void *p, int v, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
 
 
 // For use if I do walls with outsides/insides
@@ -906,7 +916,7 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    n64_memset2(fb, color, f_w*f_h);
+    __n64_memset_ASM(fb, color, f_w*f_h);
 }
 
 
@@ -938,9 +948,9 @@ AM_clipMline
 //    register	outcode1 = 0;
 //    register	outcode2 = 0;
 //    register	outside;
-    register	int outcode1 = 0;
-    register	int outcode2 = 0;
-    register	int outside;
+    /*register */int outcode1 = 0;
+    /*register */int outcode2 = 0;
+    /*register */int outside;
 
 //-Werror fix
 //am_map.c: In function 'AM_clipMline':
@@ -1071,15 +1081,18 @@ AM_drawFline
 ( fline_t*	fl,
   int		color )
 {
-    register int x;
-    register int y;
-    register int dx;
-    register int dy;
-    register int sx;
-    register int sy;
-    register int ax;
-    register int ay;
-    register int d;
+//int startx = fl->a.x; int starty = fl->a.y;
+//int endx = fl->b.x;	int endy = fl->b.y;
+
+    /*register */int x;
+    /*register */int y;
+    /*register */int dx;
+    /*register */int dy;
+    /*register */int sx;
+    /*register */int sy;
+    /*register */int ax;
+    /*register */int ay;
+    /*register */int d;
     
 //-Werror fix
 //am_map.c: In function 'AM_drawFline':
@@ -1093,12 +1106,10 @@ AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	fprintf(stderr, "fuck %d \r", fuck++);
+	/*f*/printf(/*stderr, */"fuck %d \r", fuck++);
 	return;
     }
-
 #define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
-
     dx = fl->b.x - fl->a.x;
     ax = 2 * (dx<0 ? -dx : dx);
     sx = dx<0 ? -1 : 1;
@@ -1416,13 +1427,11 @@ void AM_drawMarks(void)
 		V_DrawPatch(fx, fy, FB, marknums[i]);
 	}
     }
-
 }
 
 void AM_drawCrosshair(int color)
 {
     fb[(f_w*(f_h+1))/2] = color; // single point for now
-
 }
 
 void AM_Drawer (void)
@@ -1441,5 +1450,4 @@ void AM_Drawer (void)
     AM_drawMarks();
 
     V_MarkRect(f_x, f_y, f_w, f_h);
-
 }

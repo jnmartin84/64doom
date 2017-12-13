@@ -21,7 +21,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
 #include <libdragon.h>
 #include <stdlib.h>
 #include <math.h>
@@ -36,8 +35,14 @@
 
 #include "colorbar1.h"
 
+//#define SCALE 1
+#define SCREENW 320
 
 // externs
+
+extern int detailshift;
+
+extern void dma_and_copy(void *buf, int count, int ROM_base_address, int current_ROM_seek);
 
 extern int I_GetHeapSize(void);
 extern int Z_FreeMemory(void);
@@ -48,23 +53,11 @@ extern int get_unmapped_free_count();
 extern uint32_t get_allocated_mus_memory();
 extern uint32_t used_instrument_count;
 
-extern void buffer_bresenham_line_5551(int x0, int y0, int x1, int y1, uint32_t color, uint16_t *buffer, int buf_w, int buf_h);
-extern void buffer_dot_horiz_line_5551(int x1, int x2, int y, uint32_t fill, uint16_t *buf, int buf_w, int buf_h);
-extern void buffer_dot_vert_line_5551(int x, int y1, int y2, uint32_t fill, uint16_t *buf, int buf_w, int buf_h);
-extern void buffer_draw_char_5551(char ch, int x, int y, uint16_t *buffer, uint32_t color, int width, int height);
-extern void buffer_fast_line_5551(int x, int y, int x2, int y2, uint32_t color, uint16_t *buf, int buf_w, int buf_h);
-extern void buffer_horiz_line_5551(int x1, int x2, int y, uint32_t fill, uint16_t *buf, int buf_w, int buf_h);
-extern void buffer_rect_5551(int x, int y, int w, int  h, uint32_t fill, uint16_t *buf, int buf_w, int buf_h);
-extern void buffer_vert_line_5551(int x, int y1, int y2, uint32_t fill, uint16_t *buf, int buf_w, int buf_h);
-
-extern void n64_free(void *buf);
-extern void *n64_malloc(size_t size_to_alloc);
-extern void *n64_memcpy(void *d, const void *s, size_t n);
-extern void *n64_memmove(void *d, const void *s, size_t n);
-extern void *n64_memset(void *p, int v, size_t n);
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 extern double get_elapsed_seconds();
-extern unsigned long get_max_zone_used();
 extern unsigned long get_max_allocated_mus_memory();
 
 extern void *__safe_buffer[];
@@ -81,33 +74,27 @@ extern short pcmout2[];
 extern uint32_t ytab[];
 extern uint32_t y20tab[];
 
-
 // function prototypes
+
+uint32_t color_from_sample(double h);
 
 void I_SetPalette(byte* palette);
 
-void (*I_FinishUpdate)(void);
-void rdp_renderer(void);
-void renderer(void);
-void debug_renderer(void);
+void I_FinishUpdate(void);
 
-void render_sound_buffer_like_rcs(uint16_t *buffer);
-void render_memory_usage_to_dc(display_context_t _dc);
-void render_memory_usage(uint16_t *buffer);
 void nearest_neighbor(uint8_t *output,uint8_t *input,int w1,int h1,int w2,int h2);
 void optimized_bresenham_scale_image(uint8_t *output, uint8_t *input, int w1, int h1, int w2, int h2);
 
-
 // module-local
 
-static display_context_t _dc;
 static int update_count = 0;
 
 static char  __attribute__((aligned(8))) legend_string[256];
+static uint8_t __attribute__((aligned(8))) tmpscreen[SCREENW*240];
 static uint32_t __attribute__((aligned(8))) colorbar[256];
-static uint32_t __attribute__((aligned(8))) palarray[256];
 
 static uint32_t BLACK_COL;
+static uint32_t WHITE_COL;
 static uint32_t TOTAL_AVAIL_COL;
 static uint32_t TOTAL_ALLOC_COL;
 static uint32_t ZONE_ALLOC_COL;
@@ -119,17 +106,17 @@ static uint32_t UNMAP_FREE_COL;
 static uint32_t USED_INSTR_COL;
 static uint32_t NULL_FREE_COL;
 
-
 // globals
+uint32_t __attribute__((aligned(8))) palarray[256];
+uint32_t RED_COL;
+uint32_t GREEN_COL;
+uint32_t BLUE_COL;
 
-double average_fps = 0.0;
+display_context_t _dc;
+
 double instant_fps = -1.0;
-double last_time;
+double average_fps = 0.0;
 int PROFILE_MEMORY = 0;
-unsigned long last_tics;
-
-
-#define pack_16bit_colors_long_alt(c1,c2)    (c2 | (c1 << 16))
 
 
 display_context_t lockVideo(int wait)
@@ -167,431 +154,48 @@ void I_UpdateNoBlit(void)
 {
 }
 
+#define pack_16bit_colors_long(c1,c2) ( (c1 << 16) | (c2 & 0x0000FFFF) )
 
-void renderer(void)
+#define pack_16bit_colors_long_alt(c1,c2)    (c2 | (c1 << 16))
+
+unsigned long last_tics;
+double last_time;
+
+
+//
+// I_FinishUpdate
+//
+static int dri;
+static uint16_t *dri_video_ptr;
+
+void I_FinishUpdate(void)
 {
-    uint32_t	*screen;
-    uint16_t	*video_ptr;
-    int		x;
-    int		y;
-    int		yprime;
-    uint32_t	b1234;
-    byte	b1,b2,b3,b4;
-    uint32_t    *long_ptr;
-#if 0
-    uint32_t    long_color_12;
-    uint32_t    long_color_34;
+#ifdef SCALE
+	dri_video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[0]; // start at 0 320-pixel lines into the framebuffer
+#endif
+#ifndef SCALE
+	dri_video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[SCREENW*20]; // start at 20 320-pixel lines into the framebuffer
 #endif
 
-    update_count += 1;
-
-    _dc = lockVideo(1);
-
-    rdp_sync(SYNC_PIPE);
-    rdp_set_default_clipping();
-    rdp_enable_primitive_fill();
-    rdp_attach_display(_dc);
-    rdp_sync(SYNC_PIPE);
-    rdp_set_primitive_color(BLACK_COL);
-    rdp_draw_filled_rectangle(0, 0, 320, 20);
-    rdp_detach_display();
-
-    for (y=0;y<200;y++)
-    {
-        yprime = ytab[y];
-
-        video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[y20tab[y]];
-        screen = (uint32_t*)&(screens[0][yprime]);
-
-        for (x=0;x<320;x+=4)
-        {
-            long_ptr = (uint32_t*)(&video_ptr[x]);
-
-            b1234 = screen[x >> 2];
-            b1 = (b1234 >> 24) & 0xFF;
-            b2 = (b1234 >> 16) & 0xFF;
-            b3 = (b1234 >>  8) & 0xFF;
-            b4 = (b1234      ) & 0xFF;
-
-#if 0
-            long_color_12 = pack_16bit_colors_long_alt((palarray[b1] & 0xffff), (palarray[b2] & 0xffff));
-            long_color_34 = pack_16bit_colors_long_alt((palarray[b3] & 0xffff), (palarray[b4] & 0xffff));
-
-            long_ptr[0] = long_color_12;
-            long_ptr[1] = long_color_34;
+#ifdef SCALE
+//	nearest_neighbor(tmpscreen, screens[0], SCREENW, 200, SCREENW, 240);
+	optimized_bresenham_scale_image(tmpscreen, screens[0], SCREENW, 200, SCREENW, 240);
 #endif
 
-            long_ptr[0] = pack_16bit_colors_long_alt((palarray[b1] & 0xffff), (palarray[b2] & 0xffff));
-            long_ptr[1] = pack_16bit_colors_long_alt((palarray[b3] & 0xffff), (palarray[b4] & 0xffff));
-        }
-    }
-
-    unlockVideo(_dc);
-}
-
-
-void debug_renderer(void)
-{
-    uint32_t	*screen;
-    uint16_t	*video_ptr;
-    int		x;
-    int		y;
-    int		yprime;
-    uint32_t	b1234;
-    byte	b1,b2,b3,b4;
-    uint32_t    *long_ptr;
-    uint32_t    long_color_12;
-    uint32_t    long_color_34;
-
-    if(last_tics > 0)
+#ifdef SCALE
+    for(dri=0;dri<SCREENW*240;dri++)
     {
-        instant_fps = (double)(COUNTS_PER_SECOND / (get_ticks() - last_tics));
-
-        average_fps += instant_fps;
-        average_fps /= 2.0;
+        dri_video_ptr[dri] = palarray[tmpscreen[dri]];
     }
-
-    last_tics = get_ticks();
-    last_time = get_elapsed_seconds();
-
-    update_count += 1;
-
-    _dc = lockVideo(1);
-
-    rdp_sync(SYNC_PIPE);
-    rdp_set_default_clipping();
-    rdp_enable_primitive_fill();
-    rdp_attach_display(_dc);
-    rdp_sync(SYNC_PIPE);
-    rdp_set_primitive_color(BLACK_COL);
-    rdp_draw_filled_rectangle(0, 0, 320, 20);
-    rdp_detach_display();
-
-    for (y=0;y<200;y++)
-    {
-        yprime = ytab[y];
-
-        video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[y20tab[y]];
-        screen = (uint32_t*)&(screens[0][yprime]);
-
-        for (x=0;x<320;x+=4)
-        {
-            long_ptr = (uint32_t*)(&video_ptr[x]);
-
-            b1234 = screen[x >> 2];
-            b1 = (b1234 >> 24) & 0xFF;
-            b2 = (b1234 >> 16) & 0xFF;
-            b3 = (b1234 >>  8) & 0xFF;
-            b4 = (b1234      ) & 0xFF;
-
-            uint16_t c1 = palarray[b1]; uint16_t c2 = palarray[b2];
-            uint16_t c3 = palarray[b3]; uint16_t c4 = palarray[b4];
-            long_color_12 = pack_16bit_colors_long_alt(c1,c2);
-            long_color_34 = pack_16bit_colors_long_alt(c3,c4);
-
-            long_ptr[0] = long_color_12;
-            long_ptr[1] = long_color_34;
-        }
-    }
-
-    if (PROFILE_MEMORY)
-    {
-        video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[0];
-        render_memory_usage(video_ptr);
-        render_sound_buffer_like_rcs(video_ptr);
-    }
-
-    unlockVideo(_dc);
-}
-
-
-void render_sound_buffer_like_rcs(uint16_t *buffer)
-{
-    short *sound_buffer = pcmflip ? pcmout2 : pcmout1;
-
-    int first;
-    int second;
-    int third;
-    int fourth;
-
-    int min_sampleL = 65536;
-    int max_adjusted_sampleL = -1;
-
-    int min_sampleR = 65536;
-    int max_adjusted_sampleR = -1;
-
-    int x;
-    int xL;
-    int xR;
-    for (xL = 0,xR=1; xL < 316*2; xL+=2,xR+=2)
-    {
-        if ( (sound_buffer[xL] + 32768) < min_sampleL)
-        {
-            min_sampleL = (sound_buffer[xL] + 32768);
-        }
-        if ( (sound_buffer[xR] + 32768) < min_sampleR)
-        {
-            min_sampleR = (sound_buffer[xR] + 32768);
-        }
-    }
-    for (xL = 0,xR=1; xL < 316*2; xL+=2,xR+=2)
-    {
-        if ( ((sound_buffer[xL] + 32768) - min_sampleL) > max_adjusted_sampleL)
-        {
-            max_adjusted_sampleL = ((sound_buffer[xL] + 32768) - min_sampleL);
-        }
-        if ( ((sound_buffer[xR] + 32768) - min_sampleR) > max_adjusted_sampleR)
-        {
-            max_adjusted_sampleR = ((sound_buffer[xR] + 32768) - min_sampleR);
-        }
-    }
-
-    // div by zero avoidance
-    if (0 == max_adjusted_sampleL)
-    {
-        max_adjusted_sampleL = 1;
-    }
-    if (0 == max_adjusted_sampleR)
-    {
-        max_adjusted_sampleR = 1;
-    }
-
-
-    buffer_fast_line_5551(0,94-16-32-1,320,94-16-32-1,  BLACK_COL,buffer,320,240);
-    buffer_fast_line_5551(0,94-16-32,320,94-16-32,  BLACK_COL,buffer,320,240);
-    buffer_fast_line_5551(0,94-16-32+1,320,94-16-32+1,  BLACK_COL,buffer,320,240);
-
-    buffer_fast_line_5551(0,94-16-32,320,94-16-32,  TOTAL_ALLOC_COL,buffer,320,240);
-
-    buffer_fast_line_5551(0,94-16+32-1,320,94-16+32-1,  BLACK_COL,buffer,320,240);
-    buffer_fast_line_5551(0,94-16+32,320,94-16+32,  BLACK_COL,buffer,320,240);
-    buffer_fast_line_5551(0,94-16+32+1,320,94-16+32+1,  BLACK_COL,buffer,320,240);
-
-    buffer_fast_line_5551(0,94-16+32,320,94-16+32,  TOTAL_ALLOC_COL,buffer,320,240);
-
-    buffer_dot_horiz_line_5551(0, 320, 94-16-16, colorbar[255], buffer, 320, 240);
-    buffer_dot_horiz_line_5551(0, 320, 94-16+16, colorbar[0], buffer, 320, 240);
-
-    buffer_horiz_line_5551(0, 320, 94-16-1, BLACK_COL, buffer, 320, 240);
-    buffer_horiz_line_5551(0, 320, 94-16, BLACK_COL, buffer, 320, 240);
-    buffer_horiz_line_5551(0, 320, 94-16+1, BLACK_COL, buffer, 320, 240);
-
-    buffer_dot_horiz_line_5551(0, 320, 94-16, TOTAL_ALLOC_COL, buffer, 320, 240);
-
-    buffer_fast_line_5551(0,180-16-32-1,320,180-16-32-1, BLACK_COL,buffer,320,240);
-    buffer_fast_line_5551(0,180-16-32,320,180-16-32, BLACK_COL,buffer,320,240);
-    buffer_fast_line_5551(0,180-16-32+1,320,180-16-32+1, BLACK_COL,buffer,320,240);
-
-    buffer_fast_line_5551(0,180-16-32,320,180-16-32, TOTAL_ALLOC_COL,buffer,320,240);
-
-    buffer_fast_line_5551(0,180-16+32-1,320,180-16+32-1, BLACK_COL,buffer,320,240);
-    buffer_fast_line_5551(0,180-16+32,320,180-16+32, BLACK_COL,buffer,320,240);
-    buffer_fast_line_5551(0,180-16+32+1,320,180-16+32+1, BLACK_COL,buffer,320,240);
-
-    buffer_fast_line_5551(0,180-16+32,320,180-16+32, TOTAL_ALLOC_COL,buffer,320,240);
-
-    buffer_dot_horiz_line_5551(0, 320, 180-16-16, colorbar[255], buffer, 320, 240);
-    buffer_dot_horiz_line_5551(0, 320, 180-16+16, colorbar[0], buffer, 320, 240);
-
-    buffer_horiz_line_5551(0, 320, 180-16-1, BLACK_COL, buffer, 320, 240);
-    buffer_horiz_line_5551(0, 320, 180-16, BLACK_COL, buffer, 320, 240);
-    buffer_horiz_line_5551(0, 320, 180-16+1, BLACK_COL, buffer, 320, 240);
-
-    buffer_dot_horiz_line_5551(0, 320, 180-16, TOTAL_ALLOC_COL, buffer, 320, 240);
-
-    for (x = 0; x < 315; x++)
-    {
-        // x == 0
-        // first  is (((0  )*2)  ) == 0
-        // second is (((0+1)*2)  ) == 2
-        // third is  (((0  )*2)+1) == 1
-        // fourth is (((0+1)*2)+1) == 3
-	first  = (unsigned int)( sound_buffer[((x * 2)    )    ] + 32768) - min_sampleL;
-	second = (unsigned int)( sound_buffer[((x + 1) * 2)    ] + 32768) - min_sampleL;
-	third  = (unsigned int)( sound_buffer[((x * 2)    ) + 1] + 32768) - min_sampleR;
-	fourth = (unsigned int)( sound_buffer[((x + 1) * 2) + 1] + 32768) - min_sampleR;
-
-        // (value / 65535.0) * 255.0
-        uint16_t sample1 = ( ((double) first / (double)max_adjusted_sampleL) * (double)250.0);
-        uint16_t sample2 = ( ((double)second / (double)max_adjusted_sampleL) * (double)250.0);
-        uint16_t sample3 = ( ((double) third / (double)max_adjusted_sampleR) * (double)250.0);
-        uint16_t sample4 = ( ((double)fourth / (double)max_adjusted_sampleR) * (double)250.0);
-
-        // ranges 0 - 255, need to scale down to 0 - 32, so divide by 8
-        // also clamp final y coords in case they fall outside of screen borders
-        int flag_clamp1 = 0;
-        int flag_clamp2 = 0;
-        int flag_clamp3 = 0;
-        int flag_clamp4 = 0;
-
-        uint8_t y1 =  94 - (sample1>>3);
-        if (y1 < 94-32) { y1 = 94-32; flag_clamp1 = 1; } if (y1 > 94+32) { y1 = 94+32; flag_clamp1 = 2; }
-        uint8_t y2 =  94 - (sample2>>3);
-        if (y2 < 94-32) { y2 = 94-32; flag_clamp2 = 1; } if (y2 > 94+32) { y2 = 94+32; flag_clamp2 = 2; }
-        uint8_t y3 = 180 - (sample3>>3);
-        if (y3 < 180-32) { y3 = 180-32; flag_clamp3 = 1; } if (y3 > 180+32) { y3 = 180+32; flag_clamp3 = 2; }
-        uint8_t y4 = 180 - (sample4>>3);
-        if (y4 < 180-32) { y4 = 180-32; flag_clamp4 = 1; } if (y4 > 180+32) { y4 = 180+32; flag_clamp4 = 2; }
-
-	uint8_t yma = y1 + ((y2 - y1) / 2);
-	uint8_t ymb = y3 + ((y4 - y3) / 2);
-
-        uint32_t col1;
-	uint32_t col2;
-        uint32_t col3;
-	uint32_t col4;
-        col1 = colorbar[sample1];
-        col2 = colorbar[sample2];
-        col3 = colorbar[sample3];
-        col4 = colorbar[sample4];
-        if(flag_clamp1 == 1) col1 = TOTAL_ALLOC_COL; else if (flag_clamp1 == 2) col1 = MAX_ZONE_USED_COL;
-        if(flag_clamp2 == 1) col2 = TOTAL_ALLOC_COL; else if (flag_clamp2 == 2) col2 = MAX_ZONE_USED_COL;
-        if(flag_clamp3 == 1) col3 = TOTAL_ALLOC_COL; else if (flag_clamp3 == 2) col3 = MAX_ZONE_USED_COL;
-        if(flag_clamp4 == 1) col4 = TOTAL_ALLOC_COL; else if (flag_clamp4 == 2) col4 = MAX_ZONE_USED_COL;
-
-#if 1
-        buffer_bresenham_line_5551(1+x, y1,  2+x, yma, col1, buffer, 320, 240);
-        buffer_bresenham_line_5551(1+x, yma,  2+x, y2, col2, buffer, 320, 240);
-        buffer_bresenham_line_5551(1+x, y3,  2+x, ymb, col3, buffer, 320, 240);
-        buffer_bresenham_line_5551(1+x, ymb,  2+x, y4, col4, buffer, 320, 240);
 #endif
-#if 0
-        buffer_fast_line_5551(1+x,  y1, 2+x, yma, col1, buffer, 320, 240);
-        buffer_fast_line_5551(1+x, yma, 2+x,  y2, col2, buffer, 320, 240);
-        buffer_fast_line_5551(1+x,  y3, 2+x, ymb, col3, buffer, 320, 240);
-        buffer_fast_line_5551(1+x, ymb, 2+x,  y4, col4, buffer, 320, 240);
-#endif
-    }
-}
-
-
-void render_memory_usage_to_dc(display_context_t _dc)
-{
-    uint16_t *buffer = ((uint16_t *)__safe_buffer[(_dc)-1]);
-    render_memory_usage(buffer);
-}
-
-
-/**
- * TOTAL MEMORY AVAILABLE	(0x800000)
- * TOTAL MEMORY USED		(memory.c:get_allocated_byte_count())
- * TOTAL ZONE ALLOCATED		(0x400000)
- * TOTAL ZONE USED		(i_system.c:I_GetHeapSize() - z_zone.c:Z_FreeMemory())
- */
-void render_memory_usage(uint16_t *buffer)
-{
-    if(PROFILE_MEMORY)
+#ifndef SCALE
+    for(dri=0;dri<SCREENW*200;dri++)
     {
-        int i;
-
-        double eightmeg_double = 1048576.0 * 8.0;
-        double total_allocated_scalar = (double)get_allocated_byte_count() / eightmeg_double;
-        int total_allocated_len = 320 * total_allocated_scalar;
-
-        double zone_allocated_scalar = (double)I_GetHeapSize() / eightmeg_double;
-        int zone_allocated_len = 320 * zone_allocated_scalar;
-
-        double zone_used_scalar = ((double)I_GetHeapSize() - (double)Z_FreeMemory()) / eightmeg_double;
-        int zone_used_len = 320 * zone_used_scalar;
-
-        double mus_used_scalar = (double)get_allocated_mus_memory() / eightmeg_double;
-        int mus_used_len = 320 * mus_used_scalar;
-
-        if (shift)
-        {
-            rdp_sync(SYNC_PIPE);
-            rdp_set_default_clipping();
-            rdp_enable_primitive_fill();
-            rdp_attach_display(_dc);
-            rdp_sync(SYNC_PIPE);
-            rdp_set_primitive_color(TOTAL_AVAIL_COL);
-            rdp_draw_filled_rectangle(0, 0, 320, 16);
-            rdp_set_primitive_color(TOTAL_ALLOC_COL);
-            rdp_draw_filled_rectangle(0, 1, total_allocated_len, 1 + 14);
-            rdp_set_primitive_color(ZONE_ALLOC_COL);
-            rdp_draw_filled_rectangle(0, 2, zone_allocated_len, 2 + 12);
-            rdp_set_primitive_color(ZONE_USED_COL);
-            rdp_draw_filled_rectangle(0, 3, zone_used_len, 3 + 10);
-            rdp_set_primitive_color(MUS_USED_COL);
-            rdp_draw_filled_rectangle(0, 4, mus_used_len, 4 + 8);
-            rdp_detach_display();
-        }
-        else
-        {
-            buffer_rect_5551(0, 0, 320,                 16, TOTAL_AVAIL_COL, buffer, 320, 240);
-            buffer_rect_5551(0, 1, total_allocated_len, 14, TOTAL_ALLOC_COL, buffer, 320, 240);
-            buffer_rect_5551(0, 2, zone_allocated_len,  12, ZONE_ALLOC_COL,  buffer, 320, 240);
-            buffer_rect_5551(0, 3, zone_used_len,       10, ZONE_USED_COL,   buffer, 320, 240);
-            buffer_rect_5551(0, 4, mus_used_len,         8, MUS_USED_COL,    buffer, 320, 240);
-        }
-
-        for (i=0;i<320;i+=10)
-        {
-            if (i % 40 == 0)
-            {
-                buffer_vert_line_5551    (i, 0, 16, BLACK_COL, buffer, 320, 240);
-            }
-            else
-            {
-                buffer_dot_vert_line_5551(i, 0, 16, BLACK_COL, buffer, 320, 240);
-            }
-        }
-
-        buffer_horiz_line_5551(0, 320,  0, BLACK_COL, buffer, 320, 240);
-        buffer_horiz_line_5551(0, 320, 16, BLACK_COL, buffer, 320, 240);
-
-        graphics_set_color(TOTAL_AVAIL_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "RDRAM", (uint32_t)(1048576*8));
-        graphics_buffer_draw_text(buffer,   0,  20, 320, 240, legend_string);
-
-        graphics_set_color(TOTAL_ALLOC_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "Alloc", (uint32_t)get_allocated_byte_count());
-        graphics_buffer_draw_text(buffer,  98,  20, 320, 240, legend_string);
-
-        graphics_set_color(MUS_USED_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "MusUsed", (uint32_t)get_allocated_mus_memory());
-        graphics_buffer_draw_text(buffer, 196,  20, 320, 240, legend_string);
-
-        graphics_set_color(ZONE_ALLOC_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "ZAlloc", (uint32_t)I_GetHeapSize());
-        graphics_buffer_draw_text(buffer,   0,  30, 320, 240, legend_string);
-
-        graphics_set_color(ZONE_USED_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "ZUsed", (uint32_t)(I_GetHeapSize() - Z_FreeMemory()));
-        graphics_buffer_draw_text(buffer, 106,  30, 320, 240, legend_string);
-
-        graphics_set_color(MAX_ZONE_USED_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "MAX_ZUsed", get_max_zone_used());
-        graphics_buffer_draw_text(buffer, 106,  40, 320, 240, legend_string);
-
-        graphics_set_color(MAX_MUS_USED_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "MAX_MusUsed", get_max_allocated_mus_memory());
-        graphics_buffer_draw_text(buffer, 106,  50, 320, 240, legend_string);
-
-        graphics_set_color(UNMAP_FREE_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "Unmapped_Free", (uint32_t)get_unmapped_free_count());
-        graphics_buffer_draw_text(buffer, 106,  60, 320, 240, legend_string);
-
-        graphics_set_color(USED_INSTR_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "Used_Instruments", used_instrument_count);
-        graphics_buffer_draw_text(buffer, 106,  70, 320, 240, legend_string);
-
-        graphics_set_color(NULL_FREE_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "NULL_Free", (uint32_t)get_null_free_count());
-        graphics_buffer_draw_text(buffer, 106,  80, 320, 240, legend_string);
-
-        graphics_set_color(NULL_FREE_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%06lX", "SHIFT", shift);
-        graphics_buffer_draw_text(buffer,   0,  80, 320, 240, legend_string);
-
-        graphics_set_color(NULL_FREE_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%.0f", "FPS", instant_fps);
-        graphics_buffer_draw_text(buffer,   0,  100, 320, 240, legend_string);
-        graphics_set_color(NULL_FREE_COL, BLACK_COL);
-        sprintf(legend_string, "%s:%.0f", "FPS (avg)", average_fps);
-        graphics_buffer_draw_text(buffer,   100,  100, 320, 240, legend_string);
+        dri_video_ptr[dri] = palarray[screens[0][dri]];
     }
+#endif
 }
+
 
 
 //
@@ -599,7 +203,7 @@ void render_memory_usage(uint16_t *buffer)
 //
 void I_ReadScreen(byte* scr)
 {
-    n64_memcpy(scr, screens[0], SCREENWIDTH*SCREENHEIGHT);
+    __n64_memcpy_ASM(scr, screens[0], SCREENWIDTH*SCREENHEIGHT);
 }
 
 
@@ -627,15 +231,19 @@ void I_SetPalette(byte* palette)
 {
     const byte *gammaptr = gammatable[usegamma];
 
-    int r,g,b;
-    int i;
+    unsigned int r,g,b;
+    unsigned int i;
 
     for (i = 0; i < 256; i++)
     {
-        r = gammaptr[*palette++] & 0x000000FF;
-        g = gammaptr[*palette++] & 0x000000FF;
-        b = gammaptr[*palette++] & 0x000000FF;
+        r = gammaptr[*palette++];// & 0x000000FF;
+        g = gammaptr[*palette++];// & 0x000000FF;
+        b = gammaptr[*palette++];// & 0x000000FF;
 
+////        for grayscale
+//        int d = sqrt((r*r + g*g + b*b) / 9);
+//        palarray[i] = graphics_make_color(d,d,d,0xFF);
+////        or 16-bit color, just do
         palarray[i] = graphics_make_color(r,g,b,0xFF);
     }
 }
@@ -645,9 +253,14 @@ void I_InitGraphics(void)
 {
     int i;
 
-    n64_memset(palarray, 0, 256*sizeof(uint32_t));
+    __n64_memset_ZERO_ASM(palarray, 0, 256*sizeof(uint32_t));
 
     BLACK_COL         = graphics_make_color(  0,   0,   0,   0);
+    // duplicate of TOTAL_ALLOC_COL ...
+    WHITE_COL         = graphics_make_color(255, 255, 255,   0);
+    RED_COL           = graphics_make_color(255,   0,   0,   0);
+    GREEN_COL         = graphics_make_color(  0, 255,   0,   0);
+    BLUE_COL          = graphics_make_color(  0,   0, 255,   0);
     TOTAL_AVAIL_COL   = graphics_make_color( 64,  64,  64,   0);
     TOTAL_ALLOC_COL   = graphics_make_color(255, 255, 255,   0);
     ZONE_ALLOC_COL    = graphics_make_color(  0, 255,   0,   0);
@@ -661,7 +274,7 @@ void I_InitGraphics(void)
 
     char *dataPointer = colorbar_data;
 
-    for (i=0;i<256;i++)
+    for(i=0;i<256;i++)
     {
         char rgb[3];
         HEADER_PIXEL(dataPointer,rgb);
@@ -672,25 +285,30 @@ void I_InitGraphics(void)
 
 void DebugOutput_Hex(const int number)
 {
-    display_context_t _dc;
+//    display_context_t _dc;
     char error_string[256];
     sprintf(error_string, "DEBUG: %08X\n", number);
 
-    _dc = lockVideo(1);
+//    _dc = lockVideo(1);
     graphics_set_color(graphics_make_color(0xFF,0x00,0xFF,0x00), graphics_make_color(0x00,0x00,0x00,0x00));
     graphics_draw_box(_dc, 0, 16, 320, 24, graphics_make_color(0xFF,0x00,0xFF,0x00));
     graphics_draw_text(_dc, 0, 16, error_string);
-    unlockVideo(_dc);
+//    unlockVideo(_dc);
+}
+
+
+void DoNothing (void)
+{
 }
 
 
 void DebugOutput_String(const char *str, int good)
 {
-    display_context_t _dc;
+//    display_context_t _dc;
 
-    _dc = lockVideo(1);
+//    _dc = lockVideo(1);
     graphics_set_color(graphics_make_color(0xFF,0xFF,0xFF,0x00), graphics_make_color(0x00,0x00,0x00,0x00));
-    if (good)
+    if(good)
     {
         graphics_draw_box(_dc, 0, 16, 320, 24, graphics_make_color(0x00,0x00,0xFF,0x00));
     }
@@ -699,16 +317,67 @@ void DebugOutput_String(const char *str, int good)
         graphics_draw_box(_dc, 0, 16, 320, 24, graphics_make_color(0xFF,0x00,0x00,0x00));
     }
     graphics_draw_text(_dc, 0, 16, str);
-    unlockVideo(_dc);
+//    unlockVideo(_dc);
+}
+
+
+void DebugOutput_String_For_IError(const char *str, int lineNumber, int good)
+{
+#define ERROR_LINE_LEN 32
+    int error_string_length = strlen(str);
+    int error_string_line_count = (error_string_length / ERROR_LINE_LEN) + 1;
+
+//    display_context_t _dc;
+
+//    _dc = lockVideo(1);
+    graphics_set_color(graphics_make_color(0xFF,0xFF,0xFF,0x00), graphics_make_color(0x00,0x00,0x00,0x00));
+
+    for(int i=0;i<=error_string_line_count;i++)
+    {
+        if(!good) {
+            graphics_draw_box(_dc, 18, 12+((lineNumber+i)*8), 284, 16/*(16+8)+((lineNumber+i)*8)*/, graphics_make_color(0xFF,0x00,0x00,0x00));
+        }
+        else {
+            graphics_draw_box(_dc, 18, 12+((lineNumber+i)*8), 284, 16/*(16+8)+((lineNumber+i)*8)*/, graphics_make_color(0x00,0x00,0xFF,0x00));
+        }
+    }
+
+    for(int i=0;i<=error_string_line_count;i++)
+    {
+//        if(
+        char copied_line[ERROR_LINE_LEN + 1] = {'\0'};
+        if(0 == i)
+        {
+            strncpy(copied_line, "I_Error:", ERROR_LINE_LEN);
+        }
+        else
+        {
+            strncpy(copied_line, str + ((i-1)*ERROR_LINE_LEN), ERROR_LINE_LEN);
+        }
+/*        for(int abc=0;abc<ERROR_LINE_LEN;abc++)
+        {
+            copied_line[abc] = str[abc+(i*ERROR_LINE_LEN)];
+        }*/
+
+//        if(good)
+//        {
+//            graphics_draw_box(_dc, 18, 12+((lineNumber+i)*8), 284, 12/*(16+8)+((lineNumber+i)*8)*/, graphics_make_color(0x00,0x00,0xFF,0x00));
+//        }
+//        else
+//        {
+//            graphics_draw_box(_dc, 18, 12+((lineNumber+i)*8), 284, 12/*(16+8)+((lineNumber+i)*8)*/, graphics_make_color(0xFF,0x00,0x00,0x00));
+//        }
+
+        graphics_draw_text(_dc, 20, 16+((lineNumber+i)*8), copied_line);
+    }
+
+//    unlockVideo(_dc);
 }
 
 
 // algorithm from: http://tech-algorithm.com/articles/nearest-neighbor-image-scaling/
 void nearest_neighbor(uint8_t *output, uint8_t *input, int w1, int h1, int w2, int h2)
 {
-    int i;
-    int j;
-
     byte *inptr;
     byte *outptr;
 
@@ -724,7 +393,7 @@ void nearest_neighbor(uint8_t *output, uint8_t *input, int w1, int h1, int w2, i
 
     byte b1,b2,b3,b4;
 
-    for (i=0;i<h2;i++)
+    for (int i=0;i<h2;i++)
     {
         rat = 0;
 
@@ -736,7 +405,7 @@ void nearest_neighbor(uint8_t *output, uint8_t *input, int w1, int h1, int w2, i
 	inptr = input + (y2*w1);
 
 
-        for (j=0;j<w2;j+=4)
+        for (int j=0;j<w2;j+=4)
         {
             x2 = (rat >> 16);
             b1 = inptr[x2];

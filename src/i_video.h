@@ -44,7 +44,7 @@ void I_ShutdownGraphics(void);
 void I_SetPalette (byte* palette);
 
 void I_UpdateNoBlit (void);
-void (*I_FinishUpdate) (void);
+void I_FinishUpdate (void);
 
 // Wait for vertical retrace or pause a bit.
 void I_WaitVBL(int count);

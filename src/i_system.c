@@ -44,8 +44,10 @@
 
 
 extern void DebugOutput_String(const char *str, int good_or_bad);
-extern void *n64_malloc(size_t size_to_alloc);
-extern void *n64_memset(void *p, int v, size_t n);
+extern void DebugOutput_String_On_Line(const char *str, int lineNumber, int good);
+extern void DebugOutput_String_For_IError(const char *str, int lineNumber, int good);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 
 unsigned long change_ticrate = TICRATE;
@@ -67,6 +69,7 @@ ticcmd_t*	I_BaseTiccmd(void)
     return &emptycmd;
 }
 
+extern unsigned int Z_ZoneSize(void);
 
 int I_GetHeapSize(void)
 {
@@ -83,7 +86,6 @@ byte* I_ZoneBase(int* size)
 {
     based_zone = 1;
 
-    //printf("I_ZoneBase: malloc %d (dec) / %x (hex) bytes\n", mb_used*1048576,mb_used*1048576);
     *size = mb_used*1024*1024;
 
     return (byte *)n64_malloc(*size);
@@ -93,7 +95,7 @@ byte* I_ZoneBase(int* size)
 static unsigned long t0;
 
 
-double get_elapsed_seconds()
+double get_elapsed_seconds(void)
 {
     return (double)(get_ticks() / COUNTS_PER_SECOND);//(double)(get_ticks_ms()) / 1000.0;
 }
@@ -172,7 +174,7 @@ byte* I_AllocLow(int length)
     byte* mem;
 
     mem = (byte *)n64_malloc(length);
-    n64_memset(mem,0,length);
+    __n64_memset_ZERO_ASM(mem,0,length);
     return mem;
 }
 
@@ -185,19 +187,30 @@ extern boolean demorecording;
 
 void I_Error(char *error)
 {
-//    int i;
-    char ermac[512];
-    sprintf(ermac, "I_Error: %s", error);
-    DebugOutput_String(/*"I_Error"*/ermac, 0);
+    DebugOutput_String_For_IError(error, 0, 0);
 
-//#if 0
-    while(1) //i < 1048576 * 1024)
-    {
-//        i+=1;
-    }
-//#endif
+    while(1)
+    {}
 
+#if 0
     D_QuitNetGame();
     I_ShutdownGraphics();
     exit(-1);
+#endif
+}
+
+void I_Warn(char *error)
+{
+#if 0
+//    char ermac[512] = {'\0'};
+//    sprintf(ermac, "%s", error);
+
+    DebugOutput_String_For_IError(error, 0, 1);
+
+    n64_sleep_millis(250*1);
+
+//    D_QuitNetGame();
+//    I_ShutdownGraphics();
+//    exit(-1);
+#endif
 }

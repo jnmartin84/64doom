@@ -35,10 +35,18 @@
 
 #include "doomdef.h"
 
+extern int detailshift;
 
-extern void (*I_FinishUpdate)(void);
-extern void renderer(void);
-extern void debug_renderer(void);
+extern void (*colfunc) (void);
+extern void (*spanfunc) (void);
+
+extern void R_DrawColumn (void);
+extern void R_DrawColumn_C (void);
+
+extern void R_DrawSpan (void);
+extern void R_DrawSpan_C (void);
+
+extern void I_FinishUpdate(void);
 extern void I_ForcePaletteUpdate(void);
 
 void n64_do_cheat(int cheat);
@@ -49,10 +57,6 @@ extern int usegamma;
 
 const int max_map = 34;
 int current_map = 1;
-
-#if 0
-static queue_t input_queue;
-#endif
 
 static int pad_weapon = 1;
 static char weapons[8] = { '1', '2', '3', '3', '4', '5', '6', '7' };
@@ -69,16 +73,6 @@ int shift = 0;
 void pressed_key(struct controller_data pressed_data);
 void held_key(struct controller_data pressed_data);
 void released_key(struct controller_data pressed_data);
-
-
-//
-// I_StartTic
-// just calls I_GetEvent
-//
-void I_StartTic(void)
-{
-    I_GetEvent();
-}
 
 
 //
@@ -100,6 +94,15 @@ void I_GetEvent(void)
     released_key(keys_released);
 }
 
+//
+// I_StartTic
+// just calls I_GetEvent
+//
+void I_StartTic(void)
+{
+    I_GetEvent();
+}
+
 
 //
 // held_key
@@ -114,7 +117,7 @@ void held_key(struct controller_data pressed_data)
     last_x = pressed.x - center_x;
     last_y = pressed.y - center_y;
 
-    if ( (last_x < -12) || (last_x > 12) || (last_y < -12) || (last_y > 12) )
+    if ( (last_x < -32) || (last_x > 32) || (last_y < -32) || (last_y > 32) )
     {
         mouse_x = last_x << 1;
         mouse_y = last_y << 1;
@@ -171,25 +174,17 @@ void pressed_key(struct controller_data pressed_data)
         I_ForcePaletteUpdate();
     }
 
-    // TOGGLE GOD MODE, TOGGLE DEBUG DISPLAY RENDERER
+    // TOGGLE GOD MODE
     if (pressed.L && pressed.R)
     {
         if (!GODDED)
         {
             n64_do_cheat(1); // IDDQD
+            n64_do_cheat(3); // IDKFA
         }
 
         GODDED = 1 - GODDED;
         PROFILE_MEMORY = 1 - PROFILE_MEMORY;
-
-        if (PROFILE_MEMORY)
-        {
-            I_FinishUpdate = &debug_renderer;
-        }
-        else
-        {
-            I_FinishUpdate = &renderer;
-        }
     }
 
     if (pressed.Z)
@@ -234,6 +229,14 @@ void pressed_key(struct controller_data pressed_data)
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
+    if (pressed.C_left && pressed.C_right)
+    {
+        if (!detailshift)
+        {
+//            colfunc = (colfunc == R_DrawColumn) ? R_DrawColumn_C : R_DrawColumn;
+//            spanfunc = (spanfunc == R_DrawSpan) ? R_DrawSpan_C : R_DrawSpan;
+        }		
+    }
     if (pressed.C_up)
     {
         doom_input_event.data1 = KEY_TAB;
@@ -246,7 +249,7 @@ void pressed_key(struct controller_data pressed_data)
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_left)
+    if (pressed.C_left && !pressed.C_right)
     {
         pad_weapon -= 1;
 
@@ -259,7 +262,7 @@ void pressed_key(struct controller_data pressed_data)
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_right)
+    if (pressed.C_right && !pressed.C_left)
     {
         pad_weapon += 1;
 
@@ -355,13 +358,13 @@ void released_key(struct controller_data pressed_data)
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_left)
+    if (pressed.C_left && !pressed.C_right)
     {
         doom_input_event.data1 = weapons[pad_weapon];
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_right)
+    if (pressed.C_right && !pressed.C_left)
     {
         doom_input_event.data1 = weapons[pad_weapon];
         doom_input_event.type = ev_keyup;

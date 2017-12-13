@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*- 
+// Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id:$
@@ -22,10 +22,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
-static const char rcsid[] = "$Id: f_finale.c,v 1.5 1997/02/03 21:26:34 b1 Exp $";
-
-
 #include <ctype.h>
 
 // Functions.
@@ -48,7 +44,7 @@ static const char rcsid[] = "$Id: f_finale.c,v 1.5 1997/02/03 21:26:34 b1 Exp $"
 //#include "r_local.h"
 //#include "f_finale.h"
 
-extern void *n64_memcpy(void *d, const void *s, size_t n);
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 // Stage of animation:
 //  0 = text, 1 = art screen, 2 = character cast
@@ -251,6 +247,19 @@ void F_Ticker (void)
     }
 }
 
+extern uint32_t ytab[];
+extern uint32_t y10tab[];
+extern uint32_t y20tab[];
+
+#define n64_cfb_set_pixel( _dc, x, y, color ) \
+    (&((uint16_t *)__safe_buffer[(_dc)-1])[0])[(x) + (ytab[(y)]) ] = (color)
+
+#define n64_cfb_get_pixel( buffer, x, y ) \
+    (&((uint16_t *)__safe_buffer[(_dc)-1])[0])[(x) + (ytab[(y)]) ]
+
+extern uint32_t palarray[256];
+extern void *__safe_buffer[];
+extern display_context_t _dc;
 
 
 //
@@ -265,28 +274,29 @@ void F_TextWrite (void)
 {
     byte*	src;
     byte*	dest;
-    
+
     int		x,y,w;
     int		count;
     char*	ch;
     int		c;
     int		cx;
     int		cy;
-    
+	
     // erase the entire screen to a tiled background
     src = W_CacheLumpName ( finaleflat , PU_CACHE);
+	
     dest = screens[0];
 	
     for (y=0 ; y<SCREENHEIGHT ; y++)
     {
 	for (x=0 ; x<SCREENWIDTH/64 ; x++)
 	{
-	    n64_memcpy (dest, src+((y&63)<<6), 64);
+	    __n64_memcpy_ASM (dest, src+((y&63)<<6), 64);
 	    dest += 64;
 	}
 	if (SCREENWIDTH&63)
 	{
-	    n64_memcpy (dest, src+((y&63)<<6), SCREENWIDTH&63);
+	    __n64_memcpy_ASM (dest, src+((y&63)<<6), SCREENWIDTH&63);
 	    dest += (SCREENWIDTH&63);
 	}
     }
@@ -326,7 +336,6 @@ void F_TextWrite (void)
 	V_DrawPatch(cx, cy, 0, hu_font[c]);
 	cx+=w;
     }
-	
 }
 
 //

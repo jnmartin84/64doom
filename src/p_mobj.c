@@ -22,8 +22,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: p_mobj.c,v 1.5 1997/02/03 22:45:12 b1 Exp $";
-
 #include "i_system.h"
 #include "z_zone.h"
 #include "m_random.h"
@@ -39,8 +37,9 @@ static const char rcsid[] = "$Id: p_mobj.c,v 1.5 1997/02/03 22:45:12 b1 Exp $";
 
 #include "doomstat.h"
 
-extern void *n64_memset(void *p, int v, size_t n);
-extern void *n64_memcpy(void *d, const void *s, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 void G_PlayerReborn (int player);
 void P_SpawnMapThing (mapthing_t*	mthing);
@@ -489,7 +488,7 @@ P_SpawnMobj
     mobjinfo_t*	info;
 	
     mobj = Z_Malloc (sizeof(*mobj), PU_LEVEL, NULL);
-    n64_memset (mobj, 0, sizeof (*mobj));
+    __n64_memset_ZERO_ASM (mobj, 0, sizeof (*mobj));
     info = &mobjinfo[type];
 
     mobj->type = type;
@@ -719,7 +718,8 @@ void P_SpawnMapThing (mapthing_t* mthing)
     {
 	if (deathmatch_p < &deathmatchstarts[10])
 	{
-	    n64_memcpy (deathmatch_p, mthing, sizeof(*mthing));
+//	    n64_memcpy (deathmatch_p, mthing, sizeof(*mthing));
+	    __n64_memcpy_ASM (deathmatch_p, mthing, sizeof(*mthing));
 	    deathmatch_p++;
 	}
 	return;

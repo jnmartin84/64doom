@@ -29,6 +29,41 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define n64_free(b) \
+free(b)
+
+//n64_free2((b), __FILE__, __LINE__)
+
+#define n64_malloc(s) \
+malloc(s)
+
+//n64_malloc2((s), __FILE__, __LINE__)
+
+#define n64_memcpy(d,s,t) \
+memcpy((d),(s),(t))
+
+#define n64_memmove_naive_no_malloc(d,s,n) \
+memmove((d),(s),(n))
+
+#define n64_memmove_naive(d,s,n) \
+memmove((d),(s),(n))
+
+#define n64_memmove(d,s,n) \
+memmove((d),(s),(n))
+
+#define n64_memmove_old_with_potential_bug(d,s,n) \
+memmove((d),(s),(n))
+
+#define n64_memset(p,v,n) \
+memset((p),(v),(n))
+
+#define n64_memset2(p,v,n) \
+memset((p),(v),(n))
+
+#define n64_realloc(p,n) \
+realloc((p),(n))
+
+
 //#define PROFILE_MEMORY
 
 /* Values for the second argument to access.
@@ -91,7 +126,12 @@ typedef enum
 // For resize of screen, at start of game.
 // It will not work dynamically, see visplanes.
 //
+#if 1
 #define	BASE_WIDTH		320
+#endif
+#if 0
+#define BASE_WIDTH		256
+#endif
 
 // It is educational but futile to change this
 //  scaling e.g. to 2. Drawing of status bar,
@@ -103,11 +143,13 @@ typedef enum
 // Defines suck. C sucks.
 // C++ might sucks for OOP, but it sure is a better C.
 // So there.
-#define SCREENWIDTH  320*SCREEN_MUL
+#define SCREENWIDTH  BASE_WIDTH*SCREEN_MUL
 //SCREEN_MUL*BASE_WIDTH //320
+#if 0
 #define SCREENHEIGHT 200*SCREEN_MUL
+#endif
 //(int)(SCREEN_MUL*BASE_WIDTH*INV_ASPECT_RATIO) //200
-
+#define SCREENHEIGHT ((int)(SCREEN_MUL*BASE_WIDTH*INV_ASPECT_RATIO))
 
 
 

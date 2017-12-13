@@ -24,8 +24,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: r_plane.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
-
 #include <stdlib.h>
 
 #include "i_system.h"
@@ -39,8 +37,8 @@ static const char rcsid[] = "$Id: r_plane.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
 #include "r_sky.h"
 
 
-extern void *n64_memset2(void *p, int v, size_t n);
-extern void *n64_memset(void *p, int v, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 
 planefunction_t		floorfunc;
@@ -136,7 +134,10 @@ R_MapPlane
 	|| x2>=viewwidth
 	|| (unsigned)y>viewheight)
     {
-	I_Error ("R_MapPlane: %i, %i at %i",x1,x2,y);
+        char ermac[256];
+        sprintf(ermac, "R_MapPlane: %i, %i at %i",x1,x2,y);
+        I_Error(ermac);
+//	I_Error ("R_MapPlane: %i, %i at %i",x1,x2,y);
     }
 #endif
 
@@ -200,7 +201,8 @@ void R_ClearPlanes (void)
     lastopening = openings;
     
     // texture calculation
-    n64_memset (cachedheight, 0, sizeof(cachedheight));
+//    n64_memset (cachedheight, 0, sizeof(cachedheight));
+    __n64_memset_ZERO_ASM (cachedheight, 0, sizeof(cachedheight));
 
     // left to right mapping
     angle = (viewangle-ANG90)>>ANGLETOFINESHIFT;
@@ -242,10 +244,14 @@ R_FindPlane
     
 			
     if (check < lastvisplane)
+    {
 	return check;
+    }
 		
     if (lastvisplane - visplanes == MAXVISPLANES)
+    {
 	I_Error ("R_FindPlane: no more visplanes");
+    }
 		
     lastvisplane++;
 
@@ -255,7 +261,8 @@ R_FindPlane
     check->minx = SCREENWIDTH;
     check->maxx = -1;
     
-    n64_memset2 (check->top,0xff,sizeof(check->top));
+//    n64_memset2 (check->top,0xff,sizeof(check->top));
+    __n64_memset_ASM (check->top,0xff,sizeof(check->top));
 		
     return check;
 }
@@ -320,7 +327,8 @@ R_CheckPlane
     pl->minx = start;
     pl->maxx = stop;
 
-    n64_memset2 (pl->top,0xff,sizeof(pl->top));
+//    n64_memset2 (pl->top,0xff,sizeof(pl->top));
+    __n64_memset_ASM (pl->top,0xff,sizeof(pl->top));
 		
     return pl;
 }
@@ -373,19 +381,33 @@ void R_DrawPlanes (void)
     int			x;
     int			stop;
     int			angle;
-				
+
 #ifdef RANGECHECK
     if (ds_p - drawsegs > MAXDRAWSEGS)
-	I_Error ("R_DrawPlanes: drawsegs overflow (%i)",
-		 ds_p - drawsegs);
-    
+    {
+        char ermac[256];
+        sprintf(ermac, "R_DrawPlanes: drawsegs overflow (%i)", ds_p - drawsegs);
+        I_Error(ermac);
+/*	I_Error ("R_DrawPlanes: drawsegs overflow (%i)",
+		 ds_p - drawsegs);*/
+    }
     if (lastvisplane - visplanes > MAXVISPLANES)
-	I_Error ("R_DrawPlanes: visplane overflow (%i)",
-		 lastvisplane - visplanes);
-    
+    {
+        char ermac[256];
+        sprintf(ermac, "R_DrawPlanes: visplane overflow (%i)", lastvisplane - visplanes);
+        I_Error(ermac);
+/*	I_Error ("R_DrawPlanes: visplane overflow (%i)",
+		 lastvisplane - visplanes);*/
+    }
+
     if (lastopening - openings > MAXOPENINGS)
-	I_Error ("R_DrawPlanes: opening overflow (%i)",
-		 lastopening - openings);
+    {
+        char ermac[256];
+        sprintf(ermac, "R_DrawPlanes: opening overflow (%i)", lastopening - openings);
+        I_Error(ermac);
+/*	I_Error ("R_DrawPlanes: opening overflow (%i)",
+		 lastopening - openings);*/
+    }
 #endif
 
     for (pl = visplanes ; pl < lastvisplane ; pl++)
@@ -393,7 +415,6 @@ void R_DrawPlanes (void)
 	if (pl->minx > pl->maxx)
 	    continue;
 
-	
 	// sky flat
 	if (pl->picnum == skyflatnum)
 	{

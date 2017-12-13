@@ -1,0 +1,40 @@
+Short: Music Instruments for ADoom
+Author: Joseph Fenton <jlfenton@ctaz.com>
+Type: game/shoot
+Uploader: Peter McGavin  (p.mcgavin@irl.cri.nz)
+
+
+These MIDI Music instruments for ADoom sound much, much better than
+the ones included in the ADoom-0.5.lha archive.  They need a bit more
+disk space though.
+
+To use them, unpack the archive into your ADoom directory, overwriting
+the old MIDI_Instruments and MIDI_Instruments.s files.  Then start
+ADoom with the -music option or MUSIC icon tooltype.
+
+Here's what Joe Fenton wrote to me about the new instruments:
+
+"I just re-did the MIDI_Instruments
+file.  I'm sending you my new one; INCREDIBLE difference in audio.
+Occasionally, you get a pop as too many loud instruments get added
+together; if you add 2 to the shift value instead of 1 (as it is
+right now), the pops go away, but the music is on avergae half
+the volume.  Let me know what you think of the new file.  The
+instruments are sampled at 11025 Hz; the engine plays at 11048
+because Paula can't do 11025 exactly, but it's only .2% off;
+I can't hear the difference.
+
+"MUS files are capable of panning, but I haven't seen many;
+I'll update my engine in a few days or so to support stereo
+and 22KHz samples along with 11KHz (use 22KHz MIDI_Instruments
+file instead of normal one).
+
+"The new file is bigger, but arcs pretty well
+and is VASTLY better than the previous one.
+
+"I don't plan on doing another MIDI file for
+some time; even when I add 22KHz ability,
+I won't do a 22KHz file.  I'll leave that to
+someone with nothing else to do.
+
+Peter McGavin.

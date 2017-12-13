@@ -21,9 +21,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: wi_stuff.c,v 1.7 1997/02/03 22:45:13 b1 Exp $";
-
 #include <stdio.h>
 
 #include "doomdef.h"
@@ -53,7 +50,7 @@ rcsid[] = "$Id: wi_stuff.c,v 1.7 1997/02/03 22:45:13 b1 Exp $";
 #include "wi_stuff.h"
 
 
-extern void *n64_memcpy(void *d, const void *s, size_t n);
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 
 //
@@ -407,11 +404,23 @@ static patch_t**	lnames;
 
 // slam background
 // UNUSED static unsigned char *background=0;
+extern uint32_t ytab[];
+extern uint32_t y10tab[];
+extern uint32_t y20tab[];
 
+#define n64_cfb_set_pixel( _dc, x, y, color ) \
+    (&((uint16_t *)__safe_buffer[(_dc)-1])[0])[(x) + (ytab[(y)]) ] = (color)
+
+#define n64_cfb_get_pixel( buffer, x, y ) \
+    (&((uint16_t *)__safe_buffer[(_dc)-1])[0])[(x) + (ytab[(y)]) ]
+
+extern uint32_t palarray[256];
+extern void *__safe_buffer[];
+extern display_context_t _dc;
 
 void WI_slamBackground(void)
 {
-    n64_memcpy(screens[0], screens[1], SCREENWIDTH * SCREENHEIGHT);
+    __n64_memcpy_ASM(screens[0], screens[1], SCREENWIDTH * SCREENHEIGHT);
     V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
 }
 

@@ -21,16 +21,12 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: z_zone.c,v 1.4 1997/02/03 16:47:58 b1 Exp $";
-
 #include "z_zone.h"
 #include "i_system.h"
 #include "doomdef.h"
 
 
 extern int  I_GetHeapSize(void);
-
 
 unsigned long maximum_zone_used = 0;
 
@@ -97,7 +93,6 @@ void Z_ClearZone(memzone_t* zone)
 }
 
 
-
 //
 // Z_Init
 //
@@ -107,6 +102,11 @@ void Z_Init(void)
     int		size;
 
     mainzone = (memzone_t *)I_ZoneBase (&size);
+	
+    if (NULL == mainzone)
+    {
+        I_Error("Z_Init: Couldn't I_ZoneBase");
+    }
     mainzone->size = size;
 
     // set the entire zone to one free block
@@ -477,6 +477,8 @@ void Z_ChangeTag2(void *ptr, int tag, char *file, int line)
 
     block->tag = tag;
 }
+
+extern int get_allocated_byte_count();
 
 
 //

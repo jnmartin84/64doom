@@ -24,8 +24,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: r_data.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
-
 #include "i_system.h"
 #include "z_zone.h"
 
@@ -40,16 +38,14 @@ static const char rcsid[] = "$Id: r_data.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
 #include "doomstat.h"
 #include "r_sky.h"
 
-//#ifdef LINUX
 #include  <alloca.h>
-//#endif
-
 
 #include "r_data.h"
 
 
-extern void *n64_memset(void *p, int v, size_t n);
-extern void *n64_memcpy(void *d, const void *s, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 
 //
@@ -215,7 +211,7 @@ R_DrawColumnInCache
 	    count = cacheheight - position;
 
 	if (count > 0)
-	    n64_memcpy (cache + position, source, count);
+	    __n64_memcpy_ASM (cache + position, source, count);
 
 	patch = (column_t *)(  (byte *)patch + patch->length + 4);
     }
@@ -324,7 +320,7 @@ void R_GenerateLookup (int texnum)
     // Fill in the lump / offset, so columns
     //  with only a single patch are all done.
     patchcount = (byte *)alloca (texture->width);
-    n64_memset (patchcount, 0, texture->width);
+    __n64_memset_ZERO_ASM (patchcount, 0, texture->width);
     patch = texture->patches;
 
     for (i=0 , patch = texture->patches;
@@ -543,18 +539,18 @@ void R_InitTextures (void)
 		      + sizeof(texpatch_t)*(SHORT(mtexture->patchcount)-1),
 		      PU_STATIC, 0);
 
-	n64_memset(texture, 0, sizeof(texture_t) + sizeof(texpatch_t)*(SHORT(mtexture->patchcount)-1));
+	__n64_memset_ZERO_ASM(texture, 0, sizeof(texture_t) + sizeof(texpatch_t)*(SHORT(mtexture->patchcount)-1));
 
 	texture->width = SHORT(mtexture->width);
 	texture->height = SHORT(mtexture->height);
 	texture->patchcount = SHORT(mtexture->patchcount);
 
-	n64_memcpy(texture->name, mtexture->name, 8/*sizeof(texture_t->name)*/);
+	__n64_memcpy_ASM(texture->name, mtexture->name, 8/*sizeof(texture_t->name)*/);
 
 /*	for(int i=0;i<8;i++) {
             texture->name[i] = mtexture->name[i];
         }*/
-//	n64_memcpy(mtexture->name, texture->name, 8);
+//	__n64_memcpy_ASM(mtexture->name, texture->name, 8);
 
 //        printf("%s\n", mtexture->name);
 //        printf("%s\n", texture->name);
@@ -715,7 +711,7 @@ int R_FlatNumForName (char* name)
     if (i == -1)
     {
 	namet[8] = 0;
-	n64_memcpy (namet, name,8);
+	__n64_memcpy_ASM (namet, name,8);
 
 	char ermac[256];
 	sprintf(ermac, "R_FlatNumForName: %s not found", namet);
@@ -806,7 +802,7 @@ void R_PrecacheLevel (void)
 
     // Precache flats.
     flatpresent = alloca(numflats);
-    n64_memset (flatpresent,0,numflats);
+    __n64_memset_ZERO_ASM (flatpresent,0,numflats);
 
     for (i=0 ; i<numsectors ; i++)
     {
@@ -828,7 +824,7 @@ void R_PrecacheLevel (void)
 
     // Precache textures.
     texturepresent = alloca(numtextures);
-    n64_memset (texturepresent,0, numtextures);
+    __n64_memset_ZERO_ASM (texturepresent,0, numtextures);
 
     for (i=0 ; i<numsides ; i++)
     {
@@ -863,7 +859,7 @@ void R_PrecacheLevel (void)
 
     // Precache sprites.
     spritepresent = alloca(numsprites);
-    n64_memset (spritepresent,0, numsprites);
+    __n64_memset_ZERO_ASM (spritepresent,0, numsprites);
 
     for (th = thinkercap.next ; th != &thinkercap ; th=th->next)
     {

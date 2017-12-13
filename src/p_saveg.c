@@ -22,8 +22,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: p_tick.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
-
 #include "doomdef.h"
 
 #include "i_system.h"
@@ -35,7 +33,7 @@ static const char rcsid[] = "$Id: p_tick.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
 #include "r_state.h"
 
 
-extern void *n64_memcpy(void *d, const void *s, size_t n);
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 
 byte*		save_p;
@@ -64,7 +62,8 @@ void P_ArchivePlayers (void)
 	PADSAVEP();
 
 	dest = (player_t *)save_p;
-	n64_memcpy (dest,&players[i],sizeof(player_t));
+//	n64_memcpy (dest,&players[i],sizeof(player_t));
+	__n64_memcpy_ASM (dest,&players[i],sizeof(player_t));
 	save_p += sizeof(player_t);
 	for (j=0 ; j<NUMPSPRITES ; j++)
 	{
@@ -94,7 +93,8 @@ void P_UnArchivePlayers (void)
 	
 	PADSAVEP();
 
-	n64_memcpy (&players[i],save_p, sizeof(player_t));
+//	n64_memcpy (&players[i],save_p, sizeof(player_t));
+	__n64_memcpy_ASM (&players[i],save_p, sizeof(player_t));
 	save_p += sizeof(player_t);
 	
 	// will be set when unarc thinker
@@ -248,7 +248,8 @@ void P_ArchiveThinkers (void)
 	    *save_p++ = tc_mobj;
 	    PADSAVEP();
 	    mobj = (mobj_t *)save_p;
-	    n64_memcpy (mobj, th, sizeof(*mobj));
+//	    n64_memcpy (mobj, th, sizeof(*mobj));
+	    __n64_memcpy_ASM (mobj, th, sizeof(*mobj));
 	    save_p += sizeof(*mobj);
 	    mobj->state = (state_t *)(mobj->state - states);
 	    
@@ -303,7 +304,8 @@ void P_UnArchiveThinkers (void)
 	  case tc_mobj:
 	    PADSAVEP();
 	    mobj = Z_Malloc (sizeof(*mobj), PU_LEVEL, NULL);
-	    n64_memcpy (mobj, save_p, sizeof(*mobj));
+//	    n64_memcpy (mobj, save_p, sizeof(*mobj));
+	    __n64_memcpy_ASM (mobj, save_p, sizeof(*mobj));
 	    save_p += sizeof(*mobj);
 	    mobj->state = &states[(int)mobj->state];
 	    mobj->target = NULL;
@@ -323,7 +325,7 @@ void P_UnArchiveThinkers (void)
 	  default:
 	    {
 		char ermac[256];
-		sprintf(ermac, "Unknown tclass %i in savegame",tclass);
+		sprintf(ermac, "P_UnArchiveThinkers: Unknown tclass %i in savegame",tclass);
 		I_Error(ermac);
 	    }
 	}
@@ -388,7 +390,8 @@ void P_ArchiveSpecials (void)
 		*save_p++ = tc_ceiling;
 		PADSAVEP();
 		ceiling = (ceiling_t *)save_p;
-		n64_memcpy (ceiling, th, sizeof(*ceiling));
+//		n64_memcpy (ceiling, th, sizeof(*ceiling));
+		__n64_memcpy_ASM (ceiling, th, sizeof(*ceiling));
 		save_p += sizeof(*ceiling);
 		ceiling->sector = (sector_t *)(ceiling->sector - sectors);
 	    }
@@ -400,7 +403,8 @@ void P_ArchiveSpecials (void)
 	    *save_p++ = tc_ceiling;
 	    PADSAVEP();
 	    ceiling = (ceiling_t *)save_p;
-	    n64_memcpy (ceiling, th, sizeof(*ceiling));
+//	    n64_memcpy (ceiling, th, sizeof(*ceiling));
+	    __n64_memcpy_ASM (ceiling, th, sizeof(*ceiling));
 	    save_p += sizeof(*ceiling);
 	    ceiling->sector = (sector_t *)(ceiling->sector - sectors);
 	    continue;
@@ -411,7 +415,7 @@ void P_ArchiveSpecials (void)
 	    *save_p++ = tc_door;
 	    PADSAVEP();
 	    door = (vldoor_t *)save_p;
-	    n64_memcpy (door, th, sizeof(*door));
+	    __n64_memcpy_ASM (door, th, sizeof(*door));
 	    save_p += sizeof(*door);
 	    door->sector = (sector_t *)(door->sector - sectors);
 	    continue;
@@ -422,7 +426,7 @@ void P_ArchiveSpecials (void)
 	    *save_p++ = tc_floor;
 	    PADSAVEP();
 	    floor = (floormove_t *)save_p;
-	    n64_memcpy (floor, th, sizeof(*floor));
+	    __n64_memcpy_ASM (floor, th, sizeof(*floor));
 	    save_p += sizeof(*floor);
 	    floor->sector = (sector_t *)(floor->sector - sectors);
 	    continue;
@@ -433,7 +437,7 @@ void P_ArchiveSpecials (void)
 	    *save_p++ = tc_plat;
 	    PADSAVEP();
 	    plat = (plat_t *)save_p;
-	    n64_memcpy (plat, th, sizeof(*plat));
+	    __n64_memcpy_ASM (plat, th, sizeof(*plat));
 	    save_p += sizeof(*plat);
 	    plat->sector = (sector_t *)(plat->sector - sectors);
 	    continue;
@@ -444,7 +448,7 @@ void P_ArchiveSpecials (void)
 	    *save_p++ = tc_flash;
 	    PADSAVEP();
 	    flash = (lightflash_t *)save_p;
-	    n64_memcpy (flash, th, sizeof(*flash));
+	    __n64_memcpy_ASM (flash, th, sizeof(*flash));
 	    save_p += sizeof(*flash);
 	    flash->sector = (sector_t *)(flash->sector - sectors);
 	    continue;
@@ -455,7 +459,7 @@ void P_ArchiveSpecials (void)
 	    *save_p++ = tc_strobe;
 	    PADSAVEP();
 	    strobe = (strobe_t *)save_p;
-	    n64_memcpy (strobe, th, sizeof(*strobe));
+	    __n64_memcpy_ASM (strobe, th, sizeof(*strobe));
 	    save_p += sizeof(*strobe);
 	    strobe->sector = (sector_t *)(strobe->sector - sectors);
 	    continue;
@@ -466,7 +470,7 @@ void P_ArchiveSpecials (void)
 	    *save_p++ = tc_glow;
 	    PADSAVEP();
 	    glow = (glow_t *)save_p;
-	    n64_memcpy (glow, th, sizeof(*glow));
+	    __n64_memcpy_ASM (glow, th, sizeof(*glow));
 	    save_p += sizeof(*glow);
 	    glow->sector = (sector_t *)(glow->sector - sectors);
 	    continue;
@@ -506,7 +510,7 @@ void P_UnArchiveSpecials (void)
 	  case tc_ceiling:
 	    PADSAVEP();
 	    ceiling = Z_Malloc (sizeof(*ceiling), PU_LEVEL, NULL);
-	    n64_memcpy (ceiling, save_p, sizeof(*ceiling));
+	    __n64_memcpy_ASM (ceiling, save_p, sizeof(*ceiling));
 	    save_p += sizeof(*ceiling);
 	    ceiling->sector = &sectors[(int)ceiling->sector];
 	    ceiling->sector->specialdata = ceiling;
@@ -521,7 +525,7 @@ void P_UnArchiveSpecials (void)
 	  case tc_door:
 	    PADSAVEP();
 	    door = Z_Malloc (sizeof(*door), PU_LEVEL, NULL);
-	    n64_memcpy (door, save_p, sizeof(*door));
+	    __n64_memcpy_ASM (door, save_p, sizeof(*door));
 	    save_p += sizeof(*door);
 	    door->sector = &sectors[(int)door->sector];
 	    door->sector->specialdata = door;
@@ -532,7 +536,7 @@ void P_UnArchiveSpecials (void)
 	  case tc_floor:
 	    PADSAVEP();
 	    floor = Z_Malloc (sizeof(*floor), PU_LEVEL, NULL);
-	    n64_memcpy (floor, save_p, sizeof(*floor));
+	    __n64_memcpy_ASM (floor, save_p, sizeof(*floor));
 	    save_p += sizeof(*floor);
 	    floor->sector = &sectors[(int)floor->sector];
 	    floor->sector->specialdata = floor;
@@ -543,7 +547,7 @@ void P_UnArchiveSpecials (void)
 	  case tc_plat:
 	    PADSAVEP();
 	    plat = Z_Malloc (sizeof(*plat), PU_LEVEL, NULL);
-	    n64_memcpy (plat, save_p, sizeof(*plat));
+	    __n64_memcpy_ASM (plat, save_p, sizeof(*plat));
 	    save_p += sizeof(*plat);
 	    plat->sector = &sectors[(int)plat->sector];
 	    plat->sector->specialdata = plat;
@@ -558,7 +562,7 @@ void P_UnArchiveSpecials (void)
 	  case tc_flash:
 	    PADSAVEP();
 	    flash = Z_Malloc (sizeof(*flash), PU_LEVEL, NULL);
-	    n64_memcpy (flash, save_p, sizeof(*flash));
+	    __n64_memcpy_ASM (flash, save_p, sizeof(*flash));
 	    save_p += sizeof(*flash);
 	    flash->sector = &sectors[(int)flash->sector];
 	    flash->thinker.function.acp1 = (actionf_p1)T_LightFlash;
@@ -568,7 +572,7 @@ void P_UnArchiveSpecials (void)
 	  case tc_strobe:
 	    PADSAVEP();
 	    strobe = Z_Malloc (sizeof(*strobe), PU_LEVEL, NULL);
-	    n64_memcpy (strobe, save_p, sizeof(*strobe));
+	    __n64_memcpy_ASM (strobe, save_p, sizeof(*strobe));
 	    save_p += sizeof(*strobe);
 	    strobe->sector = &sectors[(int)strobe->sector];
 	    strobe->thinker.function.acp1 = (actionf_p1)T_StrobeFlash;
@@ -578,7 +582,7 @@ void P_UnArchiveSpecials (void)
 	  case tc_glow:
 	    PADSAVEP();
 	    glow = Z_Malloc (sizeof(*glow), PU_LEVEL, NULL);
-	    n64_memcpy (glow, save_p, sizeof(*glow));
+	    __n64_memcpy_ASM (glow, save_p, sizeof(*glow));
 	    save_p += sizeof(*glow);
 	    glow->sector = &sectors[(int)glow->sector];
 	    glow->thinker.function.acp1 = (actionf_p1)T_Glow;
@@ -588,7 +592,7 @@ void P_UnArchiveSpecials (void)
 	  default:
 	    {
 		char ermac[256];
-		sprintf(ermac, "P_UnarchiveSpecials:Unknown tclass %i in savegame", tclass);
+		sprintf(ermac, "P_UnarchiveSpecials: Unknown tclass %i in savegame", tclass);
 		I_Error(ermac);
 	    }
 	}

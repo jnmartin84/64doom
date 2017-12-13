@@ -21,12 +21,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
-static const char
-rcsid[] = "$Id: s_sound.c,v 1.6 1997/02/03 22:45:12 b1 Exp $";
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -285,7 +279,7 @@ S_StartSoundAtVolume
   if (sfx_id < 1 || sfx_id > NUMSFX)
   {
     char ermac[256];
-    sprintf(ermac, "Bad sfx #: %d", sfx_id);
+    sprintf(ermac, "S_StartSoundAtVolume: Bad sfx #: %d", sfx_id);
     I_Error(ermac);
   }
   
@@ -635,7 +629,7 @@ void S_SetMusicVolume(int volume)
     if (volume < 0 || volume > 127)
     {
 	char error[256];
-	/*I_Error*/sprintf(error,"Attempt to set music volume at %d",volume);
+	/*I_Error*/sprintf(error,"S_SetMusicVolume: Attempt to set music volume at %d",volume);
 	I_Error(error);
     }
 
@@ -651,7 +645,7 @@ void S_SetSfxVolume(int volume)
     if (volume < 0 || volume > 127)
     {
 	char ermac[256];
-	sprintf(ermac, "Attempt to set sfx volume at %d", volume);
+	sprintf(ermac, "S_SetSfxVolume: Attempt to set sfx volume at %d", volume);
 	I_Error(ermac);
     }
     snd_SfxVolume = volume;
@@ -677,7 +671,7 @@ S_ChangeMusic
 	 || (musicnum >= NUMMUSIC) )
     {
 	char ermac[256];
-	sprintf(ermac, "Bad music number %d", musicnum);
+	sprintf(ermac, "S_ChangeMusic: Bad music number %d", musicnum);
 	I_Error(ermac);
 	return;
     }

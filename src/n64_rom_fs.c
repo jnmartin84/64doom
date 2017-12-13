@@ -4,44 +4,46 @@
 #include <libdragon.h>
 
 
-extern void n64_free(void *buf);
-extern void *n64_malloc(size_t size_to_alloc);
-extern void *n64_memcpy(void *d, const void *s, size_t n);
-extern void *n64_memmove(void *d, const void *s, size_t n);
-extern void *n64_memset(void *p, int v, size_t n);
+extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
+static __attribute__((aligned(8))) char gameid[16];
 
 #define PI_BASE_REG		0x04600000
 #define PI_STATUS_REG		(PI_BASE_REG+0x10)
 
-#define ADDRESS_LOW 0
-#define ADDRESS_HIGH 2
-#define ADDRESS_OFFSET ADDRESS_HIGH
+
+#define ADDRESS_ADJUSTMENT_LOW  0
+#define ADDRESS_ADJUSTMENT_HIGH 2
+#define ADDRESS_ADJUSTMENT      ADDRESS_ADJUSTMENT_LOW
+
 
 #define MIDI_ROM_base_address	(0xB0101000)
 //GAMEID_ROM_base_address == (MIDI_ROM_base_address + 0x400000)
-#define GAMEID_ROM_base_address	(0xB0501000 - ADDRESS_OFFSET)
+#define GAMEID_ROM_base_address	(0xB0501000 - ADDRESS_ADJUSTMENT)
 //WAD_ROM_base_address == (GAMEID_ROM_base_address + 0x10)
-#define WAD_ROM_base_address	(0xB0501010 - ADDRESS_OFFSET)
-
-#define WAD_size_DOOMSHAREWARE 4196020
-#define WAD_size_DOOM2 14943400
-#define WAD_size_PLUTONIA 17424384
-// this should always be the largest of the WAD file sizes
-#define WAD_size WAD_size_PLUTONIA
-
-#define MIDI_size_LOW 2520972
-#define MIDI_size_HIGH 4184738
-// this should always be the largest of the MIDI bank file sizes
-#define MIDI_size MIDI_size_HIGH
+#define WAD_ROM_base_address	(0xB0501010 - ADDRESS_ADJUSTMENT)
 
 
-#define MAX_FILES 4
+#define WAD_size_DOOMSHAREWARE  4196020
+#define WAD_size_DOOM2          14943400
+#define WAD_size_PLUTONIA       17424384
+#define WAD_size_TNT            18195736
+#define WAD_size                WAD_size_TNT
+
+
+#define MIDI_size_LOW           2520972
+#define MIDI_size_HIGH          4184738
+#define MIDI_size               MIDI_size_LOW
+
+
+#define MAX_FILES               4
+
 
 const int WAD_FILE = WAD_ROM_base_address;
 const int WAD_FILESIZE = WAD_size;
 const int MIDI_FILE = MIDI_ROM_base_address;
 const int MIDI_FILESIZE = MIDI_size;
+
 
 typedef struct rom_file_info_s
 {
@@ -52,19 +54,21 @@ typedef struct rom_file_info_s
 }
 rom_file_info_t;
 
+
 // only handle 4 files
 static rom_file_info_t __attribute__((aligned(8))) files[MAX_FILES];
 static uint8_t __attribute__((aligned(8))) file_opened[MAX_FILES] = {0,0,0,0};
 static int last_opened_file = -1;
 
-
 static uint8_t __attribute__((aligned(8))) dmaBuf[65536];
-static inline void dma_and_copy(void *buf, int count, int ROM_base_address, int current_ROM_seek)
+
+
+__attribute__((noinline)) void dma_and_copy(void *buf, int count, int ROM_base_address, int current_ROM_seek)
 {
     data_cache_hit_writeback_invalidate(dmaBuf, (count + 3) & ~3);
     dma_read((void *)((uint32_t)dmaBuf & 0x1FFFFFFF), ROM_base_address + (current_ROM_seek & ~1), (count + 3) & ~3);
     data_cache_hit_invalidate(dmaBuf, (count + 3) & ~3);
-    n64_memcpy(buf, dmaBuf + (current_ROM_seek & 1), count);
+    __n64_memcpy_ASM(buf, dmaBuf + (current_ROM_seek & 1), count);
 }
 
 
@@ -110,7 +114,8 @@ int rom_lseek(int fd, off_t offset, int whence)
         }
     }
 
-    return -1;
+    // bug-fix 2017-10-16 12:23 was return -1
+    return files[fd].seek;
 }
 
 
@@ -147,12 +152,27 @@ int rom_open(int FILE_START, int size)
 
 int rom_close(int fd)
 {
+    int i;
+
     if ((fd < 0) || (fd > MAX_FILES))
     {
         return -1;
     }
 
+    for (i=0;i<MAX_FILES;i++)
+    {
+        if(files[i].fd == fd)
+        {
+            files[i].fd = 0xFFFFFFFF;
+            files[i].rom_base = 0xFFFFFFFF;
+            files[i].size = 0xFFFFFFFF;
+            files[i].seek = 0xFFFFFFFF;
+            break;
+        }
+    }
+
     file_opened[fd] = 0;
+
     return 0;
 }
 
@@ -208,7 +228,7 @@ int rom_read(int fd, void *buf, size_t nbyte)
 
 char *get_GAMEID()
 {
-    char *gameid = (char *)n64_malloc(16);
+    // bug-fix 2017-10-06 12:20 changed get_GAMEID to use static char[16]
     int count    = 16;
     int i        = 0;
 

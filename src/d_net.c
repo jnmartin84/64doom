@@ -23,10 +23,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
-static const char rcsid[] = "$Id: d_net.c,v 1.3 1997/02/03 22:01:47 b1 Exp $";
-
-
 #include "m_menu.h"
 #include "i_system.h"
 #include "i_video.h"
@@ -36,7 +32,8 @@ static const char rcsid[] = "$Id: d_net.c,v 1.3 1997/02/03 22:01:47 b1 Exp $";
 #include "doomstat.h"
 
 
-extern void *n64_memset(void *p, int v, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 
 #define	NCMD_EXIT		0x80000000
@@ -174,7 +171,7 @@ void HSendPacket(int node, int flags)
 
     if (!netgame)
     {
-        I_Error("Tried to transmit to another node");
+        I_Error("HSendPacket: Tried to transmit to another node");
     }
 
     doomcom->command = CMD_SEND;
@@ -317,7 +314,7 @@ void GetPackets (void)
 	
 	// check for a remote game kill
 	if (netbuffer->checksum & NCMD_KILL)
-	    I_Error ("Killed by network driver");
+	    I_Error ("GetPackets: Killed by network driver");
 
 	nodeforplayer[netconsole] = netnode;
 	
@@ -494,7 +491,7 @@ void CheckAbort(void)
 
         if (ev->type == ev_keydown && ev->data1 == KEY_ESCAPE)
         {
-            I_Error ("Network game synchronization aborted.");
+            I_Error ("CheckAbort: Network game synchronization aborted.");
         }
     }
 }
@@ -509,7 +506,7 @@ void D_ArbitrateNetStart (void)
     boolean	gotinfo[MAXNETNODES];
 
     autostart = true;
-    n64_memset (gotinfo,0,sizeof(gotinfo));
+    __n64_memset_ZERO_ASM (gotinfo,0,sizeof(gotinfo));
 	
     if (doomcom->consoleplayer)
     {
@@ -523,7 +520,7 @@ void D_ArbitrateNetStart (void)
 	    if (netbuffer->checksum & NCMD_SETUP)
 	    {
 		if (netbuffer->player != VERSION)
-		    I_Error ("Different DOOM versions cannot play a net game!");
+		    I_Error ("D_ArbitrateNetStart: Different DOOM versions cannot play a net game!");
 		startskill = netbuffer->retransmitfrom & 15;
 		deathmatch = (netbuffer->retransmitfrom & 0xc0) >> 6;
 		nomonsters = (netbuffer->retransmitfrom & 0x20) > 0;
@@ -598,7 +595,7 @@ void D_CheckNetGame (void)
     I_InitNetwork ();
 //    printf("I_InitNetwork\n");
     if (doomcom->id != DOOMCOM_ID)
-	I_Error ("Doomcom buffer invalid!");
+	I_Error ("D_CheckNetGame: Doomcom buffer invalid!");
     
     netbuffer = &doomcom->data;
     consoleplayer = displayplayer = doomcom->consoleplayer;
@@ -769,7 +766,7 @@ void TryRunTics (void)
 	for (i=0 ; i<ticdup ; i++)
 	{
 	    if (gametic/ticdup > lowtic)
-		I_Error ("gametic>lowtic");
+		I_Error ("TryRunTics: gametic > lowtic");
 	    if (advancedemo)
 		D_DoAdvanceDemo ();
 	    M_Ticker ();

@@ -46,7 +46,7 @@
 #include "doomdef.h"
 
 
-extern void *n64_memset(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 extern int rom_close(int fd);
 extern int rom_lseek(int fd, off_t offset, int whence);
@@ -75,9 +75,9 @@ typedef char BYTE;
 #define SAMPLERATE 11025
 
 // NUM_VOICES = SFX_VOICES + MUS_VOICES
-#define NUM_VOICES 64
-#define SFX_VOICES 16
-#define MUS_VOICES 48
+#define NUM_VOICES 32
+#define SFX_VOICES 8
+#define MUS_VOICES 24
 
 
 typedef struct MUSheader
@@ -259,23 +259,6 @@ int __attribute__((aligned(8))) used_instruments[256];
 
 int used_instrument_count = -1;
 
-// Swap 16bit, that is, MSB and LSB byte.
-unsigned short SWAPSHORT(unsigned short x)
-{
-    // No masking with 0xFF should be necessary.
-    return (x>>8) | (x<<8);
-}
-
-// Swapping 32bit.
-unsigned long SWAPLONG( unsigned long x)
-{
-    return
-        (x>>24)
-        | ((x>>8) & 0xff00)
-        | ((x<<8) & 0xff0000)
-        | (x<<24);
-}
-
 
 uint32_t get_max_allocated_mus_memory()
 {
@@ -297,7 +280,7 @@ void reset_midiVoices(void)
     {
         if (NULL != (void*)midiVoice[i].wave)
         {
-            Z_Free(midiVoice[i].wave);
+            n64_free(midiVoice[i].wave);
         }
 
         midiVoice[i].wave = NULL;
@@ -368,8 +351,12 @@ static void *getsfx (char *sfxname, int *len)
     sfx = (unsigned char*)W_CacheLumpNum(sfxlump, PU_STATIC);
 
     // Allocate from zone memory.
+#if 1
+    cnvsfx = (unsigned char*)n64_malloc(size);
+#endif
+#if 0
     cnvsfx = (unsigned char*)Z_Malloc(size, PU_STATIC, 0);
-
+#endif
     // Now copy and convert offset to signed.
     for (i = 0; i < size; i++)
     {
@@ -392,8 +379,9 @@ static void *getsfx (char *sfxname, int *len)
 /////////////////////////////////////////////////////////////////////////////////////////
 
 /**********************************************************************/
-// Need swap routines because the MIDI file was made on the Amiga and
-//   is in big endian format. :)
+// On the PC, need swap routines because the MIDI file was made on the Amiga and
+// is in big endian format. :)
+// The Nintendo 64 is also big endian so these are no-ops here. :D
 
 #define WSWAP(x) x
 #define LSWAP(x) x
@@ -434,6 +422,8 @@ int audioOutput()
     return 0;
 }
 
+int n64_i_sound_s_sfx_data_size = 0;
+
 /**********************************************************************/
 // Init at program start...
 void I_InitSound (void)
@@ -454,6 +444,8 @@ void I_InitSound (void)
         {
             // Load data from WAD file.
             S_sfx[i].data = getsfx(S_sfx[i].name, &lengths[i]);
+			
+			n64_i_sound_s_sfx_data_size += &lengths[i];
         }
         else
         {
@@ -616,8 +608,9 @@ void I_InitMusic(void)
         {
                 music_okay = 0;
 
-                midi_pointers = (void*)Z_Malloc(sizeof(ULONG)*182, PU_STATIC, 0);
-                int mphnd = rom_open(MIDI_FILE,MIDI_FILESIZE);
+                midi_pointers = (void*)n64_malloc(sizeof(ULONG)*182);
+
+                int mphnd = rom_open(MIDI_FILE, MIDI_FILESIZE);
 
                 rom_read(mphnd, midi_pointers, sizeof(ULONG)*182);
 
@@ -848,24 +841,24 @@ int Mus_Register(void *musdata)
     reset_midiVoices();
     // music won't start playing until mus_playing set at this point
 
-    if (lptr[0] != SWAPLONG(0x1a53554d))  // 0x4d55531a
+    if (lptr[0] != LONG(0x1a53554d))  // 0x4d55531a
     {
         return 0;                          // "MUS",26 always starts a vaild MUS file
     }
 
-    score_len = SWAPSHORT(wptr[2]);      // score length
+    score_len = SHORT(wptr[2]);      // score length
     if (!score_len)
     {
         return 0;                          // illegal score length
     }
 
-    score_start = SWAPSHORT(wptr[3]);    // score start
+    score_start = SHORT(wptr[3]);    // score start
     if (score_start < 18)
     {
         return 0;                          // illegal score start offset
     }
 
-    inst_cnt = SWAPSHORT(wptr[6]);       // instrument count
+    inst_cnt = SHORT(wptr[6]);       // instrument count
     if (!inst_cnt)
     {
         return 0;                          // illegal instrument count
@@ -887,7 +880,7 @@ int Mus_Register(void *musdata)
     used_instrument_count = inst_cnt;
     for (i = 0; i<inst_cnt;i++)
     {
-        used_instruments[i] = SWAPSHORT(musheader->instruments[i]);
+        used_instruments[i] = SHORT(musheader->instruments[i]);
     }
 
     miptr = (ULONG *)midi_pointers;
@@ -907,14 +900,14 @@ int Mus_Register(void *musdata)
                 uic += 1;
 
                 // allocate some space for the header out of Doom's heap
-                mhdr = (struct midiHdr*)Z_Malloc(sizeof(struct midiHdr), PU_STATIC, 0);
+                mhdr = (struct midiHdr*)n64_malloc(sizeof(struct midiHdr));
                 if (!mhdr)
                 {
                     continue;
                 }
 
                 // open MIDI Instrument Set file from ROM
-                hnd = rom_open(MIDI_FILE,MIDI_FILESIZE);
+                hnd = rom_open(MIDI_FILE, MIDI_FILESIZE);
                 if (hnd < 0)
                 {
                     continue;
@@ -925,10 +918,10 @@ int Mus_Register(void *musdata)
 
                 ULONG length = LSWAP(mhdr->length) >> 16;
 
-                void *sample = (void *)Z_Malloc(length, PU_STATIC, 0);
+                void *sample = (void *)n64_malloc(length);
                 if (!sample)
                 {
-                    Z_Free(mhdr);
+                    n64_free(mhdr);
                     rom_close(hnd);
                     continue;
                 }
@@ -951,7 +944,7 @@ int Mus_Register(void *musdata)
                 midiVoice[i].base   = WSWAP(mhdr->base);
                 midiVoice[i].flags  = 0x00;
 
-                Z_Free(mhdr);
+                n64_free(mhdr);
                 rom_close(hnd);
             }
         }
@@ -1024,52 +1017,6 @@ void Mus_Resume(int handle)
 
 
 /**********************************************************************/
-
-
-float min_sample = FLT_MAX;
-float max_sample = FLT_MIN;
-
-
-float adjust_sample(float in)
-{
-    float out;
-
-    if (in > 0.0f)
-    {
-        if (in >= 127.0f)
-        {
-            in = 127.0f;
-        }
-
-        if (in >= 96.0f)
-        {
-            out = (0.4f/*39f*/ * in) + 60.0f/*58.3*/;
-        }
-
-        else
-        {
-            out = in;
-        }
-    }
-    else
-    {
-        if(in < -128.0f)
-        {
-            in = -128.0f;
-        }
-
-        if(in < -96.0f)
-        {
-            out = (/*0.39*/0.4f * in) - /*58.3*/60.0f;
-        }
-        else
-        {
-            out = in;
-        }
-    }
-
-    return out;
-}
 
 
 void fill_buffer(short *buffer)
@@ -1314,7 +1261,7 @@ nextEvent:      // next event
 
 mix:
     // clear buffer
-    n64_memset((void *)buffer, 0, (NUM_SAMPLES << 2));
+    __n64_memset_ZERO_ASM((void *)buffer, 0, (NUM_SAMPLES << 2));
 
     // mix enabled voices
     for (ix=0; ix<NUM_VOICES; ix++)
@@ -1389,16 +1336,10 @@ mix:
                     }
                 }
 
-                // for safety
-                sample = (wvbuff) ? (float)wvbuff[(int)index] : 0.0f;
+                sample = (float)wvbuff[(int)index] * master_vol;
 
-                sample = adjust_sample(sample);
-
-                if(sample < min_sample) min_sample = sample;
-                if(sample > max_sample) max_sample = sample;
-
-                smpbuff[iy    ] += (short)(sample * ltvol * master_vol);
-                smpbuff[iy + 1] += (short)(sample * rtvol * master_vol);
+                smpbuff[iy    ] += (short)(sample * ltvol);
+                smpbuff[iy + 1] += (short)(sample * rtvol);
 
                 index += step;
             }

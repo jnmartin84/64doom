@@ -22,11 +22,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
-static const char
-rcsid[] = "$Id: r_bsp.c,v 1.4 1997/02/03 22:45:12 b1 Exp $";
-
-
 #include "doomdef.h"
 
 #include "m_bbox.h"
@@ -503,9 +498,15 @@ void R_Subsector (int num)
 	
 #ifdef RANGECHECK
     if (num>=numsubsectors)
-	I_Error ("R_Subsector: ss %i with numss = %i",
+    {
+        char ermac[256];
+        sprintf(ermac, "R_Subsector: ss %i with numss = %i", num, numsubsectors);
+        I_Error(ermac);
+
+/*	I_Error ("R_Subsector: ss %i with numss = %i",
 		 num,
-		 numsubsectors);
+		 numsubsectors);*/
+    }
 #endif
 
     sscount++;

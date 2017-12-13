@@ -26,8 +26,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: p_spec.c,v 1.6 1997/02/03 22:45:12 b1 Exp $";
-
 #include <stdlib.h>
 
 #include "doomdef.h"
@@ -53,7 +51,8 @@ static const char rcsid[] = "$Id: p_spec.c,v 1.6 1997/02/03 22:45:12 b1 Exp $";
 #include "sounds.h"
 
 
-extern void *n64_memset(void *p, int v, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 
 //
@@ -1159,7 +1158,7 @@ void P_UpdateSpecials (void)
 		    break;
 		}
 		S_StartSound((mobj_t *)&buttonlist[i].soundorg,sfx_swtchn);
-		n64_memset(&buttonlist[i],0,sizeof(button_t));
+		__n64_memset_ZERO_ASM(&buttonlist[i],0,sizeof(button_t));
 	    }
 	}
 	
@@ -1367,7 +1366,7 @@ void P_SpawnSpecials (void)
 	activeplats[i] = NULL;
     
     for (i = 0;i < MAXBUTTONS;i++)
-	n64_memset(&buttonlist[i],0,sizeof(button_t));
+	__n64_memset_ZERO_ASM(&buttonlist[i],0,sizeof(button_t));
 
     // UNUSED: no horizonal sliders.
     //	P_InitSlidingDoorFrames();

@@ -36,6 +36,9 @@
 #define FRACBITS		16
 #define FRACUNIT		(1<<FRACBITS)
 
+#define float_to_fixed(val) (val * FRACUNIT)
+#define fixed_to_float(val) (val / FRACUNIT)
+
 typedef int fixed_t;
 
 fixed_t FixedMul	(fixed_t a, fixed_t b);

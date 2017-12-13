@@ -28,6 +28,9 @@
 #include "d_event.h"
 
 
+#define SAVEGAMESIZE    0x2c000
+#define SAVESTRINGSIZE  24
+
 
 //
 // GAME

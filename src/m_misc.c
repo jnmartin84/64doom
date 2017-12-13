@@ -25,8 +25,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: m_misc.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
-
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -60,8 +58,8 @@ static const char rcsid[] = "$Id: m_misc.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 #include "m_misc.h"
 
 
-extern void *n64_malloc(size_t size_to_alloc);
-extern void *n64_memset(void *p, int v, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 
 //
@@ -154,13 +152,13 @@ M_ReadFile
     handle = open(name, O_RDONLY | O_BINARY, 0666);
     if (handle == -1)
     {
-	sprintf(ermac, "Couldn't read file %s", name);
+	sprintf(ermac, "M_ReadFile: Couldn't read file %s", name);
 	I_Error(ermac);
     }
 
     if (fstat (handle,&fileinfo) == -1)
     {
-	sprintf(ermac, "Couldn't read file %s", name);
+	sprintf(ermac, "M_ReadFile: Couldn't read file %s", name);
 	I_Error(ermac);
     }
 
@@ -171,7 +169,7 @@ M_ReadFile
 	
     if (count < length)
     {
-	sprintf(ermac, "Couldn't read file %s", name);
+	sprintf(ermac, "M_ReadFile: Couldn't read file %s", name);
 	I_Error(ermac);
     }
 		
@@ -222,18 +220,6 @@ extern int	showMessages;
 
 // machine-independent sound params
 extern	int	numChannels;
-
-
-// UNIX hack, to be removed.
-#ifdef SNDSERV
-extern char*	sndserver_filename;
-extern int	mb_used;
-#endif
-
-#ifdef LINUX
-char*		mousetype;
-char*		mousedev;
-#endif
 
 extern char*	chat_macros[];
 
@@ -300,7 +286,7 @@ default_t	defaults[] =
 
 
 
-    {"usegamma",&usegamma, 0},
+    {"usegamma",&usegamma, 3},
 
     {"chatmacro0", (int *) &chat_macros[0], (int) HUSTR_CHATMACRO0 },
     {"chatmacro1", (int *) &chat_macros[1], (int) HUSTR_CHATMACRO1 },
@@ -486,11 +472,11 @@ WritePCXfile
     pcx->ymax = SHORT(height-1);
     pcx->hres = SHORT(width);
     pcx->vres = SHORT(height);
-    n64_memset (pcx->palette,0,sizeof(pcx->palette));
+    __n64_memset_ZERO_ASM (pcx->palette,0,sizeof(pcx->palette));
     pcx->color_planes = 1;		// chunky image
     pcx->bytes_per_line = SHORT(width);
     pcx->palette_type = SHORT(2);	// not a grey scale
-    n64_memset (pcx->filler,0,sizeof(pcx->filler));
+    __n64_memset_ZERO_ASM (pcx->filler,0,sizeof(pcx->filler));
 
 
     // pack the image

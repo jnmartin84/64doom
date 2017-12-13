@@ -23,9 +23,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: m_menu.c,v 1.7 1997/02/03 22:45:10 b1 Exp $";
-
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -65,7 +62,8 @@ rcsid[] = "$Id: m_menu.c,v 1.7 1997/02/03 22:45:10 b1 Exp $";
 #include "m_menu.h"
 
 
-extern void *n64_memset(void *p, int v, size_t n);
+extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 
 extern byte *screens[];
@@ -512,7 +510,6 @@ menu_t  SaveDef =
 
 
 extern char *get_GAMEID();
-//sprintf(name,"%s", get_GAMEID());
 
 
 //
@@ -657,11 +654,6 @@ void M_DrawSave(void)
 	i = M_StringWidth(savegamestrings[saveSlot]);
 	M_WriteText(LoadDef.x + i,LoadDef.y+LINEHEIGHT*saveSlot,"_");
     }
-
-/*    for(i=0;i<320*200;i++)
-    {
-        screens[0][i] = 32;
-    }*/
 }
 
 //
@@ -1821,7 +1813,7 @@ void M_Drawer (void)
 	    for (i = 0;i < strlen(messageString+start);i++)
 		if (*(messageString+start+i) == '\n')
 		{
-		    n64_memset(string,0,40);
+		    __n64_memset_ZERO_ASM(string,0,40);
 		    strncpy(string,messageString+start,i);
 		    start += i+1;
 		    break;

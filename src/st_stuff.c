@@ -24,10 +24,6 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char
-rcsid[] = "$Id: st_stuff.c,v 1.6 1997/02/03 22:45:13 b1 Exp $";
-
-
 #include <stdio.h>
 
 #include "i_system.h"
@@ -497,7 +493,8 @@ extern char*	mapnames[];
 
 extern uint32_t final_screen[];
 
-
+extern display_context_t _dc;
+extern void graphics_draw_text( display_context_t disp, int x, int y, const char * const msg );
 
 //
 // STATUS BAR CODE
@@ -506,17 +503,15 @@ void ST_Stop(void);
 
 void ST_refreshBackground(void)
 {
-
     if (st_statusbaron)
     {
-	V_DrawPatch(ST_X, 0, BG, sbar);
+		V_DrawPatch(ST_X, 0, BG, sbar);
 
-	if (netgame)
-	    V_DrawPatch(ST_FX, 0, BG, faceback);
+		if (netgame)
+			V_DrawPatch(ST_FX, 0, BG, faceback);
 
-	V_CopyRect(ST_X, 0, BG, ST_WIDTH, ST_HEIGHT, ST_X, ST_Y, FG);
+		V_CopyRect(ST_X, 0, BG, ST_WIDTH, ST_HEIGHT, ST_X, ST_Y, FG);
     }
-
 }
 
 
@@ -988,21 +983,15 @@ void ST_updateWidgets(void)
     int		i;
 
     // must redirect the pointer if the ready weapon has changed.
-    //  if (w_ready.data != plyr->readyweapon)
-    //  {
     if (weaponinfo[plyr->readyweapon].ammo == am_noammo)
-	w_ready.num = &largeammo;
-    else
-	w_ready.num = &plyr->ammo[weaponinfo[plyr->readyweapon].ammo];
-    //{
-    // static int tic=0;
-    // static int dir=-1;
-    // if (!(tic&15))
-    //   plyr->ammo[weaponinfo[plyr->readyweapon].ammo]+=dir;
-    // if (plyr->ammo[weaponinfo[plyr->readyweapon].ammo] == -100)
-    //   dir = 1;
-    // tic++;
-    // }
+	{
+		w_ready.num = &largeammo;
+	}
+	else
+	{
+		w_ready.num = &plyr->ammo[weaponinfo[plyr->readyweapon].ammo];
+	}
+	
     w_ready.data = plyr->readyweapon;
 
     // if (*w_ready.on)
@@ -1043,24 +1032,20 @@ void ST_updateWidgets(void)
     // get rid of chat window if up because of message
     if (!--st_msgcounter)
 	st_chat = st_oldchat;
-
 }
 
 void ST_Ticker (void)
 {
-
     st_clock++;
     st_randomnumber = M_Random();
     ST_updateWidgets();
     st_oldhealth = plyr->health;
-
 }
 
 static int st_palette = 0;
 
 void ST_doPaletteStuff(void)
 {
-
     int		palette = -1;
     byte*	pal;
     int		cnt;
@@ -1105,11 +1090,10 @@ void ST_doPaletteStuff(void)
 
     if (palette != st_palette)
     {
-	st_palette = palette;
-	pal = /*((byte *)W_CacheLumpNum (lu_palette, PU_CACHE))*/big_pal + (palette * 768);
-	I_SetPalette (pal);
+        st_palette = palette;
+        pal = ((byte *)W_CacheLumpNum (lu_palette, PU_CACHE));
+        I_SetPalette (pal);
     }
-
 }
 
 void ST_drawWidgets(boolean refresh)
@@ -1149,7 +1133,6 @@ void ST_drawWidgets(boolean refresh)
 
 void ST_doRefresh(void)
 {
-
     st_firsttime = false;
 
     // draw status bar background to off-screen buff
@@ -1157,7 +1140,6 @@ void ST_doRefresh(void)
 
     // and refresh all widgets
     ST_drawWidgets(true);
-
 }
 
 void ST_diffDraw(void)
@@ -1176,10 +1158,9 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
     ST_doPaletteStuff();
 
     // If just after ST_Start(), refresh all
-    if (st_firsttime) ST_doRefresh();
+    /*if (st_firsttime)*/ ST_doRefresh();
     // Otherwise, update as little as possible
-    else ST_diffDraw();
-
+    //else ST_diffDraw();
 }
 
 void ST_loadGraphics(void)

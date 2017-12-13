@@ -22,10 +22,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
-static const char
-rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
-
 #include <libdragon.h>
 #include <limits.h>
 #include "stdlib.h"
@@ -42,7 +38,7 @@ rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 
 
 // Fixme. __USE_C_FIXED__ or something.
-
+#if 0
 fixed_t
 FixedMul
 ( fixed_t	a,
@@ -50,7 +46,7 @@ FixedMul
 {
     return ((int64_t) a * (int64_t) b) >> FRACBITS;
 }
-
+#endif
 
 
 //

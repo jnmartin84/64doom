@@ -28,7 +28,7 @@
 #define __Z_ZONE__
 
 #include <stdio.h>
-
+//#define ZNATIVE 1
 //
 // ZONE MEMORY
 // PU - purge tags.
@@ -55,7 +55,7 @@ void    Z_CheckHeap (void);
 void    Z_ChangeTag2 (void *ptr, int tag, char *file, int line);
 int     Z_FreeMemory (void);
 
-
+#ifndef ZNATIVE
 typedef struct memblock_s
 {
     int			size;	// including the header and possibly tiny fragments
@@ -66,7 +66,7 @@ typedef struct memblock_s
     struct memblock_s*	prev;
     char		asd[8]; //padding
 } memblock_t;
-
+#endif 
 //
 // This is used to get the local FILE:LINE info from CPP
 // prior to really call the function in question.
