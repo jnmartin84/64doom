@@ -147,6 +147,7 @@ void unlockVideo(display_context_t dc)
 
 void I_ShutdownGraphics(void)
 {
+    printf("asdfg");
 }
 
 
