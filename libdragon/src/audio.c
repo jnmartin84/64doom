@@ -9,6 +9,12 @@
 #include "libdragon.h"
 #include "regsinternal.h"
 
+extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
+extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
+
+#define memcpy __n64_memcpy_ASM
+#define memset __n64_memset_ASM
+
 /**
  * @defgroup audio Audio Subsystem
  * @ingroup libdragon
@@ -33,7 +39,7 @@
  * of buffers using #audio_init.  More audio buffers allows for smaller
  * chances of audio glitches but means that there will be more latency
  * in sound output.  When new data is available to be output, code should
- * check to see if there is room in the output buffers using 
+ * check to see if there is room in the output buffers using
  * #audio_can_write.  Code can probe the current frequency and buffer
  * size using #audio_get_frequency and #audio_get_buffer_length respectively.
  * When there is additional room, code can add new data to the output
@@ -76,10 +82,10 @@
 
 /** @brief Number of buffers the audio subsytem allocates and manages */
 #define NUM_BUFFERS     4
-/** 
+/**
  * @brief Macro that calculates the size of a buffer based on frequency
  *
- * @param[in] x 
+ * @param[in] x
  *            Frequency the AI is running at
  *
  * @return The size of the buffer in bytes rounded to an 8 byte boundary
@@ -87,30 +93,35 @@
 #define CALC_BUFFER(x)  ( ( ( ( x ) / 35 ) >> 3 ) << 3 )
 
 /** @brief The actual frequency the AI will run at */
-static int _frequency = 0;
+/*static*/ int _frequency = 0;
 /** @brief The number of buffers currently allocated */
-static int _num_buf = NUM_BUFFERS;
+/*static*/ int _num_buf = NUM_BUFFERS;
 /** @brief The buffer size in bytes for each buffer allocated */
-static int _buf_size = 0;
+/*static*/ int _buf_size = 0;
 /** @brief Array of pointers to the allocated buffers */
-static short **buffers = NULL;
+/*static*/ short **buffers = NULL;
+
+/*static*/ audio_fill_buffer_callback _fill_buffer_callback = NULL;
+/*static*/ audio_fill_buffer_callback _orig_fill_buffer_callback = NULL;
+
+/*static*/ volatile bool _paused = false;
 
 /** @brief Index of the current playing buffer */
-static volatile int now_playing = 0;
+/*static*/ volatile int now_playing = 0;
 /** @brief Index pf the currently being written buffer */
-static volatile int now_writing = 0;
+/*static*/  volatile int now_writing = 0;
 /** @brief Bitmask of buffers indicating which buffers are full */
-static volatile int buf_full = 0;
+/*static*/  volatile int buf_full = 0;
 
 /** @brief Structure used to interact with the AI registers */
-static volatile struct AI_regs_s * const AI_regs = (struct AI_regs_s *)0xa4500000;
+/*static*/ volatile struct AI_regs_s * const AI_regs = (struct AI_regs_s *)0xa4500000;
 
 /**
  * @brief Return whether the AI is currently busy
  *
  * @return nonzero if the AI is busy, zero otherwise
  */
-static volatile inline int __busy()
+/*static*/ volatile inline int __busy()
 {
     return AI_regs->status & AI_STATUS_BUSY;
 }
@@ -120,7 +131,7 @@ static volatile inline int __busy()
  *
  * @return nonzero if the AI is full, zero otherwise
  */
-static volatile inline int __full()
+/*static*/ volatile inline int __full()
 {
     return AI_regs->status & AI_STATUS_FULL;
 }
@@ -131,13 +142,13 @@ static volatile inline int __full()
  * This function is called whenever internal buffers are running low.  It will
  * send as many buffers as possible to the AI until the AI is full.
  */
-static void audio_callback()
+/*static*/ void audio_callback()
 {
     /* Do not copy more data if we've freed the audio system */
-    if(!buffers)
+/*    if(!buffers)
     {
         return;
-    }
+    }*/
 
     /* Disable interrupts so we don't get a race condition with writes */
     disable_interrupts();
@@ -147,7 +158,7 @@ static void audio_callback()
     {
         /* check if next buffer is full */
         int next = (now_playing + 1) % _num_buf;
-        if (!(buf_full & (1<<next)))
+        if ((!(buf_full & (1<<next))) && !_fill_buffer_callback)
         {
             break;
         }
@@ -158,11 +169,18 @@ static void audio_callback()
         /* Set up DMA */
         now_playing = next;
 
+        if (_fill_buffer_callback) {
+            _fill_buffer_callback(UncachedAddr( buffers[now_playing] ), _buf_size);
+        }
+
         AI_regs->address = UncachedAddr( buffers[now_playing] );
+        MEMORY_BARRIER();
         AI_regs->length = (_buf_size * 2 * 2 ) & ( ~7 );
+        MEMORY_BARRIER();
 
          /* Start DMA */
         AI_regs->control = 1;
+        MEMORY_BARRIER();
     }
 
     /* Safe to enable interrupts here */
@@ -172,7 +190,7 @@ static void audio_callback()
 /**
  * @brief Initialize the audio subsystem
  *
- * This function will set up the AI to play at a given frequency and 
+ * This function will set up the AI to play at a given frequency and
  * allocate a number of back buffers to write data to.
  *
  * @note Before re-initializing the audio subsystem to a new playback
@@ -182,6 +200,8 @@ static void audio_callback()
  *            The frequency in Hz to play back samples at
  * @param[in] numbuffers
  *            The number of buffers to allocate internally
+ * @param[in] fill_buffer_callback
+ *            A function to be called when more sample data is needed
  */
 void audio_init(const int frequency, int numbuffers)
 {
@@ -226,19 +246,36 @@ void audio_init(const int frequency, int numbuffers)
     /* Set up buffers */
     _buf_size = CALC_BUFFER(_frequency);
     _num_buf = (numbuffers > 1) ? numbuffers : NUM_BUFFERS;
-    buffers = n64_malloc(_num_buf * sizeof(short *));
+#if 0
+    buffers = malloc(_num_buf * sizeof(short *));
 
     for(int i = 0; i < _num_buf; i++)
     {
         /* Stereo buffers, interleaved */
-        buffers[i] = n64_malloc(sizeof(short) * 2 * _buf_size);
-        n64_memset(buffers[i], 0, sizeof(short) * 2 * _buf_size);
+        buffers[i] = malloc(sizeof(short) * 2 * _buf_size);
+		if (0 == buffers[i]) {
+			printf("couldn't malloc sound buffer\n");
+			while(1) {}
+			//exit(-1);
+		}
+        memset(buffers[i], 0, sizeof(short) * 2 * _buf_size);
     }
-
+#endif
     /* Set up ring buffer pointers */
     now_playing = 0;
     now_writing = 0;
     buf_full = 0;
+    _paused = false;
+}
+
+void audio_set_buffer_callback(audio_fill_buffer_callback fill_buffer_callback)
+{
+    disable_interrupts();
+    _orig_fill_buffer_callback = fill_buffer_callback;
+    if (!_paused) {
+        _fill_buffer_callback = fill_buffer_callback;
+    }
+    enable_interrupts();
 }
 
 /**
@@ -251,7 +288,7 @@ void audio_close()
 {
     set_AI_interrupt(0);
     unregister_AI_handler(audio_callback);
-
+#if 0
     if(buffers)
     {
         for(int i = 0; i < _num_buf; i++)
@@ -259,18 +296,46 @@ void audio_close()
             /* Nuke anything that isn't freed */
             if(buffers[i])
             {
-                n64_free(buffers[i]);
+                free(buffers[i]);
                 buffers[i] = 0;
             }
         }
 
         /* Nuke master array */
-        n64_free(buffers);
+        free(buffers);
         buffers = 0;
     }
-
+#endif
     _frequency = 0;
     _buf_size = 0;
+}
+
+/*static*/ void audio_paused_callback(short *buffer, size_t numsamples)
+{
+    memset(UncachedShortAddr(buffer), 0, numsamples * sizeof(short) * 2);
+}
+
+/**
+ * @brief Pause or resume audio playback
+ *
+ * Should only be used when a fill_buffer_callback has been set
+ * in #audio_init.
+ * Silence will be generated while playback is paused.
+ */
+void audio_pause(bool pause) {
+    if (pause != _paused && _fill_buffer_callback) {
+        disable_interrupts();
+
+        _paused = pause;
+        if (pause) {
+            _orig_fill_buffer_callback = _fill_buffer_callback;
+            _fill_buffer_callback = audio_paused_callback;
+        } else {
+            _fill_buffer_callback = _orig_fill_buffer_callback;
+        }
+
+        enable_interrupts();
+	}
 }
 
 /**
@@ -310,7 +375,7 @@ void audio_write(const short * const buffer)
     /* Copy buffer into local buffers */
     buf_full |= (1<<next);
     now_writing = next;
-    __n64_memcpy_ASM(UncachedShortAddr(buffers[now_writing]), buffer, _buf_size * 2 * sizeof(short));
+    memcpy(UncachedShortAddr(buffers[now_writing]), buffer, _buf_size * 2 * sizeof(short));
     audio_callback();
     enable_interrupts();
 }
@@ -347,7 +412,7 @@ void audio_write_silence()
     /* Copy silence into local buffers */
     buf_full |= (1<<next);
     now_writing = next;
-    n64_memset(UncachedShortAddr(buffers[now_writing]), 0, _buf_size * 2 * sizeof(short));
+    memset(UncachedShortAddr(buffers[now_writing]), 0, _buf_size * 2 * sizeof(short));
     audio_callback();
     enable_interrupts();
 }
@@ -384,7 +449,7 @@ int audio_get_frequency()
 /**
  * @brief Get the number of stereo samples that fit into an allocated buffer
  *
- * @note To get the number of bytes to allocate, multiply the return by 
+ * @note To get the number of bytes to allocate, multiply the return by
  *       2 * sizeof( short )
  *
  * @return The number of stereo samples in an allocated buffer

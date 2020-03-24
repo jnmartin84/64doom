@@ -69,7 +69,16 @@
  * 
  * @return A void pointer to the cached memory address in RAM
  */
-#define CachedAddr(_addr) (((void *)(((unsigned long)(_addr))&~0x20000000))
+#define CachedAddr(_addr) ((void *)(((unsigned long)(_addr))&~0x20000000))
+
+/**
+ * @brief Memory barrier to ensure in-order execution
+ *
+ * Since GCC seems to reorder volatile at -O2, a memory barrier is required
+ * to ensure that DMA setup is done in the correct order.  Otherwise, the
+ * library is useless at higher optimization levels.
+ */
+#define MEMORY_BARRIER() asm volatile ("" : : : "memory")
 
 #ifdef __cplusplus
 extern "C" {

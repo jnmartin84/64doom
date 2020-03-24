@@ -33,10 +33,7 @@
 
 #include "doomdef.h"
 
-#include "colorbar1.h"
-
-//#define SCALE 1
-#define SCREENW 320
+#define SCREENW 640
 
 // externs
 
@@ -47,12 +44,6 @@ extern void dma_and_copy(void *buf, int count, int ROM_base_address, int current
 extern int I_GetHeapSize(void);
 extern int Z_FreeMemory(void);
 
-extern int get_allocated_byte_count();
-extern int get_null_free_count();
-extern int get_unmapped_free_count();
-extern uint32_t get_allocated_mus_memory();
-extern uint32_t used_instrument_count;
-
 extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 extern void *__n64_memset_ASM(void *p, int v, size_t n);
 extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
@@ -62,61 +53,20 @@ extern unsigned long get_max_allocated_mus_memory();
 
 extern void *__safe_buffer[];
 
-extern float min_sample;
-extern float max_sample;
-extern int last_save_size;
-extern int last_x;
-extern int last_y;
 extern int pcmflip;
 extern uint32_t shift;
-extern short pcmout1[];
-extern short pcmout2[];
 extern uint32_t ytab[];
-extern uint32_t y20tab[];
 
 // function prototypes
-
-uint32_t color_from_sample(double h);
 
 void I_SetPalette(byte* palette);
 
 void I_FinishUpdate(void);
 
-void nearest_neighbor(uint8_t *output,uint8_t *input,int w1,int h1,int w2,int h2);
-void optimized_bresenham_scale_image(uint8_t *output, uint8_t *input, int w1, int h1, int w2, int h2);
-
-// module-local
-
-static int update_count = 0;
-
-static char  __attribute__((aligned(8))) legend_string[256];
-static uint8_t __attribute__((aligned(8))) tmpscreen[SCREENW*240];
-static uint32_t __attribute__((aligned(8))) colorbar[256];
-
-static uint32_t BLACK_COL;
-static uint32_t WHITE_COL;
-static uint32_t TOTAL_AVAIL_COL;
-static uint32_t TOTAL_ALLOC_COL;
-static uint32_t ZONE_ALLOC_COL;
-static uint32_t ZONE_USED_COL;
-static uint32_t MUS_USED_COL;
-static uint32_t MAX_ZONE_USED_COL;
-static uint32_t MAX_MUS_USED_COL;
-static uint32_t UNMAP_FREE_COL;
-static uint32_t USED_INSTR_COL;
-static uint32_t NULL_FREE_COL;
-
-// globals
+// globals	
 uint32_t __attribute__((aligned(8))) palarray[256];
-uint32_t RED_COL;
-uint32_t GREEN_COL;
-uint32_t BLUE_COL;
 
 display_context_t _dc;
-
-double instant_fps = -1.0;
-double average_fps = 0.0;
-int PROFILE_MEMORY = 0;
 
 
 display_context_t lockVideo(int wait)
@@ -154,10 +104,6 @@ void I_UpdateNoBlit(void)
 {
 }
 
-#define pack_16bit_colors_long(c1,c2) ( (c1 << 16) | (c2 & 0x0000FFFF) )
-
-#define pack_16bit_colors_long_alt(c1,c2)    (c2 | (c1 << 16))
-
 unsigned long last_tics;
 double last_time;
 
@@ -165,35 +111,8 @@ double last_time;
 //
 // I_FinishUpdate
 //
-static int dri;
-static uint16_t *dri_video_ptr;
-
 void I_FinishUpdate(void)
 {
-#ifdef SCALE
-	dri_video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[0]; // start at 0 320-pixel lines into the framebuffer
-#endif
-#ifndef SCALE
-	dri_video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[SCREENW*20]; // start at 20 320-pixel lines into the framebuffer
-#endif
-
-#ifdef SCALE
-//	nearest_neighbor(tmpscreen, screens[0], SCREENW, 200, SCREENW, 240);
-	optimized_bresenham_scale_image(tmpscreen, screens[0], SCREENW, 200, SCREENW, 240);
-#endif
-
-#ifdef SCALE
-    for(dri=0;dri<SCREENW*240;dri++)
-    {
-        dri_video_ptr[dri] = palarray[tmpscreen[dri]];
-    }
-#endif
-#ifndef SCALE
-    for(dri=0;dri<SCREENW*200;dri++)
-    {
-        dri_video_ptr[dri] = palarray[screens[0][dri]];
-    }
-#endif
 }
 
 
@@ -217,10 +136,6 @@ extern byte* big_pal;
 
 void I_ForcePaletteUpdate(void)
 {
-    if (0 != big_pal)
-    {
-        I_SetPalette(big_pal);
-    }
 }
 
 
@@ -233,12 +148,13 @@ void I_SetPalette(byte* palette)
 
     unsigned int r,g,b;
     unsigned int i;
+    __n64_memset_ZERO_ASM(palarray, 0, 256*sizeof(uint32_t));
 
     for (i = 0; i < 256; i++)
     {
-        r = gammaptr[*palette++];// & 0x000000FF;
-        g = gammaptr[*palette++];// & 0x000000FF;
-        b = gammaptr[*palette++];// & 0x000000FF;
+        r = gammaptr[*palette++];
+        g = gammaptr[*palette++];
+        b = gammaptr[*palette++];
 
 ////        for grayscale
 //        int d = sqrt((r*r + g*g + b*b) / 9);
@@ -251,35 +167,8 @@ void I_SetPalette(byte* palette)
 
 void I_InitGraphics(void)
 {
-    int i;
-
     __n64_memset_ZERO_ASM(palarray, 0, 256*sizeof(uint32_t));
-
-    BLACK_COL         = graphics_make_color(  0,   0,   0,   0);
-    // duplicate of TOTAL_ALLOC_COL ...
-    WHITE_COL         = graphics_make_color(255, 255, 255,   0);
-    RED_COL           = graphics_make_color(255,   0,   0,   0);
-    GREEN_COL         = graphics_make_color(  0, 255,   0,   0);
-    BLUE_COL          = graphics_make_color(  0,   0, 255,   0);
-    TOTAL_AVAIL_COL   = graphics_make_color( 64,  64,  64,   0);
-    TOTAL_ALLOC_COL   = graphics_make_color(255, 255, 255,   0);
-    ZONE_ALLOC_COL    = graphics_make_color(  0, 255,   0,   0);
-    ZONE_USED_COL     = graphics_make_color(  0,   0, 255,   0);
-    MUS_USED_COL      = graphics_make_color(255,   0,   0,   0);
-    MAX_ZONE_USED_COL = graphics_make_color(255,   0, 255,   0);
-    MAX_MUS_USED_COL  = graphics_make_color(255, 255,   0,   0);
-    UNMAP_FREE_COL    = graphics_make_color(  0, 255, 255,   0);
-    USED_INSTR_COL    = graphics_make_color( 63, 127, 255,   0);
-    NULL_FREE_COL     = graphics_make_color(255, 127,  63,   0);
-
-    char *dataPointer = colorbar_data;
-
-    for(i=0;i<256;i++)
-    {
-        char rgb[3];
-        HEADER_PIXEL(dataPointer,rgb);
-        colorbar[i] = graphics_make_color(rgb[0],rgb[1],rgb[2],0xFF);
-    }
+	display_init(RESOLUTION_640x480, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
 }
 
 
@@ -374,7 +263,7 @@ void DebugOutput_String_For_IError(const char *str, int lineNumber, int good)
 //    unlockVideo(_dc);
 }
 
-
+#if 0
 // algorithm from: http://tech-algorithm.com/articles/nearest-neighbor-image-scaling/
 void nearest_neighbor(uint8_t *output, uint8_t *input, int w1, int h1, int w2, int h2)
 {
@@ -471,3 +360,4 @@ void optimized_bresenham_scale_image(uint8_t *output, uint8_t *input, int w1, in
         }
     }
 }
+#endif

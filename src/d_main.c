@@ -67,7 +67,7 @@
 
 #include "d_main.h"
 
-
+extern uint16_t *buf16;
 char shareware_banner[]  =	
 				"==================================\n"
 				"            Shareware!\n"
@@ -79,7 +79,7 @@ char commercial_banner[] =
 				"1-800-388-PIR8\n"
 				"==================================\n";
 
-
+extern int return_from_D_DoomMain;
 byte *big_pal;
 
 extern void DebugOutput_Hex(const int number);
@@ -133,7 +133,6 @@ FILE*		debugfile;
 
 boolean		advancedemo;
 
-
 char		wadfile[1024];		// primary wad file
 char		mapdir[1024];           // directory of development maps
 char		basedefault[1024];      // default file
@@ -149,7 +148,7 @@ void D_ProcessEvents(void);
 void G_BuildTiccmd(ticcmd_t* cmd);
 void D_DoAdvanceDemo(void);
 
-
+extern double get_elapsed_seconds();
 //
 // EVENT HANDLING
 //
@@ -160,9 +159,13 @@ event_t		events[MAXEVENTS];
 int		eventhead;
 int		eventtail;
 
-
+extern int snd_SfxVolume;
+extern int mus_playing;
 void sound_callback(void)
 {
+//	if(!snd_SfxVolume && !mus_playing)
+//		return;
+	
     disable_interrupts();
 
     if (should_sound)
@@ -176,7 +179,6 @@ void sound_callback(void)
 
     enable_interrupts();
 }
-
 
 //
 // D_PostEvent
@@ -234,9 +236,7 @@ extern  boolean		setsizeneeded;
 extern  int		showMessages;
 void R_ExecuteSetViewSize(void);
 
-//int GODDED = 0;
-extern int		lastspancount;
-extern int		lastcolcount;
+uint32_t big_framecount = 0;
 
 void D_Display(void)
 {
@@ -246,12 +246,12 @@ void D_Display(void)
 	static  boolean		fullscreen = false;
 	static  gamestate_t		oldgamestate = -1;
 	static  int		borderdrawcount;
-	int		nowtime;
-	int		tics;
-	int		wipestart;
+//	int		nowtime;
+//	int		tics;
+//	int		wipestart;
 	int		y;
-	boolean			done;
-	boolean			wipe;
+//	boolean			done;
+//	boolean			wipe;
 	boolean		redrawsbar;
 
 	if (nodrawers)
@@ -265,21 +265,25 @@ void D_Display(void)
 	// change the view size if needed
 	if (setsizeneeded)
 	{
-		R_ExecuteSetViewSize();
+	//	R_FillBackScreen();
+        R_ExecuteSetViewSize();
+
 		oldgamestate = -1;                      // force background redraw
 		borderdrawcount = 3;
-	}
+//			R_DrawViewBorder();     // erase old menu stuff
+
+		}
 
 	// save the current screen if about to wipe
-	if (gamestate != wipegamestate)
+/*	if (gamestate != wipegamestate)
 	{
 		wipe = true;
-		wipe_StartScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
+		//wipe_StartScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
 	}
 	else
 	{
 		wipe = false;
-	}
+	}*/
 
 	if ((gamestate == GS_LEVEL) && gametic)
 	{
@@ -299,61 +303,58 @@ void D_Display(void)
 			{
 			AM_Drawer();
 			}
-			if (wipe || ((viewheight != SCREENHEIGHT) && fullscreen))
+			if (/*wipe || */((viewheight != SCREENHEIGHT) && fullscreen))
 			{
 				redrawsbar = true;
 			}
 			if (inhelpscreensstate && !inhelpscreens)
 			{
-				redrawsbar = true;              // just put away the help screen
+				redrawsbar = false;              // just put away the help screen
 			}
 
-			ST_Drawer((viewheight == SCREENHEIGHT), redrawsbar );
+//			ST_Drawer((viewheight == SCREENHEIGHT), redrawsbar );
 			fullscreen = (viewheight == SCREENHEIGHT);
 			break;
 		}
 
 		case GS_INTERMISSION:
 		{
+			I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
 			WI_Drawer();
 			break;
 		}
 
         case GS_FINALE:
         {
-            F_Drawer();
-            break;
+			I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
+			F_Drawer();
+			break;
         }
 
         case GS_DEMOSCREEN:
         {
-
-            D_PageDrawer();
+			I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
+			D_PageDrawer();
             break;
         }
     }
-
-	// draw buffered stuff to screen
-	//I_UpdateNoBlit();
 
 	// draw the view directly
 	if ((gamestate == GS_LEVEL) && !automapactive && gametic)
 	{
 		R_RenderPlayerView(&players[displayplayer]);
-	}
+			ST_Drawer((viewheight == SCREENHEIGHT), redrawsbar );
+
+		}
 
 	if ((gamestate == GS_LEVEL) && gametic)
 	{
 		HU_Drawer();
 	}
 
-	big_pal = (byte *)W_CacheLumpName("PLAYPAL",PU_CACHE);//PU_STATIC);
-
 	// clean up border stuff
 	if ((gamestate != oldgamestate) && (gamestate != GS_LEVEL))
 	{
-		//I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
-		I_SetPalette(big_pal);
 	}
 
 	// see if the border needs to be initially drawn
@@ -373,7 +374,7 @@ void D_Display(void)
 
 		if (borderdrawcount)
 		{
-
+		//	R_FillBackScreen();
 			R_DrawViewBorder();     // erase old menu stuff
 			borderdrawcount--;
 		}
@@ -405,16 +406,18 @@ void D_Display(void)
 	NetUpdate();         // send out any new accumulation
 
 	// normal update
-	if (!wipe)
+/*	if (!wipe)
 	{
-		I_FinishUpdate();              // page flip or blit buffer
+        _dc = lockVideo(1);
+        I_FinishUpdate();              // page flip or blit buffer
+        unlockVideo(_dc);
 		return;
 	}
-
+*/
 	// wipe update
-	wipe_EndScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
+//	wipe_EndScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
 
-	wipestart = I_GetTime() - 1;
+/*	wipestart = I_GetTime();// - 1;
 
 	do
 	{
@@ -430,9 +433,13 @@ void D_Display(void)
 		//I_UpdateNoBlit();
 
 		M_Drawer();                            // menu is drawn even on top of wipes
+		        _dc = lockVideo(1);
+
 		I_FinishUpdate();                      // page flip or blit buffer
-	}
-	while (!done);
+		unlockVideo(_dc);
+		}
+	while (!done);*/
+	big_framecount++;
 }
 
 
@@ -444,22 +451,12 @@ extern  boolean         demorecording;
 
 void D_DoomLoop(void)
 {
-/*    if (demorecording)
-	G_BeginRecording ();
-		
-    if (M_CheckParm ("-debugfile"))
-    {
-	char    filename[20];
-	sprintf (filename,"debug%i.txt",consoleplayer);
-	printf ("debug output to: %s\n",filename);
-	debugfile = fopen (filename,"w");
-    }*/
-	
-//    I_InitGraphics ();
+	I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
 
-    while (1)
+	while (1)
     {
-        // process one or more tics
+		if(return_from_D_DoomMain) return;
+		// process one or more tics
         if (singletics)
         {
             I_StartTic();
@@ -482,14 +479,10 @@ void D_DoomLoop(void)
         S_UpdateSounds(players[consoleplayer].mo);// move positional sounds
 
         _dc = lockVideo(1);
-
-//        uint16_t *video_ptr = &((uint16_t *)__safe_buffer[_dc - 1])[(160*320)]; // start at 160 320-pixel lines into the framebuffer
-//	__n64_memset_ZERO_ASM((void*)video_ptr, 0, 320*80*2);
-
+		buf16 = (uint16_t *)__safe_buffer[(_dc)-1];
+		//buf16 = (uint16_t *)((uint32_t)buf16 & 0x8FFFFFFF);
         D_Display();
-
-        unlockVideo(_dc);
-//	return;
+		unlockVideo(_dc);
     }
 }
 
@@ -672,17 +665,18 @@ void D_AddFile(char *file)
 // to determine whether registered/commercial features
 // should be executed (notably loading PWAD's).
 //
+    char*	doom1wad = "DOOM1.WAD"; 
+    char*	doomwad = "DOOM.WAD";
+    char*	doomuwad = "DOOMU.WAD";
+    char*	doom2wad = "DOOM2.WAD";
+
+    char*	doom2fwad = "DOOM2F.WAD";
+    char*	plutoniawad = "PLUTONIA.WAD";
+    char*	tntwad = "TNT.WAD";
+
 void IdentifyVersion(void)
 {
-    char*	doom1wad;
-    char*	doomwad;
-    char*	doomuwad;
-    char*	doom2wad;
-
-    char*	doom2fwad;
-    char*	plutoniawad;
-    char*	tntwad;
-
+#if 0
     char *doomwaddir = "";
 
     if (!doomwaddir)
@@ -717,7 +711,7 @@ void IdentifyVersion(void)
     // French stuff.
     doom2fwad = (char *)n64_malloc(strlen(doomwaddir)+1+10+1);
     sprintf(doom2fwad, "DOOM2F.WAD");
-
+#endif
     const char *gameid = get_GAMEID();
 
     printf("IdentifyVersion: %s\n", gameid);
@@ -1149,7 +1143,6 @@ void D_DoomMain(void)
         printf("D_DoomMain: AI interrupt handler installed.\n");
     }
 
-
     if (gameaction != ga_loadgame)
     {
         if (autostart || netgame)
@@ -1173,14 +1166,13 @@ void D_DoomMain(void)
 
         uint16_t *video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[0];
 
-        __n64_memset_ASM(video_ptr, 0, 320*240*2);
-
-//        for(int vpi=0;vpi<320*240;vpi++) {
-//            video_ptr[vpi] = 0;
-//        }
+        __n64_memset_ZERO_ASM(video_ptr, 0, 640*480*2);
 
         unlockVideo(_dc);
     }
 
+//       _dc = lockVideo(1);
+//unlockVideo(_dc);
+	
     D_DoomLoop();  // never returns
-}
+	}

@@ -1,5 +1,5 @@
 ROOTDIR			=$(N64_INST)
-DOOMDIR			= /home/Jason/gitland/64doom/src
+DOOMDIR			= /home/Jason/n64dev/git_doom
 
 MIDIPATH_LOW		= $(DOOMDIR)/ADoom_Instr
 MIDIPATH_HIGH		= $(DOOMDIR)/ADoom_Ins
@@ -50,13 +50,13 @@ MKSPRITEPATH = $(ROOTDIR)/bin/mksprite
 HEADERPATH = $(ROOTDIR)/lib
 N64TOOL = $(ROOTDIR)/bin/n64tool
 HEADERNAME = header
-
 LIBS = -ldragon -lc -lm -ldragonsys -ln64memory
-LINK_FLAGS = -G4 -L$(ROOTDIR)/lib -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64ld.x
+LINK_FLAGS = -G4 -L$(ROOTDIR)/lib -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64.ld
 PROG_NAME = doom
-CFLAGS = -std=gnu99 -march=vr4300 -mtune=vr4300 -fno-strict-aliasing -Wall -g -G4 -Os -I$(ROOTDIR)/include -I$(ROOTDIR)/mips64-elf/include
-CFLAGS_ASM = -std=gnu99 -march=vr4300 -mtune=vr4300 -fno-strict-aliasing -Wall -g -G4 -Os -I$(ROOTDIR)/include -I$(ROOTDIR)/mips64-elf/include
+CFLAGS = -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -Wall -G4 -O3 -I$(ROOTDIR)/include -I$(ROOTDIR)/mips64-elf/include
+CFLAGS_ASM = -std=gnu99 -march=vr4300 -mtune=vr4300 -Wall -mips3 -G4 -O3 -I$(ROOTDIR)/include -I$(ROOTDIR)/mips64-elf/include
 ASFLAGS = -mtune=vr4300 -march=vr4300
+
 
 CC = $(GCCN64PREFIX)gcc
 AS = $(GCCN64PREFIX)as
@@ -68,13 +68,16 @@ O=obj
 
 R_DRAWSPAN=R_DrawSpan
 R_DRAWCOLUMN=R_DrawColumn
-
 OBJS=						\
-		$(O)/$(R_DRAWCOLUMN).o		\
-		$(O)/$(R_DRAWSPAN).o		\
 		$(O)/n64_memcpy.o		\
 		$(O)/n64_memset.o		\
+		$(O)/n64_r_draw_16bpp.o			\
+		$(O)/n64_v_video_16bit.o		\
+		$(O)/R_DrawColumn.o		\
+		$(O)/R_DrawSpan.o		\
 		$(O)/n64_i_sound.o		\
+		$(O)/endoom.o		\
+		$(O)/exception.o			\
 		$(O)/dll.o			\
 		$(O)/hash.o			\
 		$(O)/lzfx.o			\
@@ -124,7 +127,6 @@ OBJS=						\
 		$(O)/p_user.o			\
 		$(O)/r_bsp.o			\
 		$(O)/r_data.o			\
-		$(O)/r_draw.o			\
 		$(O)/r_main.o			\
 		$(O)/r_plane.o			\
 		$(O)/r_segs.o			\
@@ -132,7 +134,6 @@ OBJS=						\
 		$(O)/r_things.o			\
 		$(O)/w_wad.o			\
 		$(O)/wi_stuff.o			\
-		$(O)/n64_v_video.o		\
 		$(O)/z_zone.o			\
 		$(O)/st_lib.o			\
 		$(O)/st_stuff.o			\
@@ -141,9 +142,8 @@ OBJS=						\
 		$(O)/s_sound.o			\
 		$(O)/info.o			\
 		$(O)/sounds.o			\
-		$(O)/m_fixedmul.o		\
 		$(O)/i_main.o
-
+		
 
 $(PROG_NAME).z64: $(PROG_NAME).elf 
 	$(OBJCOPY) $(PROG_NAME).elf $(PROG_NAME).bin -O binary
@@ -184,7 +184,7 @@ clean:
 	rm -f *.z64 *.v64 *.elf *.o *.bin *.dfs *.txt
 	rm -f $(O)/*
 
-$(O)/m_fixedmul.o: m_fixedmul.S
+$(O)/m_fixed.o: m_fixed.S
 	$(CC) $(CFLAGS_ASM) -c $< -o $@
 $(O)/m_swap.o: m_swap.S
 	$(CC) $(CFLAGS_ASM) -c $< -o $@
@@ -196,7 +196,7 @@ $(O)/$(R_DRAWCOLUMN).o: $(R_DRAWCOLUMN).S
 	$(CC) $(CFLAGS_ASM) -c $< -o $@
 $(O)/$(R_DRAWSPAN).o: $(R_DRAWSPAN).S
 	$(CC) $(CFLAGS_ASM) -c $< -o $@
-
+	
 $(O)/%.o:	%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 

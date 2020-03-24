@@ -13,6 +13,14 @@
 #include "system.h"
 #include "libdragon.h"
 
+extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
+extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
+
+#define memcpy __n64_memcpy_ASM
+#define memset __n64_memset_ASM
+
+
+
 /**
  * @defgroup console Console Support
  * @ingroup display
@@ -182,7 +190,7 @@ void console_init()
     display_close();
     display_init( RESOLUTION_320x240, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE );
 
-    render_buffer = n64_malloc(CONSOLE_SIZE);
+    render_buffer = malloc(CONSOLE_SIZE);
 
     console_clear();
     console_set_render_mode(RENDER_AUTOMATIC);
@@ -202,7 +210,7 @@ void console_close()
     if(render_buffer)
     {
         /* Nuke the console buffer */
-        n64_free(render_buffer);
+        free(render_buffer);
         render_buffer = 0;
     }
 
@@ -230,7 +238,7 @@ void console_clear()
     render_now = render;
 
     /* Remove all data */
-    n64_memset(render_buffer, 0, CONSOLE_SIZE);
+    memset(render_buffer, 0, CONSOLE_SIZE);
     
     /* Should we display? */
     if(render_now == RENDER_AUTOMATIC)

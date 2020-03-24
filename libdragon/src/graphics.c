@@ -10,6 +10,14 @@
 #include "graphics.h"
 #include "font.h"
 
+extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
+extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
+
+#define memcpy __n64_memcpy_ASM
+#define memset __n64_memset_ASM
+
+
+
 /**
  * @defgroup graphics 2D Graphics
  * @ingroup display
@@ -714,100 +722,6 @@ void graphics_draw_character( display_context_t disp, int x, int y, char ch )
     }
 }
 
-
-/**
- * @brief Draw a character to an arbitrary buffer using the built-in font
- *
- * @todo Need a set font mechanism.
- * @todo Need to look up the width and height from the font instead of assuming it is 8x8.
- *
- * Draw a character from the built-in font to a buffer.  This function does not support alpha blending, 
- * only binary transparency.  If the background color is fully transparent, the font is drawn with no
- * background.  Otherwise, the font is drawn on a fully colored background.  The foreground and background
- * can be set using #graphics_set_color.
- *
- * @param[in] disp
- *            The buffer to draw into.
- * @param[in] x
- *            The X coordinate to place the top left pixel of the character drawn.
- * @param[in] y
- *            The Y coordinate to place the top left pixel of the character drawn.
- * @param[in] ch
- *            The ASCII character to draw to the screen.
- */
-void graphics_buffer_draw_character( void *disp, int x, int y, int dw, int dh, char ch )
-{
-    if( disp == 0 ) { return; }
-
-    int depth = __bitdepth;
-
-    /* Figure out if they want the background to be transparent */
-    int trans = __is_transparent( depth, b_color );
-
-    if( depth == 2 )
-    {
-        uint16_t *buffer = (uint16_t *)disp;
-
-        for( int row = 0; row < 8; row++ )
-        {
-            unsigned char c = __font_data[(ch * 8) + row];
-
-            for( int col = 0; col < 8; col++ )
-            {
-                if( trans )
-                {
-                    if( c & 0x80 )
-                    {
-                        /* Only draw it if it is active */
-//                        __set_pixel( buffer, x + col, y + row, f_color );
-			buffer[(x + col) + ((y + row)*dw)] = f_color;
-                    }
-                }
-                else
-                {
-                    /* Display foreground or background depending on font data */
-//                    __set_pixel( buffer, x + col, y + row, (c & 0x80) ? f_color : b_color );
-			buffer[(x + col) + ((y + row)*dw)] = (c & 0x80) ? f_color : b_color;
-                }
-
-                c <<= 1;
-            }
-        }
-    }
-    else
-    {
-        uint32_t *buffer = (uint32_t *)disp;
-
-        for( int row = 0; row < 8; row++ )
-        {
-            unsigned char c = __font_data[(ch * 8) + row];
-
-            for( int col = 0; col < 8; col++ )
-            {
-                if( trans )
-                {
-                    if( c & 0x80 )
-                    {
-                        /* Only draw it if it is active */
-//                        __set_pixel( buffer, x + col, y + row, f_color );
-			buffer[(x + col) + ((y + row)*dw)] = f_color;
-                    }
-                }
-                else
-                {
-                    /* Display foreground or background depending on font data */
-//                    __set_pixel( buffer, x + col, y + row, (c & 0x80) ? f_color : b_color );
-			buffer[(x + col) + ((y + row)*dw)] = (c & 0x80) ? f_color : b_color;
-                }
-
-                c <<= 1;
-            }
-        }
-    }
-}
-
-
-
 /**
  * @brief Draw a null terminated string to a display context
  *
@@ -861,63 +775,6 @@ void graphics_draw_text( display_context_t disp, int x, int y, const char * cons
         text++;
     }
 }
-
-
-/**
- * @brief Draw a null terminated string to a display context
- *
- * Draw a string to the screen, following a few simple rules.  Standard ASCII is supported, as well
- * as \\r, \\n, space and tab.  \\r and \\n will both cause the next character to be rendered one line
- * lower and at the x coordinate specified in the parameters.  The tab character inserts five spaces.
- *
- * This function does not support alpha blending, only binary transparency.  If the background color is 
- * fully transparent, the font is drawn with no background.  Otherwise, the font is drawn on a fully 
- * colored background.  The foreground and background can be set using #graphics_set_color.
- *
- * @param[in] disp
- *            The currently active display context.
- * @param[in] x
- *            The X coordinate to place the top left pixel of the character drawn.
- * @param[in] y
- *            The Y coordinate to place the top left pixel of the character drawn.
- * @param[in] msg
- *            The ASCII null terminated string to draw to the screen.
- */
-void graphics_buffer_draw_text( void* disp, int x, int y, int dw, int dh, const char * const msg )
-{
-    if( disp == 0 ) { return; }
-    if( msg == 0 ) { return; }
-
-    int tx = x;
-    int ty = y;
-    const char *text = (const char *)msg;
-
-    while( *text )
-    {
-        switch( *text )
-        {
-            case '\r':
-            case '\n':
-                tx = x;
-                ty += 8;
-                break;
-            case ' ':
-                tx += 8;
-                break;
-            case '\t':
-                tx += 8 * 5;
-                break;
-            default:
-                graphics_buffer_draw_character( disp, tx, ty, dw, dh, *text );
-                tx += 8;
-                break;
-        }
-
-        text++;
-    }
-}
-
-
 
 /**
  * @brief Draw a sprite to a display context
@@ -1286,5 +1143,150 @@ void graphics_draw_sprite_trans_stride( display_context_t disp, int x, int y, sp
         }
     }
 }
+/**
+ * @brief Draw a character to an arbitrary buffer using the built-in font
+ *
+ * @todo Need a set font mechanism.
+ * @todo Need to look up the width and height from the font instead of assuming it is 8x8.
+ *
+ * Draw a character from the built-in font to a buffer.  This function does not support alpha blending, 
+ * only binary transparency.  If the background color is fully transparent, the font is drawn with no
+ * background.  Otherwise, the font is drawn on a fully colored background.  The foreground and background
+ * can be set using #graphics_set_color.
+ *
+ * @param[in] disp
+ *            The buffer to draw into.
+ * @param[in] x
+ *            The X coordinate to place the top left pixel of the character drawn.
+ * @param[in] y
+ *            The Y coordinate to place the top left pixel of the character drawn.
+ * @param[in] ch
+ *            The ASCII character to draw to the screen.
+ */
+void graphics_buffer_draw_character( void *disp, int x, int y, int dw, int dh, char ch )
+{
+    if( disp == 0 ) { return; }
+
+    int depth = __bitdepth;
+
+    /* Figure out if they want the background to be transparent */
+    int trans = __is_transparent( depth, b_color );
+
+    if( depth == 2 )
+    {
+        uint16_t *buffer = (uint16_t *)disp;
+
+        for( int row = 0; row < 8; row++ )
+        {
+            unsigned char c = __font_data[(ch * 8) + row];
+
+            for( int col = 0; col < 8; col++ )
+            {
+                if( trans )
+                {
+                    if( c & 0x80 )
+                    {
+                        /* Only draw it if it is active */
+//                        __set_pixel( buffer, x + col, y + row, f_color );
+			buffer[(x + col) + (((y + row))*dw)] = f_color;
+			}
+                }
+                else
+                {
+                    /* Display foreground or background depending on font data */
+//                    __set_pixel( buffer, x + col, y + row, (c & 0x80) ? f_color : b_color );
+			buffer[(x + col) + (((y + row))*dw)] = (c & 0x80) ? f_color : b_color;
+			}
+
+                c <<= 1;
+            }
+        }
+    }
+    else
+    {
+        uint32_t *buffer = (uint32_t *)disp;
+
+        for( int row = 0; row < 8; row++ )
+        {
+            unsigned char c = __font_data[(ch * 8) + row];
+
+            for( int col = 0; col < 8; col++ )
+            {
+                if( trans )
+                {
+                    if( c & 0x80 )
+                    {
+                        /* Only draw it if it is active */
+//                        __set_pixel( buffer, x + col, y + row, f_color );
+			buffer[(x + col) + ((y + row)*dw)] = f_color;
+                    }
+                }
+                else
+                {
+                    /* Display foreground or background depending on font data */
+//                    __set_pixel( buffer, x + col, y + row, (c & 0x80) ? f_color : b_color );
+			buffer[(x + col) + ((y + row)*dw)] = (c & 0x80) ? f_color : b_color;
+                }
+
+                c <<= 1;
+            }
+        }
+    }
+}
+
+/**
+ * @brief Draw a null terminated string to an arbitrary buffer
+ *
+ * Draw a string to an arbitrary buffer, following a few simple rules.  Standard ASCII is supported, as well
+ * as \\r, \\n, space and tab.  \\r and \\n will both cause the next character to be rendered one line
+ * lower and at the x coordinate specified in the parameters.  The tab character inserts five spaces.
+ *
+ * This function does not support alpha blending, only binary transparency.  If the background color is 
+ * fully transparent, the font is drawn with no background.  Otherwise, the font is drawn on a fully 
+ * colored background.  The foreground and background can be set using #graphics_set_color.
+ *
+ * @param[in] disp
+ *            The buffer to draw into.
+ * @param[in] x
+ *            The X coordinate to place the top left pixel of the character drawn.
+ * @param[in] y
+ *            The Y coordinate to place the top left pixel of the character drawn.
+ * @param[in] msg
+ *            The ASCII null terminated string to draw to the screen.
+ */
+void graphics_buffer_draw_text( void* disp, int x, int y, int dw, int dh, const char * const msg )
+{
+    if( disp == 0 ) { return; }
+    if( msg == 0 ) { return; }
+
+    int tx = x;
+    int ty = y;
+    const char *text = (const char *)msg;
+
+    while( *text )
+    {
+        switch( *text )
+        {
+            case '\r':
+            case '\n':
+                tx = x;
+                ty += 8;
+                break;
+            case ' ':
+                tx += 8;
+                break;
+            case '\t':
+                tx += 8 * 5;
+                break;
+            default:
+                graphics_buffer_draw_character( disp, tx, ty, dw, dh, *text );
+                tx += 8;
+                break;
+        }
+
+        text++;
+    }
+}
+
 
 /** @} */ /* graphics */

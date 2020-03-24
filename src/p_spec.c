@@ -154,14 +154,16 @@ void P_InitPicAnims (void)
     
     //	Init animation
     lastanim = anims;
-    for (i=0 ; animdefs[i].istexture != -1 ; i++)
+//for(i=0;i<22;i++)
+	    for (i=0 ; animdefs[i].istexture != -1 ; i++)
     {
 	if (animdefs[i].istexture)
 	{
-	    // different episode ?
+		/////printf("%s\n", animdefs[i].startname);
+    // different episode ?
 	    if (R_CheckTextureNumForName(animdefs[i].startname) == -1)
 		continue;	
-
+////printf("%s\n", animdefs[i].endname);
 	    lastanim->picnum = R_TextureNumForName (animdefs[i].endname);
 	    lastanim->basepic = R_TextureNumForName (animdefs[i].startname);
 	}
@@ -1251,6 +1253,7 @@ void P_SpawnSpecials (void)
 {
     sector_t*	sector;
     int		i;
+
     int		episode;
 
     episode = 1;

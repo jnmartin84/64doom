@@ -6,6 +6,11 @@
 #include <string.h>
 #include "libdragon.h"
 #include "regsinternal.h"
+extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
+extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
+
+#define memcpy __n64_memcpy_ASM
+#define memset __n64_memset_ASM
 
 /**
  * @defgroup controller Controller Subsystem
@@ -77,8 +82,8 @@ static struct controller_data last;
  */
 void controller_init()
 {
-    n64_memset(&current, 0, sizeof(current));
-    n64_memset(&last, 0, sizeof(last));
+    memset(&current, 0, sizeof(current));
+    memset(&last, 0, sizeof(last));
 }
 
 /**
@@ -97,13 +102,13 @@ static void __SI_DMA_wait(void)
  * @param[out] outblock
  *             The buffer to place the output from the PIF
  */
-static void __controller_exec_PIF( void *inblock, void *outblock )
+static void __controller_exec_PIF( const void *inblock, void *outblock )
 {
     volatile uint64_t inblock_temp[8];
     volatile uint64_t outblock_temp[8];
 
     data_cache_hit_writeback_invalidate(inblock_temp, 64);
-    __n64_memcpy_ASM(UncachedAddr(inblock_temp), inblock, 64);
+    memcpy(UncachedAddr(inblock_temp), inblock, 64);
 
     /* Be sure another thread doesn't get into a resource fight */
     disable_interrupts();
@@ -111,21 +116,25 @@ static void __controller_exec_PIF( void *inblock, void *outblock )
     __SI_DMA_wait();
 
     SI_regs->DRAM_addr = inblock_temp; // only cares about 23:0
+    MEMORY_BARRIER();
     SI_regs->PIF_addr_write = PIF_RAM; // is it really ever anything else?
+    MEMORY_BARRIER();
 
     __SI_DMA_wait();
 
     data_cache_hit_writeback_invalidate(outblock_temp, 64);
 
     SI_regs->DRAM_addr = outblock_temp;
+    MEMORY_BARRIER();
     SI_regs->PIF_addr_read = PIF_RAM;
+    MEMORY_BARRIER();
 
     __SI_DMA_wait();
 
     /* Now that we've copied, its safe to let other threads go */
     enable_interrupts();
 
-    __n64_memcpy_ASM(outblock, UncachedAddr(outblock_temp), 64);
+    memcpy(outblock, UncachedAddr(outblock_temp), 64);
 }
 
 /**
@@ -137,7 +146,7 @@ static void __controller_exec_PIF( void *inblock, void *outblock )
  */
 int eeprom_present()
 {
-    static unsigned long long SI_eeprom_status_block[8] =
+    static const unsigned long long SI_eeprom_status_block[8] =
     {
         0x00000000ff010300,
         0xfffffffffe000000,
@@ -191,7 +200,7 @@ void eeprom_read(int block, uint8_t * const buf)
 
 	SI_eeprom_read_block[0] = 0x0000000002080400 | (block & 255);
     __controller_exec_PIF(SI_eeprom_read_block,output);
-    __n64_memcpy_ASM( buf, &output[1], 8 );
+    memcpy( buf, &output[1], 8 );
 }
 
 /**
@@ -218,7 +227,7 @@ void eeprom_write(int block, const uint8_t * const data)
     static unsigned long long output[8];
 
 	SI_eeprom_write_block[0] = 0x000000000a010500 | (block & 255);
-    __n64_memcpy_ASM( &SI_eeprom_write_block[1], data, 8 );
+    memcpy( &SI_eeprom_write_block[1], data, 8 );
     __controller_exec_PIF(SI_eeprom_write_block,output);
 }
 
@@ -234,7 +243,7 @@ void eeprom_write(int block, const uint8_t * const data)
  */
 void controller_read(struct controller_data * output)
 {
-    static unsigned long long SI_read_con_block[8] =
+    static const unsigned long long SI_read_con_block[8] =
     {
         0xff010401ffffffff,
         0xff010401ffffffff,
@@ -250,19 +259,101 @@ void controller_read(struct controller_data * output)
 }
 
 /**
+ * @brief Read the controller button status for all controllers, GC version
+ *
+ * Read the controller button status immediately and return results to data.
+ *
+ * @param[in]  rumble
+ *             Set to 1 to start rumble, 0 to stop it.
+ *
+ * @param[out] output
+ *             Structure to place the returned controller button status
+ */
+void controller_read_gc(struct controller_data * outdata, const uint8_t rumble[4])
+{
+    static const unsigned long long SI_read_con_block[8] =
+    {
+        0x0308400300ffffff,
+        0xffffffffff030840,
+        0x0300ffffffffffff,
+        0xffff0308400300ff,
+        0xffffffffffffff03,
+        0x08400300ffffffff,
+        0xfffffffffe000000,
+        1
+    };
+
+    static unsigned long long output[8], input[8];
+
+    memcpy(input, SI_read_con_block, 64);
+
+    // Fill in the rumbles
+    if (rumble[0])
+        input[0] |= 1LLU << 24;
+    if (rumble[1])
+        input[2] |= 1LLU << 48;
+    if (rumble[2])
+        input[3] |= 1LLU << 8;
+    if (rumble[3])
+        input[5] |= 1LLU << 32;
+
+    __controller_exec_PIF(input, output);
+
+    memcpy(&outdata->gc[0], ((uint8_t *) output) + 5, 8);
+    memcpy(&outdata->gc[1], ((uint8_t *) output) + 5 + 13, 8);
+    memcpy(&outdata->gc[2], ((uint8_t *) output) + 5 + 13 * 2, 8);
+    memcpy(&outdata->gc[3], ((uint8_t *) output) + 5 + 13 * 3, 8);
+}
+
+/**
+ * @brief Read the controller origin status for all controllers, GC version
+ *
+ * This returns the values set on power up, or the values the user requested
+ * by reseting the controller by holding X-Y-start. Apps should use these
+ * as the center stick values. The meaning of the two deadzone values is unknown.
+ *
+ * @param[out] output
+ *             Structure to place the returned controller button status
+ */
+void controller_read_gc_origin(struct controller_origin_data * outdata)
+{
+    static const unsigned long long SI_read_con_block[8] =
+    {
+        0x010a41ffffffffff,
+        0xffffffffff010a41,
+        0xffffffffffffffff,
+        0xffff010a41ffffff,
+        0xffffffffffffff01,
+        0x0a41ffffffffffff,
+        0xfffffffffe000000,
+        1
+    };
+
+    static unsigned long long output[8];
+
+    __controller_exec_PIF(SI_read_con_block, output);
+
+    memcpy(&outdata->gc[0], ((uint8_t *) output) + 3, 10);
+    memcpy(&outdata->gc[1], ((uint8_t *) output) + 3 + 13, 10);
+    memcpy(&outdata->gc[2], ((uint8_t *) output) + 3 + 13 * 2, 10);
+    memcpy(&outdata->gc[3], ((uint8_t *) output) + 3 + 13 * 3, 10);
+}
+
+/**
  * @brief Scan the controllers to determine the current button state
  *
  * Scan the four controller ports and calculate the buttons state.  This
- * must be called before calling #get_keys_down, #get_keys_up, 
- * #get_keys_held, #get_keys_pressed or #get_dpad_direction.
+ * must be called before calling #get_keys_down, #get_keys_up,
+ * #get_keys_held, #get_keys_pressed or #get_dpad_direction. Only N64
+ * controllers supported.
  */
 void controller_scan()
 {
     /* Remember last */
-    __n64_memcpy_ASM(&last, &current, sizeof(current));
+    memcpy(&last, &current, sizeof(current));
 
     /* Grab current */
-    n64_memset(&current, 0, sizeof(current));
+    memset(&current, 0, sizeof(current));
     controller_read(&current);
 }
 
@@ -280,7 +371,7 @@ struct controller_data get_keys_down()
     struct controller_data ret;
 
     /* Start with baseline */
-    __n64_memcpy_ASM(&ret, &current, sizeof(current));
+    memcpy(&ret, &current, sizeof(current));
 
     /* Figure out which wasn't pressed last time and is now */
     for(int i = 0; i < 4; i++)
@@ -305,7 +396,7 @@ struct controller_data get_keys_up()
     struct controller_data ret;
 
     /* Start with baseline */
-    __n64_memcpy_ASM(&ret, &current, sizeof(current));
+    memcpy(&ret, &current, sizeof(current));
 
     /* Figure out which was pressed last time and isn't now */
     for(int i = 0; i < 4; i++)
@@ -330,7 +421,7 @@ struct controller_data get_keys_held()
     struct controller_data ret;
 
     /* Start with baseline */
-    __n64_memcpy_ASM(&ret, &current, sizeof(current));
+    memcpy(&ret, &current, sizeof(current));
 
     /* Figure out which was pressed last time and now as well */
     for(int i = 0; i < 4; i++)
@@ -441,14 +532,14 @@ void execute_raw_command( int controller, int command, int bytesout, int bytesin
     data[controller + 1] = bytesin;
     data[controller + 2] = command;
 
-    __n64_memcpy_ASM( &data[controller + 3], out, bytesout );
-    n64_memset( &data[controller + 3 + bytesout], 0xFF, bytesin );
+    memcpy( &data[controller + 3], out, bytesout );
+    memset( &data[controller + 3 + bytesout], 0xFF, bytesin );
     data[controller + 3 + bytesout + bytesin] = 0xFE;
 
     __controller_exec_PIF(SI_read_controllers_block,SI_debug);
 
     data = (uint8_t *)SI_debug;
-    __n64_memcpy_ASM( in, &data[controller + 3 + bytesout], bytesin );
+    memcpy( in, &data[controller + 3 + bytesout], bytesin );
 }
 
 /**
@@ -464,7 +555,7 @@ int get_controllers_present()
 {
     int ret = 0;
     struct controller_data output;
-    static unsigned long long SI_read_controllers_block[8] =
+    static const unsigned long long SI_read_controllers_block[8] =
     {
         0xff010401ffffffff,
         0xff010401ffffffff,
@@ -518,7 +609,7 @@ static int __is_valid_accessory( uint32_t data )
  */
 static void __get_accessories_present( struct controller_data *output )
 {
-    static unsigned long long SI_read_status_block[8] =
+    static const unsigned long long SI_read_status_block[8] =
     {
         0xff010300ffffffff,
         0xff010300ffffffff,
@@ -542,7 +633,7 @@ static void __get_accessories_present( struct controller_data *output )
  *
  * @return A bitmask representing accessories recognized
  */
-int get_accessories_present()
+int get_accessories_present(struct controller_data *out)
 {
     struct controller_data output;
     int ret = 0;
@@ -555,6 +646,9 @@ int get_accessories_present()
     if( (output.c[1].err == ERROR_NONE) && __is_valid_accessory( output.c[1].data ) ) { ret |= CONTROLLER_2_INSERTED; }
     if( (output.c[2].err == ERROR_NONE) && __is_valid_accessory( output.c[2].data ) ) { ret |= CONTROLLER_3_INSERTED; }
     if( (output.c[3].err == ERROR_NONE) && __is_valid_accessory( output.c[3].data ) ) { ret |= CONTROLLER_4_INSERTED; }
+
+    if (out)
+        memcpy(out, &output, sizeof(struct controller_data));
 
     return ret;
 }
@@ -667,7 +761,7 @@ int read_mempak_address( int controller, uint16_t address, uint8_t *data )
     if( controller < 0 || controller > 3 ) { return -1; }
 
     /* Last byte must be 0x01 to signal to the SI to process data */
-    n64_memset( SI_read_mempak_block, 0, 64 );
+    memset( SI_read_mempak_block, 0, 64 );
     SI_read_mempak_block[56] = 0xfe;
     SI_read_mempak_block[63] = 0x01;
 
@@ -682,12 +776,12 @@ int read_mempak_address( int controller, uint16_t address, uint8_t *data )
     SI_read_mempak_block[controller + 4] = read_address & 0xFF;
 
     /* Leave room for 33 bytes (32 bytes + CRC) to come back */
-    n64_memset( &SI_read_mempak_block[controller + 5], 0xFF, 33 );
+    memset( &SI_read_mempak_block[controller + 5], 0xFF, 33 );
 
     __controller_exec_PIF(SI_read_mempak_block,&output);
 
     /* Copy data correctly out of command */
-    __n64_memcpy_ASM( data, &output[controller + 5], 32 );
+    memcpy( data, &output[controller + 5], 32 );
 
     /* Validate CRC */
     uint8_t crc = __calc_data_crc( &output[controller + 5] );
@@ -741,7 +835,7 @@ int write_mempak_address( int controller, uint16_t address, uint8_t *data )
     if( controller < 0 || controller > 3 ) { return -1; }
 
     /* Last byte must be 0x01 to signal to the SI to process data */
-    n64_memset( SI_write_mempak_block, 0, 64 );
+    memset( SI_write_mempak_block, 0, 64 );
     SI_write_mempak_block[56] = 0xfe;
     SI_write_mempak_block[63] = 0x01;
 
@@ -756,7 +850,7 @@ int write_mempak_address( int controller, uint16_t address, uint8_t *data )
     SI_write_mempak_block[controller + 4] = write_address & 0xFF;
 
     /* Place the data to be written */
-    __n64_memcpy_ASM( &SI_write_mempak_block[controller + 5], data, 32 );
+    memcpy( &SI_write_mempak_block[controller + 5], data, 32 );
 
     /* Leave room for CRC to come back */
     SI_write_mempak_block[controller + 5 + 32] = 0xFF;
@@ -816,11 +910,11 @@ int identify_accessory( int controller )
             case 0x0001: /* Mempak/rumblepak/transferpak */
             {
                 /* Init string one */
-                n64_memset( data, 0xfe, 32 );
+                memset( data, 0xfe, 32 );
                 write_mempak_address( controller, 0x8000, data );
 
                 /* Init string two */
-                n64_memset( data, 0x80, 32 );
+                memset( data, 0x80, 32 );
                 write_mempak_address( controller, 0x8000, data );
 
                 /* Get register contents */
@@ -862,7 +956,7 @@ void rumble_start( int controller )
     uint8_t data[32];
 
     /* Unsure of why we have to do this multiple times */
-    n64_memset( data, 0x01, 32 );
+    memset( data, 0x01, 32 );
     write_mempak_address( controller, 0xC000, data );
     write_mempak_address( controller, 0xC000, data );
     write_mempak_address( controller, 0xC000, data );
@@ -879,7 +973,7 @@ void rumble_stop( int controller )
     uint8_t data[32];
 
     /* Unsure of why we have to do this multiple times */
-    n64_memset( data, 0x00, 32 );
+    memset( data, 0x00, 32 );
     write_mempak_address( controller, 0xC000, data );
     write_mempak_address( controller, 0xC000, data );
     write_mempak_address( controller, 0xC000, data );

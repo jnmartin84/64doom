@@ -37,15 +37,6 @@
 
 extern int detailshift;
 
-extern void (*colfunc) (void);
-extern void (*spanfunc) (void);
-
-extern void R_DrawColumn (void);
-extern void R_DrawColumn_C (void);
-
-extern void R_DrawSpan (void);
-extern void R_DrawSpan_C (void);
-
 extern void I_FinishUpdate(void);
 extern void I_ForcePaletteUpdate(void);
 
@@ -69,11 +60,9 @@ int center_x = 0;
 int center_y = 0;
 int shift = 0;
 
-
 void pressed_key(struct controller_data pressed_data);
 void held_key(struct controller_data pressed_data);
 void released_key(struct controller_data pressed_data);
-
 
 //
 // I_GetEvent
@@ -150,6 +139,14 @@ void pressed_key(struct controller_data pressed_data)
 
     struct SI_condat pressed = pressed_data.c[0];
 
+    // press 'Y' -- to test "QUIT" menu option
+    if (pressed.left && pressed.right)
+    {
+        doom_input_event.data1 = 'y';
+        doom_input_event.type = ev_keydown;
+        D_PostEvent(&doom_input_event);
+    }	
+	
     // CHEAT WARP TO NEXT LEVEL
     if (pressed.L && pressed.Z)
     {
@@ -181,10 +178,11 @@ void pressed_key(struct controller_data pressed_data)
         {
             n64_do_cheat(1); // IDDQD
             n64_do_cheat(3); // IDKFA
-        }
+            n64_do_cheat(10); // IDBEHOLDA
+            n64_do_cheat(5); // IDDT			
+		}
 
         GODDED = 1 - GODDED;
-        PROFILE_MEMORY = 1 - PROFILE_MEMORY;
     }
 
     if (pressed.Z)
@@ -228,14 +226,6 @@ void pressed_key(struct controller_data pressed_data)
         doom_input_event.data1 = '.';
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
-    }
-    if (pressed.C_left && pressed.C_right)
-    {
-        if (!detailshift)
-        {
-//            colfunc = (colfunc == R_DrawColumn) ? R_DrawColumn_C : R_DrawColumn;
-//            spanfunc = (spanfunc == R_DrawSpan) ? R_DrawSpan_C : R_DrawSpan;
-        }		
     }
     if (pressed.C_up)
     {
@@ -287,13 +277,13 @@ void pressed_key(struct controller_data pressed_data)
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.left)
+    if (pressed.left && !pressed.right)
     {
         doom_input_event.data1 = KEY_LEFTARROW;
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.right)
+    if (pressed.right && !pressed.left)
     {
         doom_input_event.data1 = KEY_RIGHTARROW;
         doom_input_event.type = ev_keydown;
@@ -322,6 +312,13 @@ void released_key(struct controller_data pressed_data)
     last_x = pressed.x - center_x;
     last_y = pressed.y - center_y;
 
+    if (pressed.left && pressed.right)
+    {
+        doom_input_event.data1 = 'y';
+        doom_input_event.type = ev_keyup;
+        D_PostEvent(&doom_input_event);
+    }
+		
     if (pressed.A)
     {
         doom_input_event.data1 = KEY_RCTRL;
@@ -382,13 +379,13 @@ void released_key(struct controller_data pressed_data)
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.left)
+    if (pressed.left && !pressed.right)
     {
         doom_input_event.data1 = KEY_LEFTARROW;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.right)
+    if (pressed.right && !pressed.left)
     {
         doom_input_event.data1 = KEY_RIGHTARROW;
         doom_input_event.type = ev_keyup;

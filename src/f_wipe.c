@@ -190,8 +190,8 @@ int wipe_doMelt(int width, int height, int ticks)
     short*  d;
     boolean done = true;
 
-//    width /= 2;
-    width >>= 1;
+    width /= 2;
+//    width >>= 1;
 
     while (ticks--)
     {
@@ -291,7 +291,7 @@ int wipe_ScreenWipe(int wipeno, int x, int y, int width, int height, int ticks)
     // do a piece of wipe-in
     V_MarkRect(0, 0, width, height);
     rc = (*wipes[wipeno*3+1])(width, height, ticks);
-    //  V_DrawBlock(x, y, 0, width, height, wipe_scr); // DEBUG
+    //V_DrawBlock(x, y, 0, width, height, wipe_scr); // DEBUG
 
     // final stuff
     if (rc)

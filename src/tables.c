@@ -54,14 +54,7 @@ int SlopeDiv(unsigned num, unsigned den)
     return ((ans <= SLOPERANGE) ? ans : SLOPERANGE);
 }
 
-uint32_t __attribute__((aligned(8))) ytab[240];
-uint32_t __attribute__((aligned(8))) y10tab[240];
-uint32_t __attribute__((aligned(8))) y20tab[240];
-
-/*uint32_t __attribute__((aligned(8))) ytabh[480];
-uint32_t __attribute__((aligned(8))) y10tabh[480];
-uint32_t __attribute__((aligned(8))) y20tabh[480];*/
-
+uint32_t __attribute__((aligned(8))) ytab[480];
 
 int __attribute__((aligned(8))) finetangent[4096] =
 {

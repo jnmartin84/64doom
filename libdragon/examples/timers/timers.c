@@ -44,7 +44,6 @@ int main(void)
     /* Initialize peripherals */
     display_init( res, bit, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE );
     console_init();
-    controller_init();
 
     console_set_render_mode(RENDER_MANUAL);
 
@@ -59,17 +58,6 @@ int main(void)
     while(running)
     {
         console_clear();
-
-        controller_scan();
-
-        struct controller_data keys_pressed = get_keys_down();
-        struct SI_condat pressed = keys_pressed.c[0];
-
-        if (pressed.Z)
-	{
-		t3 += 4.0;
-	}
-
 
         printf( "\n Every msec    : %f", t1 );
         printf( "\n Every half sec: %f", t2 );

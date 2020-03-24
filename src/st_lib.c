@@ -90,7 +90,7 @@ void STlib_drawNum(st_number_t* n, boolean refresh)
     int num = *n->num;
     
     int w = SHORT(n->p[0]->width);
-    int h = SHORT(n->p[0]->height);
+//    int h = SHORT(n->p[0]->height);
     int x = n->x;
     const int y = n->y;
     
@@ -128,7 +128,7 @@ void STlib_drawNum(st_number_t* n, boolean refresh)
     }
 #endif 
 
-    V_CopyRect(x, y - ST_Y, BG, w*numdigits, h, x, y, FG);
+    //V_CopyRect(x, y - ST_Y, BG, w*numdigits, h, x, y, FG);
 
     // if non-number, do not draw it
     if (num == 1994)
@@ -222,27 +222,29 @@ STlib_updateMultIcon
 ( st_multicon_t*	mi,
   boolean		refresh )
 {
+#if 0
     int			w;
     int			h;
     int			x;
     int			y;
+#endif
 
     if (*mi->on && (mi->oldinum != *mi->inum || refresh) && (*mi->inum!=-1))
     {
-		if (mi->oldinum != -1)
+#if 0
+        if (mi->oldinum != -1)
 		{
 			x = mi->x - SHORT(mi->p[mi->oldinum]->leftoffset);
 			y = mi->y - SHORT(mi->p[mi->oldinum]->topoffset);
 			w = SHORT(mi->p[mi->oldinum]->width);
-			h = SHORT(mi->p[mi->oldinum]->height);
-
+			h = SHORT(mi->p[mi->oldinum]->height); 	
 #ifdef RANGECHECK
 			if (y - ST_Y < 0)
 			I_Error("STlib_updateMultIcon: y - ST_Y < 0");
 #endif
-
 			V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
 		}
+#endif
 
 		V_DrawPatch(mi->x, mi->y, FG, mi->p[*mi->inum]);
 		mi->oldinum = *mi->inum;
@@ -269,18 +271,19 @@ void STlib_initBinIcon
 
 void STlib_updateBinIcon(st_binicon_t* bi, boolean refresh)
 {
+#if 0
     int			x;
     int			y;
     int			w;
     int			h;
-
+#endif
     if (*bi->on && (bi->oldval != *bi->val || refresh))
     {
+#if 0
 		x = bi->x - SHORT(bi->p->leftoffset);
 		y = bi->y - SHORT(bi->p->topoffset);
 		w = SHORT(bi->p->width);
 		h = SHORT(bi->p->height);
-
 #ifdef RANGECHECK
 		if (y - ST_Y < 0)
 		{
@@ -290,12 +293,15 @@ void STlib_updateBinIcon(st_binicon_t* bi, boolean refresh)
 
 		if (*bi->val)
 		{
+#endif
 			V_DrawPatch(bi->x, bi->y, FG, bi->p);
+#if 0
 		}
 		else
 		{
 			V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
 		}
+#endif
 		bi->oldval = *bi->val;
     }
 }

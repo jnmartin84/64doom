@@ -152,7 +152,7 @@ wbstartstruct_t wminfo;               	// parms for world map / intermission
  
 short		consistancy[MAXPLAYERS][BACKUPTICS]; 
  
-byte*		savebuffer;
+byte	__attribute__((aligned(8)))	savebuffer[SAVEGAMESIZE];
  
  
 // 
@@ -454,7 +454,7 @@ void G_BuildTiccmd (ticcmd_t* cmd)
 // G_DoLoadLevel 
 //
 extern  gamestate_t     wipegamestate; 
- 
+extern GameMode_t gamemode; 
 void G_DoLoadLevel (void) 
 { 
     int             i; 
@@ -468,7 +468,7 @@ void G_DoLoadLevel (void)
 
     // DOOM determines the sky texture to be used
     // depending on the current episode, and the game version.
-    if ((gamemode == commercial) || (gamemode == pack_tnt) || (gamemode == pack_plut))
+    if ((gamemode == (GameMode_t)commercial) || (gamemode == (GameMode_t)pack_tnt) || (gamemode == (GameMode_t)pack_plut))
     {
 	    skytexture = R_TextureNumForName ("SKY3");
 	    if (gamemap < 12)
@@ -783,7 +783,7 @@ void G_Ticker (void)
 //
 void G_InitPlayer (int player) 
 { 
-    player_t*	p; 
+	player_t*	p; 
  
     // set up the saved info         
     p = &players[player]; 
@@ -873,7 +873,7 @@ G_CheckSpot
     subsector_t*	ss; 
     unsigned		an; 
     mobj_t*		mo; 
-    int			i;
+    size_t			i;
 	
     if (!players[playernum].mo)
     {
@@ -1070,7 +1070,8 @@ void G_DoCompleted (void)
 	    break;
 	}
 		
-//#if 0  Hmmm - why?
+#if 0  
+Hmmm - why?
     if ( (gamemap == 8)
 	 && (gamemode != commercial) ) 
     {
@@ -1086,7 +1087,7 @@ void G_DoCompleted (void)
 	for (i=0 ; i<MAXPLAYERS ; i++) 
 	    players[i].didsecret = true; 
     } 
-//#endif
+#endif
     
 	 
     wminfo.didsecret = players[consoleplayer].didsecret; 
@@ -1206,6 +1207,9 @@ void G_DoWorldDone (void)
     viewactive = true; 
 } 
  
+byte array1[256*128];	
+byte array2[256*128];
+	
 
 
 //
@@ -1319,7 +1323,7 @@ void G_DoLoadGame (void)
     int dec_size = *size_block_ptr;
 	
     // allocate another block of memory for the LZW-decoded savebuffer
-    byte *to_decode = n64_malloc(dec_size);
+    byte *to_decode = array2;//n64_malloc(dec_size);
     // if we try to lzw_decode the savebuffer directly from the blocks we read into readbuffer,
     // it will fail due to all of the extra bytes stuck on the end, even if they are empty
     // sequence doesn't end with correct symbol, some kind of error like that
@@ -1330,14 +1334,14 @@ void G_DoLoadGame (void)
 
     // dec ends up with the original, un-compressed savebuffer
 	unsigned int unencsize = 0x2c000;
-	byte *dec = (byte*)n64_malloc(dec_size * 4);
+	byte *dec = array1;//(byte*)n64_malloc(dec_size * 4);
     lzfx_decompress(to_decode, dec_size, dec, &unencsize);
 	
     // copy the data from "dec" into "savebuffer" so the rest of the original G_DoLoadGame code can do its thing like before
     __n64_memcpy_ASM(savebuffer, dec, unencsize);
 	
-    n64_free(dec);
-    n64_free(to_decode);
+//    n64_free(dec);
+ //   n64_free(to_decode);
 
 	save_p = savebuffer + SAVESTRINGSIZE;
 
@@ -1479,13 +1483,14 @@ void G_DoSaveGame (void)
 		goto the_end_of_saving;
 	}
     last_save_size = length*4;
-	byte *enc = (byte *)n64_malloc(length*4);
+	byte *enc = array1;//(byte *)n64_malloc(length*4);
 	int rv = lzfx_compress(savebuffer, length, enc, &last_save_size);
 	if(0 > rv) {
-			char errbufmac[256];
-	sprintf(errbufmac, "lzfx_compress failed %08X %d", length, rv);
-	I_Error(errbufmac);
-
+		//	char errbufmac[256];
+	//sprintf(errbufmac, "lzfx_compress failed %08X %d", length, rv);
+	//I_Error(errbufmac);
+		msg = "cant malloc for compress";
+		goto the_end_of_saving;
 		//I_Error("lzfx_compress failed");
 	}
 /*	char errbufmac[256];
@@ -1506,7 +1511,7 @@ void G_DoSaveGame (void)
 	*size_block_ptr = last_save_size;
 	
 	int total_blocks = 1 + num_blocks + 1;
-	byte *tmp_blocks = (byte *)n64_malloc(MEMPAK_BLOCK_SIZE * total_blocks);
+	byte *tmp_blocks = array2;//(byte *)n64_malloc(MEMPAK_BLOCK_SIZE * total_blocks);
 	
     if (NULL == tmp_blocks)
     {
@@ -1566,8 +1571,8 @@ void G_DoSaveGame (void)
                 if (save_size_in_blocks > (available_free_blocks + old_entry_size))
                 {
                     msg = "Not enough mempak space for new save.";
-                    I_Error(msg);
-                    err = -1;
+  //                I_Error(msg);
+  //                  err = -1;
                     goto the_end_of_saving;
                 }
 
@@ -1575,7 +1580,7 @@ void G_DoSaveGame (void)
                 if( err )
                 {
                       msg = "Can't remove old data, can't save.";
-                      I_Error(msg);
+//                      I_Error(msg);
                       goto the_end_of_saving;
                 }
 
@@ -1608,8 +1613,8 @@ void G_DoSaveGame (void)
         goto the_end_of_saving;
     }
 	
-    n64_free(tmp_blocks);
-    n64_free(enc);
+ //   n64_free(tmp_blocks);
+ //   n64_free(enc);
 	
 the_end_of_saving:
     gameaction = ga_nothing;

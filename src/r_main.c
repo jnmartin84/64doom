@@ -118,21 +118,20 @@ int			extralight;
 
 
 void (*colfunc) (void);
+void (*skycolfunc) (void);
 void (*basecolfunc) (void);
 void (*fuzzcolfunc) (void);
 void (*transcolfunc) (void);
 void (*spanfunc) (void);
 
-extern void R_DrawColumn_C (void);
-extern void R_DrawSpan_C (void);
-extern void R_DrawColumn (void);
-extern void R_DrawSpan (void);
-extern void R_DrawFuzzColumn (void);
-extern void R_DrawTranslatedColumn (void);
-extern void R_DrawColumnLow (void);
-extern void R_DrawSpanLow (void);
-extern void R_DrawFuzzColumnLow (void);
-extern void R_DrawTranslatedColumnLow (void);
+extern void R_DrawColumn_TrueColor (void);
+extern void R_DrawSpan_TrueColor (void);
+extern void R_DrawFuzzColumn_TrueColor (void);
+extern void R_DrawTranslatedColumn_TrueColor (void);
+extern void R_DrawColumnLow_TrueColor (void);
+extern void R_DrawSpanLow_TrueColor (void);
+extern void R_DrawFuzzColumnLow_TrueColor (void);
+extern void R_DrawTranslatedColumnLow_TrueColor (void);
 
 //
 // R_AddPointToBox
@@ -430,6 +429,21 @@ R_PointToDist
 //
 void R_InitPointToAngle (void)
 {
+    // UNUSED - now getting from tables.c
+#if 0
+    int	i;
+    long	t;
+    float	f;
+//
+// slope (tangent) to angle lookup
+//
+    for (i=0 ; i<=SLOPERANGE ; i++)
+    {
+	f = atan( (float)i/SLOPERANGE )/(3.141592657*2);
+	t = 0xffffffff*f;
+	tantoangle[i] = t;
+    }
+#endif
 }
 
 
@@ -449,6 +463,23 @@ fixed_t R_ScaleFromGlobalAngle (angle_t visangle)
     int			sineb;
     fixed_t		num;
     int			den;
+
+    // UNUSED
+#if 0
+{
+    fixed_t		dist;
+    fixed_t		z;
+    fixed_t		sinv;
+    fixed_t		cosv;
+	
+    sinv = finesine[(visangle-rw_normalangle)>>ANGLETOFINESHIFT];	
+    dist = FixedDiv (rw_distance, sinv);
+    cosv = finecosine[(viewangle-visangle)>>ANGLETOFINESHIFT];
+    z = abs(FixedMul (dist, cosv));
+    scale = FixedDiv(projection, z);
+    return scale;
+}
+#endif
 
     anglea = ANG90 + (visangle-viewangle);
     angleb = ANG90 + (visangle-rw_normalangle);
@@ -481,6 +512,32 @@ fixed_t R_ScaleFromGlobalAngle (angle_t visangle)
 //
 void R_InitTables (void)
 {
+    // UNUSED: now getting from tables.c
+#if 0
+    int		i;
+    float	a;
+    float	fv;
+    int		t;
+    
+    // viewangle tangent table
+    for (i=0 ; i<FINEANGLES/2 ; i++)
+    {
+	a = (i-FINEANGLES/4+0.5)*PI*2/FINEANGLES;
+	fv = FRACUNIT*tan (a);
+	t = fv;
+	finetangent[i] = t;
+    }
+    
+    // finesine table
+    for (i=0 ; i<5*FINEANGLES/4 ; i++)
+    {
+	// OPTIMIZE: mirror...
+	a = (i+0.5)*PI*2/FINEANGLES;
+	t = FRACUNIT*sin (a);
+	finesine[i] = t;
+    }
+#endif
+
 }
 
 
@@ -633,14 +690,14 @@ void R_ExecuteSetViewSize (void)
     }
     else
     {
-	scaledviewwidth = setblocks*32;
-	viewheight = (setblocks*168/10)&~7;
+	scaledviewwidth = setblocks*64;
+	viewheight = (setblocks*336/10)&~7;
     }
     
     detailshift = setdetail;
     viewwidth = scaledviewwidth>>detailshift;
 	
-    centery = viewheight/2;
+    centery = ((viewheight+10)/2);
     centerx = viewwidth/2;
     centerxfrac = centerx<<FRACBITS;
     centeryfrac = centery<<FRACBITS;
@@ -648,17 +705,17 @@ void R_ExecuteSetViewSize (void)
 
     if (!detailshift)
     {
-	colfunc = basecolfunc = R_DrawColumn;
-	fuzzcolfunc = R_DrawFuzzColumn;
-	transcolfunc = R_DrawTranslatedColumn;
-	spanfunc = R_DrawSpan;
+	colfunc = basecolfunc = R_DrawColumn_TrueColor;
+	fuzzcolfunc = R_DrawFuzzColumn_TrueColor;
+	transcolfunc = R_DrawTranslatedColumn_TrueColor;
+	spanfunc = R_DrawSpan_TrueColor;
     }
     else
     {
-	colfunc = basecolfunc = R_DrawColumnLow;
-	fuzzcolfunc = R_DrawFuzzColumnLow;
-	transcolfunc = R_DrawTranslatedColumnLow;
-	spanfunc = R_DrawSpanLow;
+	colfunc = basecolfunc = R_DrawColumnLow_TrueColor;
+	fuzzcolfunc = R_DrawFuzzColumnLow_TrueColor;
+	transcolfunc = R_DrawTranslatedColumnLow_TrueColor;
+	spanfunc = R_DrawSpanLow_TrueColor;
     }
 
     R_InitBuffer (scaledviewwidth, viewheight);
@@ -666,8 +723,8 @@ void R_ExecuteSetViewSize (void)
     R_InitTextureMapping ();
     
     // psprite scales
-    pspritescale = FRACUNIT*viewwidth/SCREENWIDTH;
-    pspriteiscale = FRACUNIT*SCREENWIDTH/viewwidth;
+    pspritescale = FRACUNIT*viewwidth/(SCREENWIDTH/2);
+    pspriteiscale = FRACUNIT*(SCREENWIDTH/2)/viewwidth;
     
     // thing clipping
     for (i=0 ; i<viewwidth ; i++)
@@ -813,20 +870,13 @@ void R_SetupFrame (player_t* player)
     validcount++;
 }
 
-int colcount;
-int spancount;
-
-int lastcolcount;
-int lastspancount;
-
-
 //
 // R_RenderView
 //
 void R_RenderPlayerView (player_t* player)
 {	
-colcount=0;
-spancount=0;
+//colcount=0;
+//spancount=0;
     R_SetupFrame (player);
 
     // Clear buffers.
@@ -854,6 +904,6 @@ spancount=0;
     // Check for new console commands.
     NetUpdate ();				
 
-lastcolcount = colcount;
-lastspancount = spancount;
+//lastcolcount = colcount;
+//lastspancount = spancount;
 }

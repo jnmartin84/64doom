@@ -15,12 +15,11 @@
 #include "system.h"
 
 #undef errno
+extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
+extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
 
-#define n64_free(b) \
-n64_free2((b), __FILE__, __LINE__)
-#define n64_malloc(s) \
-n64_malloc2((s), __FILE__, __LINE__)
-
+#define __memcpy __n64_memcpy_ASM
+#define __memset __n64_memset_ASM
 
 /** 
  * @defgroup system newlib Interface Hooks
@@ -76,7 +75,10 @@ n64_malloc2((s), __FILE__, __LINE__)
 /**
  * @brief Stack size
  *
- * @todo Dirty hack, should investigate this further
+ * This is the maximum stack size for the purpose of malloc.  Any malloc
+ * call that tries to allocate data will not allocate within this range.
+ * However, there is no guarantee that user code won't blow the stack and
+ * cause heap corruption.  Use this as loose protection at best.
  */
 #define STACK_SIZE 0x10000
 
@@ -96,7 +98,7 @@ char *__env[1] = { 0 };
 /** 
  * @brief Environment variables
  */
-//char **environ = __env;
+char **environ = __env;
 
 /** 
  * @brief Dummy declaration of timeval
@@ -196,13 +198,13 @@ static int __strlen( const char * const str )
  * @param[in]  len
  *             Length in bytes to copy
  */
-static void __memcpy( char * const a, const char * const b, int len )
+/*static void __memcpy( char * const a, const char * const b, int len )
 {
     for( int i = 0; i < len; i++ )
     {
         a[i] = b[i];
     }
-}
+}*/
 
 /**
  * @brief Simple implementation of strdup
@@ -218,9 +220,8 @@ static char *__strdup( const char * const in )
 {
     if( !in ) { return 0; }
 
-    char *ret = n64_malloc( __strlen( in ) + 1 );
-//    __memcpy( ret, in, __strlen( in ) + 1 );
-    __n64_memcpy_ASM( ret, in, __strlen( in ) + 1 );
+    char *ret = malloc( __strlen( in ) + 1 );
+    __memcpy( ret, in, __strlen( in ) + 1 );
 
     return ret;
 }
@@ -420,7 +421,7 @@ int detach_filesystem( const char * const prefix )
                 }
 
                 /* Now free the memory associated with the prefix and zero out the filesystem */
-                n64_free( filesystems[i].prefix );
+                free( filesystems[i].prefix );
                 filesystems[i].prefix = 0;
                 filesystems[i].fs = 0;
 
@@ -621,9 +622,6 @@ int execve( char *name, char **argv, char **env )
     return -1;
 }
 
-
-int *__errno(void) { return &errno; } 
-
 /**
  * @brief End execution on current thread
  *
@@ -640,9 +638,7 @@ void _exit( int rc )
     x = 4 / x;
 
     /* Convince GCC that this function never returns.  */
-    for( ;; ); /*{
-	printf("exit(%d);\n", rc);
-    }*/
+    for( ;; );
 }
 
 /**
@@ -975,6 +971,9 @@ int readlink( const char *path, char *buf, size_t bufsize )
     return -1;
 }
 
+// Do not allow this in small data or it will seem larger than it actually is
+extern char end __attribute__((section (".data"))); /* Set by linker.  */
+
 /**
  * @brief Return a new chunk of memory to be used as heap
  *
@@ -985,15 +984,16 @@ int readlink( const char *path, char *buf, size_t bufsize )
  */
 void *sbrk( int incr )
 {
-    extern char   end; /* Set by linker.  */
-    static char * heap_end, * heap_top;
+    static char * heap_end = 0;
+    static char * heap_top = 0;
     char *        prev_heap_end;
-    const int     osMemSize = (__bootcic != 6105) ? (*(int*)0xA0000318) : (*(int*)0xA00003F0);
 
     disable_interrupts();
 
     if( heap_end == 0 )
     {
+        int osMemSize = (__bootcic != 6105) ? (*(int*)0xA0000318) : (*(int*)0xA00003F0);
+
         heap_end = &end;
         heap_top = (char*)0x80000000 + osMemSize - STACK_SIZE;
     }

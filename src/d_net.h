@@ -95,7 +95,7 @@ typedef struct
 
     // Info common to all nodes.
     // Console is allways node 0.
-    short		numnodes;
+    unsigned short		numnodes;
     // Flag: 1 = no duplication, 2-5 = dup for slow nets.
     short		ticdup;
     // Flag: 1 = send a backup tic in every packet.

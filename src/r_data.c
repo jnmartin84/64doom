@@ -191,9 +191,9 @@ R_DrawColumnInCache
     int		count;
     int		position;
     byte*	source;
-    byte*	dest;
-
-    dest = (byte *)cache + 3;
+//    byte*	dest;
+//
+//    dest = (byte *)cache + 3;
 
     while (patch->topdelta != 0xff)
     {
@@ -740,7 +740,7 @@ int	R_CheckTextureNumForName (char *name)
 
     for (i=0 ; i<numtextures ; i++)
     {
-	if (!strncasecmp (textures[i]->name, name, 8/*sizeof(texture_t->name)*/) )
+	if (!strncasecmp (textures[i]->name, name, 8 /*sizeof(texture_t->name)*/  ) )
         {
 	    return i;
         }

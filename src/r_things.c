@@ -37,10 +37,11 @@
 #include "doomstat.h"
 
 
+//extern void *n64_memcpy(void *d, const void *s, size_t n);
 extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 extern void *__n64_memset_ASM(void *p, int v, size_t n);
 
-extern void R_DrawTranslatedColumn(void);
+extern void R_DrawTranslatedColumn_TrueColor(void);
 
 
 #define MINZ				(FRACUNIT*4)
@@ -425,7 +426,8 @@ void
 R_DrawVisSprite
 ( vissprite_t*		vis,
   int			x1,
-  int			x2 )
+  int			x2
+)
 {
     column_t*		column;
     int			texturecolumn;
@@ -444,8 +446,7 @@ R_DrawVisSprite
     }
     else if (vis->mobjflags & MF_TRANSLATION)
     {
-	colfunc = R_DrawTranslatedColumn;
-
+	colfunc = R_DrawTranslatedColumn_TrueColor;
 	dc_translation = translationtables - 256 +
 	    ( (vis->mobjflags & MF_TRANSLATION) >> (MF_TRANSSHIFT-8) );
     }
@@ -459,12 +460,6 @@ R_DrawVisSprite
     for (dc_x=vis->x1 ; dc_x<=vis->x2 ; dc_x++, frac += vis->xiscale)
     {
 	texturecolumn = frac>>FRACBITS;
-#ifdef RANGECHECK
-	if (texturecolumn < 0 || texturecolumn >= SHORT(patch->width))
-        {
-	    I_Error ("R_DrawVisSprite: bad texturecolumn");
-        }
-#endif
 	column = (column_t *) ((byte *)patch +
 			       LONG(patch->columnofs[texturecolumn]));
 	R_DrawMaskedColumn (column);

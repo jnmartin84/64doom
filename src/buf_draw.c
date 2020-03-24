@@ -41,9 +41,31 @@ void buffer_draw_char_5551(char ch, int x, int y, uint16_t *buffer, uint32_t col
             if (c & 0x80)
             {
                 /* Only draw it if it is active */
-//                buffer[(x+col) + ((y+row)*width)] = color;
                 putpixel( (x+col), (y+row), color, buffer, width, height );
             }
+
+            c <<= 1;
+        }
+    }
+}
+
+void buffer_draw_char_tall_5551(char ch, int x, int y, uint16_t *buffer, uint32_t color, int width, int height)
+{
+    int row;
+    int col;
+
+    for (row = 0; row < 8; row++)
+    {
+        unsigned char c = __font_data[(ch * 8) + row];
+
+        for (col = 0; col < 8; col++)
+        {
+            if (c & 0x80)
+            {
+                /* Only draw it if it is active */
+                putpixel( (x+col), ((y+(row*2))), color, buffer, width, height );
+				putpixel( (x+col), ((y+(row*2)+1)), color, buffer, width, height );
+				}
 
             c <<= 1;
         }
@@ -98,8 +120,6 @@ void buffer_sprite_8bit(int x, int y, int w, int  h, uint8_t *sprite, uint8_t *b
         for (a = x; a < c; a++)
         {
             buf[a + (b*buf_w)] = sprite[(a - x) + ((b - y)*w)];
-//            putpixel( a, b, getpixel( (a-x), (b-y), sprite, w, h ), buf, buf_w, buf_h );
-
         }
     }
 }
@@ -151,7 +171,6 @@ void buffer_fast_line_8bit(int x, int y, int x2, int y2, uint8_t color, uint8_t 
         for (i = 0; i != endVal; i += incrementVal)
         {
             buffer[(x + (j >> 16)) + ((y + i)*buf_w)] = color;
-//            putpixel( (x + (j >> 16)), (y + i), color, buffer, buf_w, buf_h );
             j += decInc;
         }
     }
@@ -160,7 +179,6 @@ void buffer_fast_line_8bit(int x, int y, int x2, int y2, uint8_t color, uint8_t 
         for (i = 0; i != endVal; i += incrementVal)
         {
             buffer[(x + i) + ((y + (j >> 16))*buf_w)] = color;
-//            putpixel( (x+i), (y + (j >> 16)), color, buffer, buf_w, buf_h );
             j+=decInc;
         }
     }

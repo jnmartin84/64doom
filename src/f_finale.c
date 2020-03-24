@@ -44,6 +44,18 @@
 //#include "r_local.h"
 //#include "f_finale.h"
 
+extern uint32_t ytab[];
+
+#define n64_cfb_set_pixel( _dc, x, y, color ) \
+	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1)) = (color)
+
+#define n64_cfb_get_pixel( buffer, x, y ) \
+ 	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1))
+
+extern uint32_t palarray[256];
+extern void *__safe_buffer[];
+extern display_context_t _dc;
+
 extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 // Stage of animation:
@@ -247,19 +259,7 @@ void F_Ticker (void)
     }
 }
 
-extern uint32_t ytab[];
-extern uint32_t y10tab[];
-extern uint32_t y20tab[];
 
-#define n64_cfb_set_pixel( _dc, x, y, color ) \
-    (&((uint16_t *)__safe_buffer[(_dc)-1])[0])[(x) + (ytab[(y)]) ] = (color)
-
-#define n64_cfb_get_pixel( buffer, x, y ) \
-    (&((uint16_t *)__safe_buffer[(_dc)-1])[0])[(x) + (ytab[(y)]) ]
-
-extern uint32_t palarray[256];
-extern void *__safe_buffer[];
-extern display_context_t _dc;
 
 
 //
@@ -273,31 +273,30 @@ extern	patch_t *hu_font[HU_FONTSIZE];
 void F_TextWrite (void)
 {
     byte*	src;
-    byte*	dest;
-
+    
     int		x,y,w;
     int		count;
     char*	ch;
     int		c;
     int		cx;
     int		cy;
+    int i;
 	
     // erase the entire screen to a tiled background
     src = W_CacheLumpName ( finaleflat , PU_CACHE);
 	
-    dest = screens[0];
-	
-    for (y=0 ; y<SCREENHEIGHT ; y++)
+    for (y=0 ; y<SCREENHEIGHT/2 ; y++)
     {
-	for (x=0 ; x<SCREENWIDTH/64 ; x++)
+	for (x=0 ; x<5 ; x++)
 	{
-	    __n64_memcpy_ASM (dest, src+((y&63)<<6), 64);
-	    dest += 64;
+	for(i=0;i<64;i++)
+	{
+		uint32_t spot = palarray[*(src+((y&63)<<6)+i)];
+#define dx (((x<<6)+i)<<1)
+#define dy (y<<1)		
+			*(uint32_t *)(__safe_buffer[_dc - 1] + (( (dx)+(ytab[dy]) )<<1)) = spot;
+			*(uint32_t *)(__safe_buffer[_dc - 1] + (( (dx)+(ytab[(dy)+1]) )<<1)) = spot;
 	}
-	if (SCREENWIDTH&63)
-	{
-	    __n64_memcpy_ASM (dest, src+((y&63)<<6), SCREENWIDTH&63);
-	    dest += (SCREENWIDTH&63);
 	}
     }
 
@@ -331,7 +330,7 @@ void F_TextWrite (void)
 	}
 		
 	w = SHORT (hu_font[c]->width);
-	if (cx+w > SCREENWIDTH)
+	if (cx+w > SCREENWIDTH/2)
 	    break;
 	V_DrawPatch(cx, cy, 0, hu_font[c]);
 	cx+=w;
@@ -626,24 +625,25 @@ F_DrawPatchCol
 {
     column_t*	column;
     byte*	source;
-    byte*	dest;
-    byte*	desttop;
     int		count;
-	
+	int		not_count;
     column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
-    desttop = screens[0]+x;
 
     // step through the posts in a column
     while (column->topdelta != 0xff )
     {
 	source = (byte *)column + 3;
-	dest = desttop + column->topdelta*SCREENWIDTH;
 	count = column->length;
-		
+	not_count = count;
+	
 	while (count--)
 	{
-	    *dest = *source++;
-	    dest += SCREENWIDTH;
+		#define cx (x*2)
+		#define cy (0 + column->topdelta + (not_count - count))
+		n64_cfb_set_pixel(_dc, cx, cy, palarray[*source++]);
+		n64_cfb_set_pixel(_dc, cx+1, cy, palarray[*source++]);
+		n64_cfb_set_pixel(_dc, cx, cy+1, palarray[*source++]);
+		n64_cfb_set_pixel(_dc, cx+1, cy+1, palarray[*source++]);
 	}
 	column = (column_t *)(  (byte *)column + column->length + 4 );
     }
@@ -674,7 +674,7 @@ void F_BunnyScroll (void)
     if (scrolled < 0)
 	scrolled = 0;
 		
-    for ( x=0 ; x<SCREENWIDTH ; x++)
+    for ( x=0 ; x<SCREENWIDTH/2 ; x++)
     {
 	if (x+scrolled < 320)
 	    F_DrawPatchCol (x, p1, x+scrolled);
@@ -686,8 +686,8 @@ void F_BunnyScroll (void)
 	return;
     if (finalecount < 1180)
     {
-	V_DrawPatch ((SCREENWIDTH-13*8)/2,
-		     (SCREENHEIGHT-8*8)/2,0, W_CacheLumpName ("END0",PU_CACHE));
+	V_DrawPatch (((SCREENWIDTH/2)-13*8)/2,
+		     ((SCREENHEIGHT/2)-8*8)/2,0, W_CacheLumpName ("END0",PU_CACHE));
 	laststage = 0;
 	return;
     }
@@ -702,7 +702,7 @@ void F_BunnyScroll (void)
     }
 	
     sprintf (name,"END%i",stage);
-    V_DrawPatch ((SCREENWIDTH-13*8)/2, (SCREENHEIGHT-8*8)/2,0, W_CacheLumpName (name,PU_CACHE));
+    V_DrawPatch (((SCREENWIDTH/2)-13*8)/2, ((SCREENHEIGHT/2)-8*8)/2,0, W_CacheLumpName (name,PU_CACHE));
 }
 
 

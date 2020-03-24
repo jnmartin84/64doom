@@ -63,9 +63,6 @@
 //
 
 
-extern byte *big_pal;
-
-
 // Palette indices.
 // For damage/bonus red-/gold-shifts
 #define STARTREDPALS		1
@@ -83,11 +80,11 @@ extern byte *big_pal;
 #define ST_TOGGLECHAT		KEY_ENTER
 
 // Location of status bar
-#define ST_X				0
-#define ST_X2				104
+#define ST_X				/*160+*/0
+#define ST_X2				/*160+*/104
 
-#define ST_FX  			143
-#define ST_FY  			169
+#define ST_FX  			/*160+*/143
+#define ST_FY  			/*400-*/(/*200-*/169)
 
 // Should be set to patch width
 //  for tall numbers later on
@@ -114,8 +111,8 @@ extern byte *big_pal;
 #define ST_GODFACE			(ST_NUMPAINFACES*ST_FACESTRIDE)
 #define ST_DEADFACE			(ST_GODFACE+1)
 
-#define ST_FACESX			143
-#define ST_FACESY			168
+#define ST_FACESX			/*160+*/143
+#define ST_FACESY			(/*400-*/(/*200-*/168))
 
 #define ST_EVILGRINCOUNT		(2*TICRATE)
 #define ST_STRAIGHTFACECOUNT	(TICRATE/2)
@@ -136,111 +133,111 @@ extern byte *big_pal;
 
 // AMMO number pos.
 #define ST_AMMOWIDTH		3	
-#define ST_AMMOX			44
-#define ST_AMMOY			171
+#define ST_AMMOX			/*160+*/44
+#define ST_AMMOY			(/*400-*/(/*200-*/171))
 
 // HEALTH number pos.
 #define ST_HEALTHWIDTH		3	
-#define ST_HEALTHX			90
-#define ST_HEALTHY			171
+#define ST_HEALTHX			/*160+*/90
+#define ST_HEALTHY			(/*400-*/(/*200-*/171))
 
 // Weapon pos.
-#define ST_ARMSX			111
-#define ST_ARMSY			172
-#define ST_ARMSBGX			104
-#define ST_ARMSBGY			168
+#define ST_ARMSX			/*160+*/111
+#define ST_ARMSY			(/*400-*/(/*200-*/172))
+#define ST_ARMSBGX			/*160+*/104
+#define ST_ARMSBGY			(/*400-*/(/*200-*/168))
 #define ST_ARMSXSPACE		12
 #define ST_ARMSYSPACE		10
 
 // Frags pos.
-#define ST_FRAGSX			138
-#define ST_FRAGSY			171	
+#define ST_FRAGSX			/*160+*/138
+#define ST_FRAGSY			(/*400-*/(/*200-*/171))	
 #define ST_FRAGSWIDTH		2
 
 // ARMOR number pos.
 #define ST_ARMORWIDTH		3
-#define ST_ARMORX			221
-#define ST_ARMORY			171
+#define ST_ARMORX			/*160+*/221
+#define ST_ARMORY			(/*400-*/(/*200-*/171))
 
 // Key icon positions.
 #define ST_KEY0WIDTH		8
 #define ST_KEY0HEIGHT		5
-#define ST_KEY0X			239
-#define ST_KEY0Y			171
+#define ST_KEY0X			/*160+*/239
+#define ST_KEY0Y			(/*400-*/(/*200-*/171))
 #define ST_KEY1WIDTH		ST_KEY0WIDTH
-#define ST_KEY1X			239
-#define ST_KEY1Y			181
+#define ST_KEY1X			/*160+*/239
+#define ST_KEY1Y			(/*400-*/(/*200-*/181))
 #define ST_KEY2WIDTH		ST_KEY0WIDTH
-#define ST_KEY2X			239
-#define ST_KEY2Y			191
+#define ST_KEY2X			/*160+*/239
+#define ST_KEY2Y			(/*400-*/(/*200-*/191))
 
 // Ammunition counter.
 #define ST_AMMO0WIDTH		3
 #define ST_AMMO0HEIGHT		6
-#define ST_AMMO0X			288
-#define ST_AMMO0Y			173
+#define ST_AMMO0X			/*160+*/288
+#define ST_AMMO0Y			(/*400-*/(/*200-*/173))
 #define ST_AMMO1WIDTH		ST_AMMO0WIDTH
-#define ST_AMMO1X			288
-#define ST_AMMO1Y			179
+#define ST_AMMO1X			/*160+*/288
+#define ST_AMMO1Y			(/*400-*/(/*200-*/179))
 #define ST_AMMO2WIDTH		ST_AMMO0WIDTH
-#define ST_AMMO2X			288
-#define ST_AMMO2Y			191
+#define ST_AMMO2X			/*160+*/288
+#define ST_AMMO2Y			(/*400-*/(/*200-*/191))
 #define ST_AMMO3WIDTH		ST_AMMO0WIDTH
-#define ST_AMMO3X			288
-#define ST_AMMO3Y			185
+#define ST_AMMO3X			/*160+*/288
+#define ST_AMMO3Y			(/*400-*/(/*200-*/185))
 
 // Indicate maximum ammunition.
 // Only needed because backpack exists.
 #define ST_MAXAMMO0WIDTH		3
 #define ST_MAXAMMO0HEIGHT		5
-#define ST_MAXAMMO0X		314
-#define ST_MAXAMMO0Y		173
+#define ST_MAXAMMO0X		/*160+*/314
+#define ST_MAXAMMO0Y		(/*400-*/(/*200-*/173))
 #define ST_MAXAMMO1WIDTH		ST_MAXAMMO0WIDTH
-#define ST_MAXAMMO1X		314
-#define ST_MAXAMMO1Y		179
+#define ST_MAXAMMO1X		/*160+*/314
+#define ST_MAXAMMO1Y		(/*400-*/(/*200-*/179))
 #define ST_MAXAMMO2WIDTH		ST_MAXAMMO0WIDTH
-#define ST_MAXAMMO2X		314
-#define ST_MAXAMMO2Y		191
+#define ST_MAXAMMO2X		/*160+*/314
+#define ST_MAXAMMO2Y		(/*400-*/(/*200-*/191))
 #define ST_MAXAMMO3WIDTH		ST_MAXAMMO0WIDTH
-#define ST_MAXAMMO3X		314
-#define ST_MAXAMMO3Y		185
+#define ST_MAXAMMO3X		/*160+*/314
+#define ST_MAXAMMO3Y		(/*400-*/(/*200-*/185))
 
 // pistol
-#define ST_WEAPON0X			110 
-#define ST_WEAPON0Y			172
+#define ST_WEAPON0X			/*160+*/110 
+#define ST_WEAPON0Y			(/*400-*/(/*200-*/172))
 
 // shotgun
-#define ST_WEAPON1X			122 
-#define ST_WEAPON1Y			172
+#define ST_WEAPON1X			/*160+*/122 
+#define ST_WEAPON1Y			(/*400-*/(/*200-*/172))
 
 // chain gun
-#define ST_WEAPON2X			134 
-#define ST_WEAPON2Y			172
+#define ST_WEAPON2X			/*160+*/134 
+#define ST_WEAPON2Y			(/*400-*/(/*200-*/172))
 
 // missile launcher
-#define ST_WEAPON3X			110 
-#define ST_WEAPON3Y			181
+#define ST_WEAPON3X			/*160+*/110 
+#define ST_WEAPON3Y			(/*400-*/(/*200-*/181))
 
 // plasma gun
-#define ST_WEAPON4X			122 
-#define ST_WEAPON4Y			181
+#define ST_WEAPON4X			/*160+*/122 
+#define ST_WEAPON4Y			(/*400-*/(/*200-*/181))
 
  // bfg
-#define ST_WEAPON5X			134
-#define ST_WEAPON5Y			181
+#define ST_WEAPON5X			/*160+*/134
+#define ST_WEAPON5Y			(/*400-*/(/*200-*/181))
 
 // WPNS title
-#define ST_WPNSX			109 
-#define ST_WPNSY			191
+#define ST_WPNSX			/*160+*/109 
+#define ST_WPNSY			(/*400-*/(/*200-*/191))
 
  // DETH title
-#define ST_DETHX			109
-#define ST_DETHY			191
+#define ST_DETHX			/*160+*/109
+#define ST_DETHY			(/*400-*/(/*200-*/191))
 
 //Incoming messages window location
 //UNUSED
 // #define ST_MSGTEXTX	   (viewwindowx)
-// #define ST_MSGTEXTY	   (viewwindowy+viewheight-18)
+// #define ST_MSGTEXTY	   (20+viewwindowy+viewheight-18)
 #define ST_MSGTEXTX			0
 #define ST_MSGTEXTY			0
 // Dimensions given in characters.
@@ -260,7 +257,7 @@ extern byte *big_pal;
     (strlen(mapnames[(gameepisode-1)*9+(gamemap-1)]))
 
 #define ST_MAPTITLEX \
-    (SCREENWIDTH - ST_MAPWIDTH * ST_CHATFONTWIDTH)
+    ((SCREENWIDTH/2) - ST_MAPWIDTH * ST_CHATFONTWIDTH)
 
 #define ST_MAPTITLEY		0
 #define ST_MAPHEIGHT		1
@@ -486,7 +483,6 @@ cheatseq_t	cheat_choppers = { cheat_choppers_seq, 0 };
 cheatseq_t	cheat_clev = { cheat_clev_seq, 0 };
 cheatseq_t	cheat_mypos = { cheat_mypos_seq, 0 };
 
-
 // 
 extern char*	mapnames[];
 
@@ -500,18 +496,16 @@ extern void graphics_draw_text( display_context_t disp, int x, int y, const char
 // STATUS BAR CODE
 //
 void ST_Stop(void);
+extern uint32_t big_framecount;
 
 void ST_refreshBackground(void)
 {
+	if(big_framecount%9 == 5) { //|| big_framecount %9 == 4) {
     if (st_statusbaron)
-    {
-		V_DrawPatch(ST_X, 0, BG, sbar);
-
-		if (netgame)
-			V_DrawPatch(ST_FX, 0, BG, faceback);
-
-		V_CopyRect(ST_X, 0, BG, ST_WIDTH, ST_HEIGHT, ST_X, ST_Y, FG);
+    {// ST_X,0,BG
+		V_DrawPatch(ST_X, ST_Y, FG, sbar);
     }
+	}
 }
 
 
@@ -545,7 +539,7 @@ ST_Responder (event_t* ev)
   {
     if (!netgame)
     {
-      // b. - enabled for more debug fun.
+// b. - enabled for more debug fun.
       // if (gameskill != sk_nightmare) {
       
       // 'dqd' cheat for toggleable god mode
@@ -1092,7 +1086,7 @@ void ST_doPaletteStuff(void)
     {
         st_palette = palette;
         pal = ((byte *)W_CacheLumpNum (lu_palette, PU_CACHE));
-        I_SetPalette (pal);
+        I_SetPalette (pal+(768*palette));
     }
 }
 
@@ -1130,11 +1124,15 @@ void ST_drawWidgets(boolean refresh)
 
     STlib_updateNum(&w_frags, refresh);
 }
-
+int st_ft_c = 1;
 void ST_doRefresh(void)
 {
+	if(st_ft_c < 2) {
+		st_ft_c+=1;
+	}
+	else {
     st_firsttime = false;
-
+	}
     // draw status bar background to off-screen buff
     ST_refreshBackground();
 
@@ -1158,9 +1156,11 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
     ST_doPaletteStuff();
 
     // If just after ST_Start(), refresh all
-    /*if (st_firsttime)*/ ST_doRefresh();
+//    if (st_firsttime)
+		ST_doRefresh();
     // Otherwise, update as little as possible
-    //else ST_diffDraw();
+//    else
+//		ST_diffDraw();
 }
 
 void ST_loadGraphics(void)
@@ -1500,7 +1500,7 @@ void ST_Stop (void)
     if (st_stopped)
 	return;
 
-    I_SetPalette (big_pal/*W_CacheLumpNum (lu_palette, PU_CACHE)*/);
+    I_SetPalette (W_CacheLumpNum (lu_palette, PU_CACHE));
 
     st_stopped = true;
 }
@@ -1509,5 +1509,5 @@ void ST_Init (void)
 {
     veryfirsttime = 0;
     ST_loadData();
-    screens[4] = (byte *) Z_Malloc(ST_WIDTH*ST_HEIGHT, PU_STATIC, 0);
+    //screens[4] = (byte *) Z_Malloc(ST_WIDTH*ST_HEIGHT, PU_STATIC, 0);
 }

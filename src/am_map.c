@@ -51,13 +51,10 @@
 
 extern void graphics_draw_line( display_context_t disp, int x0, int y0, int x1, int y1, uint32_t color );
 
-// for RDPRENDER
 extern uint32_t palarray[256];
 extern void *__safe_buffer[];
 extern display_context_t _dc;
 
-
-//extern void *n64_memset2(void *p, int v, size_t n);
 extern void *__n64_memset_ASM(void *p, int v, size_t n);
 
 
@@ -133,7 +130,7 @@ extern void *__n64_memset_ASM(void *p, int v, size_t n);
 #define MTOF(x) (FixedMul((x),scale_mtof)>>16)
 // translates between frame-buffer and map coordinates
 #define CXMTOF(x)  (f_x + MTOF((x)-m_x))
-#define CYMTOF(y)  (f_y + (f_h - MTOF((y)-m_y)))
+#define CYMTOF(y)  ((f_y + (f_h - MTOF((y)-m_y)))+20)
 
 // the following is crap
 #define LINE_NEVERSEE ML_DONTDRAW
@@ -238,6 +235,8 @@ mline_t thintriangle_guy[] = {
 #undef R
 #define NUMTHINTRIANGLEGUYLINES (sizeof(thintriangle_guy)/sizeof(mline_t))
 
+unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
+cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 
 static int 	cheating = 0;
 static int 	grid = 0;
@@ -246,7 +245,7 @@ static int 	leveljuststarted = 1; 	// kluge until AM_LevelInit() is called
 
 boolean    	automapactive = false;
 static int 	finit_width = SCREENWIDTH;
-static int 	finit_height = SCREENHEIGHT - 32;
+static int 	finit_height = SCREENHEIGHT-44;
 
 // location of window on screen
 static int 	f_x;
@@ -310,17 +309,12 @@ static int markpointnum = 0; // next point to be assigned
 
 static int followplayer = 1; // specifies whether to follow the player around
 
-static unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
-static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 
 static boolean stopped = true;
 
 extern boolean viewactive;
-//extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
 
-
-
-void V_MarkRect(int x, int y, int width, int height);
+extern void V_MarkRect(int x, int y, int width, int height);
 
 
 // Calculates the slope and slope according to the x-axis of a line
@@ -629,6 +623,8 @@ void AM_Stop(void)
     automapactive = false;
     ST_Responder(&st_notify);
     stopped = true;
+	__n64_memset_ASM((&((uint16_t *)__safe_buffer[0])[0]), 0, finit_width*finit_height*2);
+    __n64_memset_ASM((&((uint16_t *)__safe_buffer[1])[0]), 0, finit_width*finit_height*2);
 }
 
 
@@ -686,7 +682,7 @@ void AM_maxOutWindowScale(void)
 boolean AM_Responder(event_t* ev)
 {
     int rc;
-    static int cheatstate=0;
+    //static int cheatstate=0;
     static int bigstate=0;
     static char buffer[20];
 
@@ -764,13 +760,14 @@ boolean AM_Responder(event_t* ev)
 	    plr->message = AMSTR_MARKSCLEARED;
 	    break;
 	  default:
-	    cheatstate=0;
+	    //cheatstate=0;
 	    rc = false;
 	}
 	if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
 	{
 	    rc = false;
-	    cheating = (cheating+1) % 3;
+	    cheating = 2;//(cheating+1) % 3;
+		grid = 1;
 	}
     }
 
@@ -906,8 +903,7 @@ void AM_Ticker (void)
 	AM_changeWindowLoc();
 
     // Update light level
-    // AM_updateLightLev();
-
+    AM_updateLightLev();
 }
 
 
@@ -916,7 +912,7 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    __n64_memset_ASM(fb, color, f_w*f_h);
+    __n64_memset_ASM((&((uint16_t *)__safe_buffer[_dc - 1])[0]), 0, finit_width*finit_height*2);
 }
 
 
@@ -1074,89 +1070,6 @@ AM_clipMline
 
 
 //
-// Classic Bresenham w/ whatever optimizations needed for speed
-//
-void
-AM_drawFline
-( fline_t*	fl,
-  int		color )
-{
-//int startx = fl->a.x; int starty = fl->a.y;
-//int endx = fl->b.x;	int endy = fl->b.y;
-
-    /*register */int x;
-    /*register */int y;
-    /*register */int dx;
-    /*register */int dy;
-    /*register */int sx;
-    /*register */int sy;
-    /*register */int ax;
-    /*register */int ay;
-    /*register */int d;
-    
-//-Werror fix
-//am_map.c: In function 'AM_drawFline':
-//am_map.c:997: error: type defaults to 'int' in declaration of 'fuck'
-//    static fuck = 0;
-    static int fuck = 0;
-
-    // For debugging only
-    if (      fl->a.x < 0 || fl->a.x >= f_w
-	   || fl->a.y < 0 || fl->a.y >= f_h
-	   || fl->b.x < 0 || fl->b.x >= f_w
-	   || fl->b.y < 0 || fl->b.y >= f_h)
-    {
-	/*f*/printf(/*stderr, */"fuck %d \r", fuck++);
-	return;
-    }
-#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
-    dx = fl->b.x - fl->a.x;
-    ax = 2 * (dx<0 ? -dx : dx);
-    sx = dx<0 ? -1 : 1;
-
-    dy = fl->b.y - fl->a.y;
-    ay = 2 * (dy<0 ? -dy : dy);
-    sy = dy<0 ? -1 : 1;
-
-    x = fl->a.x;
-    y = fl->a.y;
-
-    if (ax > ay)
-    {
-	d = ay - ax/2;
-	while (1)
-	{
-	    PUTDOT(x,y,color);
-	    if (x == fl->b.x) return;
-	    if (d>=0)
-	    {
-		y += sy;
-		d -= ax;
-	    }
-	    x += sx;
-	    d += ay;
-	}
-    }
-    else
-    {
-	d = ax - ay/2;
-	while (1)
-	{
-	    PUTDOT(x, y, color);
-	    if (y == fl->b.y) return;
-	    if (d >= 0)
-	    {
-		x += sx;
-		d -= ay;
-	    }
-	    y += sy;
-	    d += ax;
-	}
-    }
-}
-
-
-//
 // Clip lines, draw visible part sof lines.
 //
 void
@@ -1167,7 +1080,8 @@ AM_drawMline
     static fline_t fl;
 
     if (AM_clipMline(ml, &fl))
-	AM_drawFline(&fl, color); // draws it on frame buffer using fb coords
+		buffer_fast_line_5551(fl.a.x, fl.a.y, fl.b.x, fl.b.y, palarray[color], &((uint16_t *)__safe_buffer[(_dc)-1])[0], 640, 480);
+//		graphics_draw_line(_dc, fl.a.x, fl.a.y+20, fl.b.x, fl.b.y+20, palarray[color]);
 }
 
 
@@ -1424,14 +1338,15 @@ void AM_drawMarks(void)
 	    fx = CXMTOF(markpoints[i].x);
 	    fy = CYMTOF(markpoints[i].y);
 	    if (fx >= f_x && fx <= f_w - w && fy >= f_y && fy <= f_h - h)
-		V_DrawPatch(fx, fy, FB, marknums[i]);
+		V_DrawPatch(fx>>1, fy>>1, FB, marknums[i]);
 	}
     }
 }
 
 void AM_drawCrosshair(int color)
 {
-    fb[(f_w*(f_h+1))/2] = color; // single point for now
+	//graphics_draw_line(_dc, ((f_w >> 1)-1) - 4, ((f_h >> 1) - 1), ((f_w >> 1)-1) + 4, ((f_h >> 1)-1), palarray[color]);
+	//graphics_draw_line(_dc, ((f_w >> 1)-1), ((f_h >> 1) - 1) - 4, ((f_w >> 1)-1), ((f_h >> 1) - 1) + 4, palarray[color]);
 }
 
 void AM_Drawer (void)
@@ -1444,10 +1359,9 @@ void AM_Drawer (void)
     AM_drawWalls();
     AM_drawPlayers();
     if (cheating==2)
-	AM_drawThings(THINGCOLORS, THINGRANGE);
-    AM_drawCrosshair(XHAIRCOLORS);
+		AM_drawThings(THINGCOLORS, THINGRANGE);
+    //AM_drawCrosshair(XHAIRCOLORS);
 
     AM_drawMarks();
-
     V_MarkRect(f_x, f_y, f_w, f_h);
 }

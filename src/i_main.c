@@ -21,6 +21,9 @@
 //	Main program, simply calls D_DoomMain high level loop.
 //
 //-----------------------------------------------------------------------------
+#include <limits.h>
+
+#include <stdlib.h>
 
 #include <inttypes.h>
 #include <libdragon.h>
@@ -33,21 +36,29 @@
 extern void *__n64_memset_ZERO_ASM(void *ptr, int value, size_t num);
 extern void *__n64_memset_ASM(void *ptr, int value, size_t num);
 
+extern void DoomIsOver();
+
 extern double get_elapsed_seconds(void);
-extern void exception_handler(exception_t *exception);
+extern void register_dump(exception_t *exception);
 extern void I_InitGraphics(void);
 extern void I_FinishUpdate(void);
 
+#if 1
 extern uint32_t ytab[];
-extern uint32_t y10tab[];
-extern uint32_t y20tab[];
+//extern uint32_t y10tab[];
+//extern uint32_t y20tab[];
+#endif
 
-#define SCREENW 320
+#define SCREENW 640
 
 void check_and_init_mempak(void)
 {
-    get_accessories_present();
-
+//#ifdef newld
+    get_accessories_present(0);
+//#endif
+//#ifndef newld
+//	get_accessories_present();
+//#endif
     switch (identify_accessory(0))
     {
         case ACCESSORY_NONE:
@@ -92,24 +103,82 @@ void check_and_init_mempak(void)
         }
     }
 }
-
+//#define fmultest
 extern byte* savebuffer;
 extern int center_x, center_y;
 extern void DoNothing (void);
+#ifdef fmultest
+uint32_t testa, testb;
+uint32_t testc;
 
+uint32_t C_FixedDiv(uint32_t a, uint32_t b)
+{
+    if ((abs(a) >> 14) >= abs(b))
+    {
+         return (a^b) < 0 ? INT_MIN : INT_MAX;
+    }
+    else
+    {
+        int64_t result;
+
+        result = ((int64_t) a << 16) / b;
+
+        return (uint32_t) result;
+    }
+}
+
+uint32_t
+C_FixedMul
+( uint32_t	a,
+  uint32_t	b )
+{
+    return ((int64_t) a * (int64_t) b) >> 16;
+}
+double starts;
+double ends;
+#endif
 int main(int argc, char **argv)
 {
     int j;
+#if 1
+    for (j=0;j</*240*/480;j++)
+    {
+        ytab[j]   = ((j+20   )*640);
+//        y10tab[j] = ((j+10)*SCREENW);
+//	y20tab[j] = ((j+20)*SCREENW);
+    }
+
+#endif
 
     init_interrupts();
 
     display_init(RESOLUTION_320x240, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
-
-    rdp_init();
+	register_exception_handler(register_dump);
+//    rdp_init();
 
     console_init();
     console_set_render_mode(RENDER_AUTOMATIC);
-
+#ifdef fmultest
+	starts = get_elapsed_seconds();
+	for(testa=1234567;testa<1234567+0x800;testa++){
+	for(testb=9876543;testb<9876543+0x800;testb++){
+			testc = FixedDiv(testb+0x10000,testa+0x10000);
+	}
+	}
+	ends = get_elapsed_seconds();
+	printf("%08X %f\n", testc, (ends-starts));
+/*
+	starts = get_elapsed_seconds();
+		for(testa=0x00000000;testa<0x1000;testa++){
+	for(testb=0x00000000;testb<0x1000;testb++){
+			testc = C_FixedDiv(testa+0x10000,testb+0x10000);
+	}
+	}
+	ends = get_elapsed_seconds();
+	printf("%08X %f\n", testc, (ends-starts));*/
+	while(1){}	
+	#endif
+#if 1
     controller_init();
 
     // center joystick...
@@ -141,20 +210,13 @@ int main(int argc, char **argv)
     printf("Checking for Mempak:\n");
     check_and_init_mempak();
 
-    savebuffer = (byte *)n64_malloc(SAVEGAMESIZE);
-
+//    savebuffer = (byte *)n64_malloc(SAVEGAMESIZE);
+    display_close();
     I_InitGraphics();
-
-    for (j=0;j<240;j++)
-    {
-        ytab[j]   = ((j   )*SCREENW);
-        y10tab[j] = ((j+10)*SCREENW);
-	y20tab[j] = ((j+20)*SCREENW);
-    }
-
 //    I_FinishUpdate = &different_renderer;
-
     D_DoomMain();
-
+	DoomIsOver();
+	timer_close();
+#endif	
     return 0;
 }

@@ -20,8 +20,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 
 #define WRITE_SIZE	1024
 
@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
 						
 						if(output_zeros(write_file, num_zeros))
 						{
-							fprintf(stderr, "Invalid offset to seek to!\n", output);
+							fprintf(stderr, "Invalid offset to seek to in %s!\n", output);
 							return -1;
 						}
 						
@@ -438,7 +438,7 @@ int main(int argc, char *argv[])
 		
 		if(output_zeros(write_file, num_zeros))
 		{
-			fprintf(stderr, "Couldn't pad image!\n", output);
+			fprintf(stderr, "Couldn't pad image in %s!\n", output);
 			return -1;
 		}
 		

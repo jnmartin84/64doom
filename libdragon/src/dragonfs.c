@@ -7,10 +7,17 @@
 #include <string.h>
 #include <stdint.h>
 #include <sys/stat.h>
-#include <n64memory.h>
 #include "libdragon.h"
 #include "system.h"
 #include "dfsinternal.h"
+
+extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
+extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
+
+#define memcpy __n64_memcpy_ASM
+#define memset __n64_memset_ASM
+
+
 
 /**
  * @defgroup dfs DragonFS
@@ -533,7 +540,7 @@ static int recurse_path(const char * const path, int mode, directory_entry_t **d
     int ignore = 1; // Do not, by default, read again during the first while
 
     /* Save directory stack */
-    n64_memcpy(dir_stack, directories, sizeof(uint32_t) * MAX_DIRECTORY_DEPTH);
+    memcpy(dir_stack, directories, sizeof(uint32_t) * MAX_DIRECTORY_DEPTH);
 
     /* Grab first token, make sure it isn't root */
     cur_path = get_next_token(cur_path, token);
@@ -644,7 +651,7 @@ static int recurse_path(const char * const path, int mode, directory_entry_t **d
     {
         /* Restore stack */
         directory_top = dir_loc;
-        n64_memcpy(directories, dir_stack, sizeof(uint32_t) * MAX_DIRECTORY_DEPTH);
+        memcpy(directories, dir_stack, sizeof(uint32_t) * MAX_DIRECTORY_DEPTH);
     }
 
     return ret;
@@ -670,7 +677,7 @@ static int __dfs_init(uint32_t base_fs_loc)
         base_ptr = base_fs_loc;
         clear_directory();
 
-        n64_memset(open_files, 0, sizeof(open_files));
+        memset(open_files, 0, sizeof(open_files));
 
         /* Good FS */
         return DFS_ESUCCESS;
@@ -847,7 +854,7 @@ int dfs_close(uint32_t handle)
     }
 
     /* Closing the handle is easy as zeroing out the file */
-    n64_memset(file, 0, sizeof(open_file_t));
+    memset(file, 0, sizeof(open_file_t));
 
     return DFS_ESUCCESS;
 }
@@ -1025,7 +1032,7 @@ int dfs_read(void * const buf, int size, int count, uint32_t handle)
         }
 
         /* Copy in */
-        n64_memcpy(data, file->cur_sector.data + offset_into_sector(file->loc), read_this_loop);
+        memcpy(data, file->cur_sector.data + offset_into_sector(file->loc), read_this_loop);
         data += read_this_loop;
         did_read += read_this_loop;
         file->loc += read_this_loop;

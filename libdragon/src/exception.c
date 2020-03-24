@@ -20,84 +20,12 @@
  * @{
  */
 
-struct regdump_s {
-	uint32_t r0;
-	uint32_t r1;
-	uint32_t r2;
-	uint32_t r3;
-	uint32_t r4;
-	uint32_t r5;
-	uint32_t r6;
-	uint32_t r7;
-	uint32_t r8;
-	uint32_t r9;
-	uint32_t r10;
-	uint32_t r11;
-	uint32_t r12;
-	uint32_t r13;
-	uint32_t r14;
-	uint32_t r15;
-	uint32_t r16;
-	uint32_t r17;
-	uint32_t r18;
-	uint32_t r19;
-	uint32_t r20;
-	uint32_t r21;
-	uint32_t r22;
-	uint32_t r23;
-	uint32_t r24;
-	uint32_t r25;
-	uint32_t r26;
-	uint32_t r27;
-	uint32_t r28;
-	uint32_t r29;
-	uint32_t r30;
-	uint32_t r31;
-	uint32_t hi;
-	uint32_t lo;
-	uint32_t cop00;
-	uint32_t cop01;
-	uint32_t cop02;
-	uint32_t cop03;
-	uint32_t cop04;
-	uint32_t cop05;
-	uint32_t cop06;
-	uint32_t cop07;
-	uint32_t cop08;
-	uint32_t cop09;
-	uint32_t cop010;
-	uint32_t cop011;
-	uint32_t cop012;
-	uint32_t cop013;
-	uint32_t cop014;
-	uint32_t cop015;
-	uint32_t cop016;
-	uint32_t cop017;
-	uint32_t cop018;
-	uint32_t cop019;
-	uint32_t cop020;
-	uint32_t cop021;
-	uint32_t cop022;
-	uint32_t cop023;
-	uint32_t cop024;
-	uint32_t cop025;
-	uint32_t cop026;
-	uint32_t cop027;
-	uint32_t cop028;
-	uint32_t cop029;
-	uint32_t cop030;
-	uint32_t cop031;
-};
-
-struct regdump_s __attribute__((aligned(8))) myregdump;
-
 /** @brief Exception handler currently registered with exception system */
 static void (*__exception_handler)(exception_t*) = NULL;
 /** @brief Base register offset as defined by the interrupt controller */
-extern const unsigned char* __baseRegAddr;
-
-//...
-extern const unsigned char* __badPC;
+extern const unsigned char* __baseRegAddr __attribute__((section (".data")));
+// Do not allow this in small data or it will seem larger than it actually is
+// Linker is using the undefined section here instead of using .bss from inthandler.S?
 
 /**
  * @brief Register an exception handler to handle exceptions
@@ -176,77 +104,3 @@ void __onResetException()
 }
 
 /** @} */
-
-#define VI_ORIGIN 0xA4400004
-
-#define PHYS_TO_K0(x)   ((uint32_t)(x)|0x80000000)      /* physical to kseg0 */
-#define PHYS_TO_K1(x)   ((uint32_t)(x)|0xA0000000)      /* physical to kseg1 */
-
-#define IO_READ(addr)           (*(volatile uint32_t *)PHYS_TO_K1(addr))
-#define IO_WRITE(addr,data)     (*(volatile uint32_t *)PHYS_TO_K1(addr)=(uint32_t)(data))
-
-extern void graphics_buffer_draw_text( void* disp, int x, int y, int dw, int dh, const char * const msg );
-
-#include <libdragon.h>
-
-static char errstr[256] = "";
-
-static exception_t e;
-static int exception_counter_var;
-// used as a framebuffer for emergency situation, i.e. an exception leading to this handler being called
-static uint32_t buf[320*240];
-
-void real_exception_handler(struct regdump_s *reg_dump)
-{
-	int ci;
-	uint32_t blue = (graphics_make_color(0x00,0x00,0xFF,0x00) << 16) | graphics_make_color(0x00,0x00,0xFF,0x00);
-	for (ci=0;ci<320*240;ci++)
-	{
-		buf[ci] = blue;
-	}
-
-	disable_interrupts();
-
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->r0,reg_dump->r1,reg_dump->r2,reg_dump->r3);
-	graphics_buffer_draw_text(buf, 16, 16, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->r4,reg_dump->r5,reg_dump->r6,reg_dump->r7);
-	graphics_buffer_draw_text(buf, 16, 24, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->r8,reg_dump->r9,reg_dump->r10,reg_dump->r11);
-	graphics_buffer_draw_text(buf, 16, 32, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->r12,reg_dump->r13,reg_dump->r14,reg_dump->r15);
-	graphics_buffer_draw_text(buf, 16, 40, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->r16,reg_dump->r17,reg_dump->r18,reg_dump->r19);
-	graphics_buffer_draw_text(buf, 16, 48, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->r20,reg_dump->r21,reg_dump->r22,reg_dump->r23);
-	graphics_buffer_draw_text(buf, 16, 56, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->r24,reg_dump->r25,reg_dump->r26,reg_dump->r27);
-	graphics_buffer_draw_text(buf, 16, 64, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->r28,reg_dump->r29,reg_dump->r30,reg_dump->r31);
-	graphics_buffer_draw_text(buf, 16, 72, 320, 240, errstr);
-
-	sprintf(errstr, "%08X %08X\n", reg_dump->hi, reg_dump->lo);
-	graphics_buffer_draw_text(buf, 16, 80+4, 320, 240, errstr);
-	
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->cop00,reg_dump->cop01,reg_dump->cop02,reg_dump->cop03);
-	graphics_buffer_draw_text(buf, 16, 88+8, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->cop04,reg_dump->cop05,reg_dump->cop06,reg_dump->cop07);
-	graphics_buffer_draw_text(buf, 16, 96+8, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->cop08,reg_dump->cop09,reg_dump->cop010,reg_dump->cop011);
-	graphics_buffer_draw_text(buf, 16, 104+8, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->cop012,reg_dump->cop013,reg_dump->cop014,reg_dump->cop015);
-	graphics_buffer_draw_text(buf, 16, 112+8, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->cop016,reg_dump->cop017,reg_dump->cop018,reg_dump->cop019);
-	graphics_buffer_draw_text(buf, 16, 120+8, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->cop020,reg_dump->cop021,reg_dump->cop022,reg_dump->cop023);
-	graphics_buffer_draw_text(buf, 16, 128+8, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->cop024,reg_dump->cop025,reg_dump->cop026,reg_dump->cop027);
-	graphics_buffer_draw_text(buf, 16, 136+8, 320, 240, errstr);
-	sprintf(errstr, "%08X %08X %08X %08X\n", reg_dump->cop028,reg_dump->cop029,reg_dump->cop030,reg_dump->cop031);
-	graphics_buffer_draw_text(buf, 16, 144+8, 320, 240, errstr);
-
-	IO_WRITE(VI_ORIGIN, buf);
-	set_VI_interrupt(0,0);
-	set_VI_interrupt(1,0);
-
-	while(1);
-}

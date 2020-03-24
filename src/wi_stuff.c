@@ -88,7 +88,7 @@ extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 #define SP_STATSY		50
 
 #define SP_TIMEX		16
-#define SP_TIMEY		(SCREENHEIGHT-32)
+#define SP_TIMEY		((SCREENHEIGHT/2)-32)
 
 
 // NET GAME STUFF
@@ -403,16 +403,15 @@ static patch_t**	lnames;
 //
 
 // slam background
-// UNUSED static unsigned char *background=0;
 extern uint32_t ytab[];
-extern uint32_t y10tab[];
-extern uint32_t y20tab[];
 
 #define n64_cfb_set_pixel( _dc, x, y, color ) \
-    (&((uint16_t *)__safe_buffer[(_dc)-1])[0])[(x) + (ytab[(y)]) ] = (color)
+	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1)) = (color)
+
 
 #define n64_cfb_get_pixel( buffer, x, y ) \
-    (&((uint16_t *)__safe_buffer[(_dc)-1])[0])[(x) + (ytab[(y)]) ]
+ 	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1))
+
 
 extern uint32_t palarray[256];
 extern void *__safe_buffer[];
@@ -420,8 +419,16 @@ extern display_context_t _dc;
 
 void WI_slamBackground(void)
 {
-    __n64_memcpy_ASM(screens[0], screens[1], SCREENWIDTH * SCREENHEIGHT);
-    V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
+	int x,y;
+	for(y=0;y<200;y++)
+	{
+		for(x=0;x<320;x++)
+		{
+			uint32_t spot = palarray[screens[1][x+(y*SCREENWIDTH)]];
+			*(uint32_t *)(__safe_buffer[_dc - 1] + (( (x<<1)+(ytab[y<<1]) )<<1)) = spot;
+			*(uint32_t *)(__safe_buffer[_dc - 1] + (( (x<<1)+(ytab[(y<<1)+1]) )<<1)) = spot;
+		}
+	}
 }
 
 // The ticker is used to detect keys
@@ -438,13 +445,13 @@ void WI_drawLF(void)
     int y = WI_TITLEY;
 
     // draw <LevelName> 
-    V_DrawPatch((SCREENWIDTH - SHORT(lnames[wbs->last]->width))/2,
+    V_DrawPatch(((SCREENWIDTH/2) - SHORT(lnames[wbs->last]->width))/2,
 		y, FB, lnames[wbs->last]);
 
     // draw "Finished!"
     y += (5*SHORT(lnames[wbs->last]->height))/4;
     
-    V_DrawPatch((SCREENWIDTH - SHORT(finished->width))/2,
+    V_DrawPatch(((SCREENWIDTH/2) - SHORT(finished->width))/2,
 		y, FB, finished);
 }
 
@@ -456,13 +463,13 @@ void WI_drawEL(void)
     int y = WI_TITLEY;
 
     // draw "Entering"
-    V_DrawPatch((SCREENWIDTH - SHORT(entering->width))/2,
+    V_DrawPatch(((SCREENWIDTH/2) - SHORT(entering->width))/2,
 		y, FB, entering);
 
     // draw level
     y += (5*SHORT(lnames[wbs->next]->height))/4;
 
-    V_DrawPatch((SCREENWIDTH - SHORT(lnames[wbs->next]->width))/2,
+    V_DrawPatch(((SCREENWIDTH/2) - SHORT(lnames[wbs->next]->width))/2,
 		y, FB, lnames[wbs->next]);
 
 }
@@ -489,9 +496,9 @@ WI_drawOnLnode
 	bottom = top + SHORT(c[i]->height);
 
 	if (left >= 0
-	    && right < SCREENWIDTH
+	    && right < (SCREENWIDTH/2)
 	    && top >= 0
-	    && bottom < SCREENHEIGHT)
+	    && bottom < (SCREENHEIGHT/2))
 	{
 	    fits = true;
 	}
@@ -1002,10 +1009,6 @@ void WI_drawDeathmatchStats(void)
     int		y;
     int		w;
     
-    int		lh;	// line height
-
-    lh = WI_SPACINGY;
-
     WI_slamBackground();
     
     // draw animated background
@@ -1463,21 +1466,21 @@ void WI_drawStats(void)
     WI_drawLF();
 
     V_DrawPatch(SP_STATSX, SP_STATSY, FB, kills);
-    WI_drawPercent(SCREENWIDTH - SP_STATSX, SP_STATSY, cnt_kills[0]);
+    WI_drawPercent((SCREENWIDTH/2) - SP_STATSX, SP_STATSY, cnt_kills[0]);
 
     V_DrawPatch(SP_STATSX, SP_STATSY+lh, FB, items);
-    WI_drawPercent(SCREENWIDTH - SP_STATSX, SP_STATSY+lh, cnt_items[0]);
+    WI_drawPercent((SCREENWIDTH/2) - SP_STATSX, SP_STATSY+lh, cnt_items[0]);
 
     V_DrawPatch(SP_STATSX, SP_STATSY+2*lh, FB, sp_secret);
-    WI_drawPercent(SCREENWIDTH - SP_STATSX, SP_STATSY+2*lh, cnt_secret[0]);
+    WI_drawPercent((SCREENWIDTH/2) - SP_STATSX, SP_STATSY+2*lh, cnt_secret[0]);
 
     V_DrawPatch(SP_TIMEX, SP_TIMEY, FB, time);
-    WI_drawTime(SCREENWIDTH/2 - SP_TIMEX, SP_TIMEY, cnt_time);
+    WI_drawTime((SCREENWIDTH/2)/2 - SP_TIMEX, SP_TIMEY, cnt_time);
 
     if (wbs->epsd < 3)
     {
-	V_DrawPatch(SCREENWIDTH/2 + SP_TIMEX, SP_TIMEY, FB, par);
-	WI_drawTime(SCREENWIDTH - SP_TIMEX, SP_TIMEY, cnt_par);
+	V_DrawPatch((SCREENWIDTH/2)/2 + SP_TIMEX, SP_TIMEY, FB, par);
+	WI_drawTime((SCREENWIDTH/2) - SP_TIMEX, SP_TIMEY, cnt_par);
     }
 
 }

@@ -93,7 +93,7 @@ boolean HUlib_delCharFromTextLine(hu_textline_t* t)
     }
 
 }
-
+extern int screenblocks;
 void
 HUlib_drawTextLine
 ( hu_textline_t*	l,
@@ -143,18 +143,17 @@ void HUlib_eraseTextLine(hu_textline_t* l)
     int			lh;
     int			y;
     int			yoffset;
-    static boolean	lastautomapactive = true;
-
     // Only erases when NOT in automap and the screen is reduced,
     // and the text must either need updating or refreshing
     // (because of a recent change back from the automap)
-
     if (!automapactive &&
 	viewwindowx && l->needsupdate)
     {
 	lh = SHORT(l->f[0]->height) + 1;
-	for (y=l->y,yoffset=y*SCREENWIDTH ; y<l->y+lh ; y++,yoffset+=SCREENWIDTH)
+
+	for (y=l->y,yoffset=y*SCREENWIDTH ; y<l->y+(lh*2) ; y++,yoffset+=SCREENWIDTH)
 	{
+		
 	    if (y < viewwindowy || y >= viewwindowy + viewheight)
 		R_VideoErase(yoffset, SCREENWIDTH); // erase entire line
 	    else
@@ -166,9 +165,7 @@ void HUlib_eraseTextLine(hu_textline_t* l)
 	}
     }
 
-    lastautomapactive = automapactive;
     if (l->needsupdate) l->needsupdate--;
-
 }
 
 void

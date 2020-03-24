@@ -933,8 +933,8 @@ void M_DrawEpisode(void)
 
 void M_VerifyNightmare(int ch)
 {
-    if (ch != 'y')
-	return;
+//    if (ch != 'y')
+//	return;
 		
     G_DeferedInitNew(nightmare,epi+1,1);
     M_ClearMenus ();
@@ -1031,8 +1031,8 @@ void M_ChangeMessages(int choice)
 //
 void M_EndGameResponse(int ch)
 {
-    if (ch != 'y')
-	return;
+//    if (ch != 'y')
+//	return;
 		
     currentMenu->lastOn = itemOn;
     M_ClearMenus ();
@@ -1115,8 +1115,8 @@ int     quitsounds2[8] =
 
 void M_QuitResponse(int ch)
 {
-    if (ch != 'y')
-	return;
+//    if (ch != 'y')
+//	return;
     if (!netgame)
     {
 	if (gamemode == commercial)
@@ -1133,6 +1133,7 @@ void M_QuitResponse(int ch)
 
 void M_QuitDOOM(int choice)
 {
+
   // We pick index 0 which is language sensitive,
   //  or one at random, between 1 and maximum number.
   if (language != english )
@@ -1140,7 +1141,8 @@ void M_QuitDOOM(int choice)
   else
     sprintf(endstring,"%s\n\n"DOSY, endmsg[ (gametic%(NUM_QUITMESSAGES-2))+1 ]);
   
-  M_StartMessage(endstring,M_QuitResponse,true);
+  //M_StartMessage(endstring,M_QuitResponse,true);
+M_QuitResponse('y');
 }
 
 

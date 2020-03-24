@@ -127,7 +127,7 @@ typedef enum
 // It will not work dynamically, see visplanes.
 //
 #if 1
-#define	BASE_WIDTH		320
+#define	BASE_WIDTH		640
 #endif
 #if 0
 #define BASE_WIDTH		256
@@ -149,7 +149,7 @@ typedef enum
 #define SCREENHEIGHT 200*SCREEN_MUL
 #endif
 //(int)(SCREEN_MUL*BASE_WIDTH*INV_ASPECT_RATIO) //200
-#define SCREENHEIGHT ((int)(SCREEN_MUL*BASE_WIDTH*INV_ASPECT_RATIO))
+#define SCREENHEIGHT (SCREEN_MUL*BASE_WIDTH*5/8)
 
 
 

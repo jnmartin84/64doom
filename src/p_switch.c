@@ -136,11 +136,11 @@ void P_InitSwitchList(void)
 
 	if (alphSwitchList[i].episode <= episode)
 	{
-//            char name1[20];// = (char *)&alphSwitchList[i].name1;
-//            char name2[20];// = (char *)&alphSwitchList[i].name2;
+            char name1[20];// = (char *)&alphSwitchList[i].name1;
+            char name2[20];// = (char *)&alphSwitchList[i].name2;
 
-//	    strcpy(name1, alphSwitchList[i].name1);
-//	    strcpy(name2, alphSwitchList[i].name2);
+	    strcpy(name1, alphSwitchList[i].name1);
+	    strcpy(name2, alphSwitchList[i].name2);
 
 //            printf("name1: %s\nname2: %s\n", name1, name2);
 
@@ -148,17 +148,20 @@ void P_InitSwitchList(void)
 //            printf("%d %s %s\n", alphSwitchList[i].episode, alphSwitchList[i].name1, alphSwitchList[i].name2);
 
 /*	    printf("%s %d %d\n", alphSwitchList[i].name1, index, i);*/
-	    switchlist[index++] = R_TextureNumForName(alphSwitchList[i].name1);
-/*	    printf("%s %d %d\n", alphSwitchList[i].name1, index, i);*/
-//	    printf("%s %d %d\n", name1, index, i);
-//	    switchlist[index++] = R_TextureNumForName(name1);
+	    ////switchlist[index++] = R_TextureNumForName(alphSwitchList[i].name1);
+	    ///printf("%s %d %d\n", alphSwitchList[i].name1, index, i);
+	    ///printf("%s %d %d\n", name1, index, i);
+	    switchlist[index++] = R_TextureNumForName(name1);
 //	    printf("%s %d %d\n", name1, index, i);
 
 //	    printf("%d\n", switchlist[index-1]);
-	    switchlist[index++] = R_TextureNumForName(alphSwitchList[i].name2);
+//////	    switchlist[index++] = R_TextureNumForName(alphSwitchList[i].name2);
 
-//	    printf("%s %d %d\n", name2, index, i);
-//	    switchlist[index++] = R_TextureNumForName(name2);
+	    ///printf("%s %d %d\n", alphSwitchList[i].name2, index, i);
+
+	    ///printf("%s %d %d\n", name2, index, i);
+	    switchlist[index++] = R_TextureNumForName(name2);
+		///printf("done %s\n",name2);
 //	    printf("%s %d %d\n", name2, index, i);
 	}
     }

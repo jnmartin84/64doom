@@ -113,8 +113,8 @@ inthandler:
 	nop
 
 	/*:(*/
-
-	la    $4,  myregdump
+//	jal __onCriticalException
+	la    $4,  reg_dump
 	sw    $0,  0($4)
 	sw    $1,  4($4)
 	sw    $2,  8($4)
@@ -248,11 +248,37 @@ inthandler:
 	
 //	mfc0 $1,  $31
 //	sw   $1,  260($4)	
-
-	jal real_exception_handler
-	nop
-
-	j endint
+	
+/*	swc0 $3,  148($4)
+	swc0 $4,  152($4)
+	swc0 $5,  156($4)
+	swc0 $6,  160($4)
+	//swc0 $7,  164($4)
+	swc0 $8,  168($4)
+	swc0 $9,  172($4)
+	swc0 $10, 176($4)
+	swc0 $11, 180($4)
+	swc0 $12, 184($4)
+	swc0 $13, 188($4)
+	swc0 $14, 192($4)
+	swc0 $15, 196($4)
+	swc0 $16, 200($4)
+	swc0 $17, 204($4)
+	swc0 $18, 208($4)
+	swc0 $19, 212($4)
+	swc0 $20, 216($4)
+	//swc0 $21, 220($4)
+	//swc0 $22, 224($4)
+	//swc0 $23, 228($4)
+	//swc0 $24, 232($4)
+	//swc0 $25, 236($4)
+	swc0 $26, 240($4)
+	swc0 $27, 244($4)
+	swc0 $28, 248($4)
+	swc0 $29, 252($4)
+	swc0 $30, 256($4)
+	//swc0 $31, 260($4)*/
+	jal register_dump
 	nop
 
 justaninterrupt:
@@ -262,148 +288,13 @@ justaninterrupt:
 	nop
 
 	/* handle reset */
-	la    $4,  myregdump
-	sw    $0,  0($4)
-	sw    $1,  4($4)
-	sw    $2,  8($4)
-	sw    $3, 12($4)
-	sw    $4, 16($4)
-	sw    $5, 20($4)
-	sw    $6, 24($4)
-	sw    $7, 28($4)
-	sw    $8, 32($4)
-	sw    $9, 36($4)
-	sw   $10, 40($4)
-	sw   $11, 44($4)
-	sw   $12, 48($4)
-	sw   $13, 52($4)
-	sw   $14, 56($4)
-	sw   $15, 60($4)
-	sw   $16, 64($4)
-	sw   $17, 68($4)
-	sw   $18, 72($4)
-	sw   $19, 76($4)
-	sw   $20, 80($4)
-	sw   $21, 84($4)
-	sw   $22, 88($4)
-	sw   $23, 92($4)
-	sw   $24, 96($4)
-	sw   $25, 100($4)
-	sw   $26, 104($4)
-	sw   $27, 108($4)
-	sw   $28, 112($4)
-	sw   $29, 116($4)
-	sw   $30, 120($4)
-	sw   $31, 124($4)
-	
-	mfhi $1
-	sw   $1,  128($4)
-	mflo $1
-	sw   $1,  132($4)
-
-    mfc0 $1,  $0
-	sw   $1,  136($4)
-	
-    mfc0 $1,  $1
-	sw   $1,  140($4)
-
-	mfc0 $1,  $2
-	sw   $1,  144($4)
-	
-	mfc0 $1,  $3
-	sw   $1,  148($4)
-
-	mfc0 $1,  $4
-	sw   $1,  152($4)
-	
-	mfc0 $1,  $5
-	sw   $1,  156($4)
-	
-	mfc0 $1,  $6
-	sw   $1,  160($4)
-
-//	mfc0 $1,  $7
-//	sw   $1,  164($4)
-
-	mfc0 $1,  $8
-	sw   $1,  168($4)
-	
-	mfc0 $1,  $9
-	sw   $1,  172($4)
-
-    mfc0 $1,  $10
-	sw   $1,  176($4)
-	
-    mfc0 $1,  $11
-	sw   $1,  180($4)
-
-	mfc0 $1,  $12
-	sw   $1,  184($4)
-	
-	mfc0 $1,  $13
-	sw   $1,  188($4)
-
-	mfc0 $1,  $14
-	sw   $1,  192($4)
-	
-	mfc0 $1,  $15
-	sw   $1,  196($4)
-	
-	mfc0 $1,  $16
-	sw   $1,  200($4)
-
-	mfc0 $1,  $17
-	sw   $1,  204($4)
-
-	mfc0 $1,  $18
-	sw   $1,  208($4)
-	
-	mfc0 $1,  $19
-	sw   $1,  212($4)
-	
-    mfc0 $1,  $20
-	sw   $1,  216($4)
-	
-//    mfc0 $1,  $21
-//	sw   $1,  220($4)
-//
-//	mfc0 $1,  $22
-//	sw   $1,  224($4)
-//	
-//	mfc0 $1,  $23
-//	sw   $1,  228($4)
-//
-//	mfc0 $1,  $24
-//	sw   $1,  232($4)
-//	
-//	mfc0 $1,  $25
-//	sw   $1,  236($4)
-	
-	mfc0 $1,  $26
-	sw   $1,  240($4)
-
-	mfc0 $1,  $27
-	sw   $1,  244($4)
-
-	mfc0 $1,  $28
-	sw   $1,  248($4)
-	
-	mfc0 $1,  $29
-	sw   $1,  252($4)
-
-	mfc0 $1,  $30
-	sw   $1,  256($4)	
-	
-//	mfc0 $1,  $31
-//	sw   $1,  260($4)	
-	
-	jal real_exception_handler
+	jal __onResetException
 	nop
 
 	j endint
 	nop
-
 notprenmi:
+
 	/* check for count=compare */
 	and $30,k1,0x8000
 	beqz $30,notcount
@@ -416,8 +307,8 @@ notprenmi:
 
 	j endint
 	nop
-
 notcount:
+
 	/* pass anything else along to handler */
 	jal __MI_handler
 	nop
@@ -507,10 +398,8 @@ endint:
 	nop
 	.set at
 
-	.section .bss
-
+	.section .data
 	.global __baseRegAddr
-	.long __baseRegAddr
 
 	.align 8
 	__baseRegAddr:
@@ -583,3 +472,4 @@ endint:
 	.lcomm saveFR30, 8
 	.lcomm saveFR31, 8
 	.lcomm exception_stack, 65*1024
+

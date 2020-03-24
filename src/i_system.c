@@ -42,7 +42,9 @@
 #endif
 #include "i_system.h"
 
-
+extern display_context_t _dc;
+extern void unlockVideo(display_context_t _dc);
+extern display_context_t lockVideo(int i);
 extern void DebugOutput_String(const char *str, int good_or_bad);
 extern void DebugOutput_String_On_Line(const char *str, int lineNumber, int good);
 extern void DebugOutput_String_For_IError(const char *str, int lineNumber, int good);
@@ -64,7 +66,7 @@ void I_Tactile(int on, int off, int total)
 
 
 ticcmd_t	emptycmd;
-ticcmd_t*	I_BaseTiccmd(void)
+inline ticcmd_t*	I_BaseTiccmd(void)
 {
     return &emptycmd;
 }
@@ -113,7 +115,7 @@ unsigned long get_doom_ticks(void)
 //
 unsigned long I_GetTime(void)
 {
-    return get_doom_ticks();
+    return (get_ticks_ms() * TICRATE) / 1000L; //get_doom_ticks();
 }
 
 
@@ -127,7 +129,7 @@ void I_Init(void)
     t0 = get_doom_ticks();
 }
 
-
+int return_from_D_DoomMain = 0;
 //
 // I_Quit
 //
@@ -138,7 +140,8 @@ void I_Quit(void)
     I_ShutdownMusic();
     M_SaveDefaults();
     I_ShutdownGraphics();
-    exit(0);
+//    exit(0);
+return_from_D_DoomMain = 1;
 }
 
 
@@ -187,8 +190,14 @@ extern boolean demorecording;
 
 void I_Error(char *error)
 {
+//    printf("%s\n", error);
+//	printf("...\n");
     DebugOutput_String_For_IError(error, 0, 0);
-
+		unlockVideo(_dc);
+		_dc = lockVideo(1);
+    DebugOutput_String_For_IError(error, 0, 0);
+		unlockVideo(_dc);
+		
     while(1)
     {}
 
@@ -201,13 +210,19 @@ void I_Error(char *error)
 
 void I_Warn(char *error)
 {
-#if 0
+#if 1
 //    char ermac[512] = {'\0'};
 //    sprintf(ermac, "%s", error);
 
     DebugOutput_String_For_IError(error, 0, 1);
+		unlockVideo(_dc);
+		_dc = lockVideo(1);
+    DebugOutput_String_For_IError(error, 0, 1);
+		unlockVideo(_dc);
 
-    n64_sleep_millis(250*1);
+    while(1)
+    {}
+    //n64_sleep_millis(250*1);
 
 //    D_QuitNetGame();
 //    I_ShutdownGraphics();

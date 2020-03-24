@@ -7,6 +7,14 @@
 #include "libdragon.h"
 #include "regsinternal.h"
 
+extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
+extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
+
+#define memcpy __n64_memcpy_ASM
+#define memset __n64_memset_ASM
+
+
+
 /**
  * @defgroup mempak Mempak Filesystem Routines
  * @ingroup controller
@@ -116,22 +124,59 @@ int write_mempak_sector( int controller, int sector, uint8_t *sector_data )
 }
 
 /**
+ * @brief Calculate the checksum of a header
+ *
+ * @param[in] block
+ *            A block at the start of a header
+ *
+ * @return The 16 bit checksum over the header
+ */
+static uint16_t __get_header_checksum( uint16_t *block )
+{
+  uint32_t sum = 0;
+
+  for ( int i = 0; i < 14; i++ )
+  {
+    sum += *(block++);
+  }
+
+  return sum & 0xFFFF;
+}
+
+/**
  * @brief Check a mempak header for validity
  *
  * @param[in] sector
  *            A sector containing a mempak header
- * 
+ *
  * @retval 0 if the header is valid
  * @retval -1 if the header is invalid
  */
 static int __validate_header( uint8_t *sector )
 {
+    uint16_t checksum = 0;
+    uint8_t current_block = 0x0;
+
     if( !sector ) { return -1; }
 
     /* Header is first sector */
     if( memcmp( &sector[0x20], &sector[0x60], 16 ) != 0 ) { return -1; }
     if( memcmp( &sector[0x80], &sector[0xC0], 16 ) != 0 ) { return -1; }
     if( memcmp( &sector[0x20], &sector[0x80], 16 ) != 0 ) { return -1; }
+
+    /* Check 4 checksums of copied header data */
+    current_block = 0x20;
+    checksum = __get_header_checksum((uint16_t *)&sector[current_block]);
+    if( (checksum != *(uint16_t *)(&sector[current_block + 0x1C])) || (checksum != 0xFFF2 - *(uint16_t *)(&sector[current_block + 0x1E])) ) { return -1; }
+    current_block = 0x60;
+    checksum = __get_header_checksum((uint16_t *)&sector[current_block]);
+    if( (checksum != *(uint16_t *)(&sector[current_block + 0x1C])) || (checksum != 0xFFF2 - *(uint16_t *)(&sector[current_block + 0x1E])) ) { return -1; }
+    current_block = 0x80;
+    checksum = __get_header_checksum((uint16_t *)&sector[current_block]);
+    if( (checksum != *(uint16_t *)(&sector[current_block + 0x1C])) || (checksum != 0xFFF2 - *(uint16_t *)(&sector[current_block + 0x1E])) ) { return -1; }
+    current_block = 0xC0;
+    checksum = __get_header_checksum((uint16_t *)&sector[current_block]);
+    if( (checksum != *(uint16_t *)(&sector[current_block + 0x1C])) || (checksum != 0xFFF2 - *(uint16_t *)(&sector[current_block + 0x1E])) ) { return -1; }
 
     return 0;
 }
@@ -378,7 +423,7 @@ static int __read_note( uint8_t *tnote, entry_structure_t *note )
     note->entry_id = 255;
 
     /* Translate n64 to ascii */
-    n64_memset( note->name, 0, sizeof( note->name ) );
+    memset( note->name, 0, sizeof( note->name ) );
 
     for( int i = 0; i < 16; i++ )
     {
@@ -434,7 +479,7 @@ static int __write_note( entry_structure_t *note, uint8_t *out_note )
     if( !out_note || !note ) { return -1; }
 
     /* Start with baseline */
-    n64_memset( out_note, 0, 32 );
+    memset( out_note, 0, 32 );
 
     /* Easy stuff */
     out_note[0] = (note->vendor >> 16) & 0xFF;
@@ -454,7 +499,7 @@ static int __write_note( entry_structure_t *note, uint8_t *out_note )
     out_note[9] = 0x03;
 
     /* Translate ascii to n64 */
-    __n64_memcpy_ASM( tname, note->name, sizeof( note->name ) );
+    memcpy( tname, note->name, sizeof( note->name ) );
     for( int i = 18; i >= 0; i-- )
     {
         if( tname[i] == '.' )
@@ -558,7 +603,7 @@ static int __get_free_space( uint8_t *sector )
  *            The starting inode of the note
  * @param[in] block
  *            The block offset (starting from 0) to retrieve
- * 
+ *
  * @retval -2 if there were free blocks in the file
  * @retval -3 if the filesystem was invalid
  * @return The inode of the n'th block
@@ -859,7 +904,7 @@ int format_mempak( int controller )
     }
 
     /* Write out entry sectors, which can safely be zero */
-    n64_memset( sector, 0x0, MEMPAK_BLOCK_SIZE );
+    memset( sector, 0x0, MEMPAK_BLOCK_SIZE );
     if( write_mempak_sector( controller, 3, sector ) ||
         write_mempak_sector( controller, 4, sector ) )
     {
@@ -1159,7 +1204,7 @@ int delete_mempak_entry( int controller, entry_structure_t *entry )
     }
 
     /* The entry matches, so blank it */
-    n64_memset( data, 0, 32 );
+    memset( data, 0, 32 );
     if( write_mempak_address( controller, (3 * MEMPAK_BLOCK_SIZE) + (entry->entry_id * 32), data ) )
     {
         /* Couldn't update note database */

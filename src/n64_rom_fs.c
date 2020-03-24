@@ -58,7 +58,7 @@ rom_file_info_t;
 // only handle 4 files
 static rom_file_info_t __attribute__((aligned(8))) files[MAX_FILES];
 static uint8_t __attribute__((aligned(8))) file_opened[MAX_FILES] = {0,0,0,0};
-static int last_opened_file = -1;
+//static int last_opened_file = -1;
 
 static uint8_t __attribute__((aligned(8))) dmaBuf[65536];
 
@@ -129,7 +129,6 @@ int rom_open(int FILE_START, int size)
         if (file_opened[i] == 0)
         {
             had_open_file = 1;
-            last_opened_file = i;
             break;
         }
     }
@@ -138,22 +137,25 @@ int rom_open(int FILE_START, int size)
     {
         return -1;
     }
+	else 
+	{
+		files[i].fd       = i;
+		files[i].rom_base = FILE_START;
+		files[i].size     = size;
+		files[i].seek     = 0;
 
-    files[last_opened_file].fd       = last_opened_file;
-    files[last_opened_file].rom_base = FILE_START;
-    files[last_opened_file].size     = size;
-    files[last_opened_file].seek     = 0;
-
-    file_opened[last_opened_file]    = 1;
-
-    return files[last_opened_file].fd;
-}
+		file_opened[i]    = 1;
+		return files[i].fd;
+	}
+ }
 
 
 int rom_close(int fd)
 {
     int i;
-
+	int closed_a_file = 0;
+	
+	
     if ((fd < 0) || (fd > MAX_FILES))
     {
         return -1;
@@ -167,12 +169,16 @@ int rom_close(int fd)
             files[i].rom_base = 0xFFFFFFFF;
             files[i].size = 0xFFFFFFFF;
             files[i].seek = 0xFFFFFFFF;
+			closed_a_file = 1;
             break;
         }
     }
 
-    file_opened[fd] = 0;
-
+	if(closed_a_file)
+	{
+	    file_opened[i] = 0;
+	}
+	
     return 0;
 }
 

@@ -74,9 +74,6 @@ void graphics_draw_sprite_stride( display_context_t disp, int x, int y, sprite_t
 void graphics_draw_sprite_trans( display_context_t disp, int x, int y, sprite_t *sprite );
 void graphics_draw_sprite_trans_stride( display_context_t disp, int x, int y, sprite_t *sprite, int offset );
 
-void graphics_buffer_draw_text( void* disp, int x, int y, int dw, int dh, const char * const msg );
-void graphics_buffer_draw_character( void *disp, int x, int y, int dw, int dh, char ch );
-
 #ifdef __cplusplus
 }
 #endif

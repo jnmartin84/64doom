@@ -82,6 +82,7 @@ char*	player_names[] =
     HUSTR_PLRRED
 };
 
+extern uint64_t big_framecount;
 
 char			chat_char; // remove later.
 static player_t*	plr;
@@ -104,7 +105,7 @@ extern int		showMessages;
 extern boolean		automapactive;
 
 static boolean		headsupactive = false;
-
+extern double get_elapsed_seconds();
 //
 // Builtin map names.
 // The actual names can be found in DStrings.h.
@@ -515,7 +516,7 @@ void HU_Ticker(void)
 
     if (showMessages || message_dontfuckwithme)
     {
-
+//char numbuf[32];
 	// display message if necessary
 	if ((plr->message && !message_nottobefuckedwith)
 	    || (plr->message && message_dontfuckwithme))
@@ -527,6 +528,8 @@ void HU_Ticker(void)
 	    message_nottobefuckedwith = message_dontfuckwithme;
 	    message_dontfuckwithme = 0;
 	}
+//	itoa(big_framecount/get_elapsed_seconds(), numbuf, 10);
+//	    HUlib_addMessageToSText(&w_message, 0, numbuf);
 
     } // else message_on = false;
 
