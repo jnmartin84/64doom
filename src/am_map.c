@@ -624,8 +624,10 @@ void AM_Stop(void)
     automapactive = false;
     ST_Responder(&st_notify);
     stopped = true;
-	__n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[0])[0]), 0, finit_width*finit_height*2);
-    __n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[1])[0]), 0, finit_width*finit_height*2);
+//	__n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[0])[0]), 0, finit_width*finit_height*2);
+//    __n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[1])[0]), 0, finit_width*finit_height*2);
+	__n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[0] + (40*640*2)), 0, 640*336*2);
+	__n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[1] + (40*640*2)), 0, 640*336*2);
 }
 
 
@@ -913,7 +915,7 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    __n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[_dc - 1])[0]), 0, finit_width*finit_height*2);
+    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[_dc - 1] + (40*640*2)), 0, 640*336*2);
 }
 
 
@@ -1081,7 +1083,7 @@ AM_drawMline
     static fline_t fl;
 
     if (AM_clipMline(ml, &fl))
-		buffer_fast_line_5551(fl.a.x, fl.a.y, fl.b.x, fl.b.y, palarray[color], &((uint16_t *)__safe_buffer[(_dc)-1])[0], 640, 480);
+		buffer_fast_line_5551(fl.a.x, fl.a.y+40, fl.b.x, fl.b.y+40, palarray[color], &((uint16_t *)__safe_buffer[(_dc)-1])[0], 640, 480);
 //		graphics_draw_line(_dc, fl.a.x, fl.a.y+20, fl.b.x, fl.b.y+20, palarray[color]);
 }
 

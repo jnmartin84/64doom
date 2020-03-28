@@ -168,7 +168,7 @@ void R_DrawFuzzColumn_TrueColor (void)
 		return;
     }
 
-	dest = (&((uint16_t *)__safe_buffer[(_dc)-1])[ylookup[dc_yl]+(20*SCREENWIDTH) + columnofs[dc_x]]);
+	dest = (&((uint16_t *)__safe_buffer[(_dc)-1])[ylookup[dc_yl]+(40*SCREENWIDTH) + columnofs[dc_x]]);
 
     // Looks familiar.
 //    fracstep = dc_iscale;
@@ -231,7 +231,7 @@ void R_DrawFuzzColumnLow_TrueColor (void)
     }
 
     x = dc_x << 1;
-	dest32 = (uint32_t *)(__safe_buffer[_dc - 1] + (( (x)+(ylookup2[dc_yl]+(20*SCREENWIDTH)) )<<1));
+	dest32 = (uint32_t *)(__safe_buffer[_dc - 1] + (( (x)+(ylookup2[dc_yl]+(40*SCREENWIDTH)) )<<1));
 	
     // Looks familiar.
 //    fracstep = dc_iscale;
@@ -304,7 +304,7 @@ void R_DrawTranslatedColumn_TrueColor (void)
     // Framebuffer destination address.
     // Use ylookup LUT to avoid multiply with ScreenWidth.
     // Use columnofs LUT for subwindows?
-	dest = (&((uint16_t *)__safe_buffer[(_dc)-1])[ylookup[dc_yl]+(20*SCREENWIDTH) + columnofs[dc_x]]);
+	dest = (&((uint16_t *)__safe_buffer[(_dc)-1])[ylookup[dc_yl]+(40*SCREENWIDTH) + columnofs[dc_x]]);
 
     // Looks familiar.
     fracstep = dc_iscale;
@@ -353,7 +353,7 @@ void R_DrawTranslatedColumnLow_TrueColor (void)
     }
 
     x = dc_x << 1;
-    dest32 = (uint32_t *)(__safe_buffer[_dc - 1] + (( (x)+(ylookup2[dc_yl]+(20*SCREENWIDTH)) )<<1));
+    dest32 = (uint32_t *)(__safe_buffer[_dc - 1] + (( (x)+(ylookup2[dc_yl]+(40*SCREENWIDTH)) )<<1));
     // Looks familiar.
     fracstep = dc_iscale;
     frac = dc_texturemid + (dc_yl-centery)*fracstep;
@@ -601,7 +601,7 @@ void R_VideoErase ( unsigned ofs, int count )
 
 		for(int i=0;i<count;i+=2)
 		{
-			*(uint32_t *)(__safe_buffer[_dc - 1] + (((20*SCREENWIDTH)+ofs+i)<<1)) = palarray[screens[1][ofs+i]];
+			*(uint32_t *)(__safe_buffer[_dc - 1] + (((40*SCREENWIDTH)+ofs+i)<<1)) = palarray[screens[1][ofs+i]];
 		}
 
 		__n64_memcpy_ASM(palarray, oldpal, 1024);

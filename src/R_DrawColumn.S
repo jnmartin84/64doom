@@ -70,6 +70,7 @@ R_DrawColumn_TrueColor:
 	addu	t4,	t4,	t7
 	addu	t4,	t4,	t7
 	addiu	t4,	t4, 0x6400 // 20*SCREENWIDTH*2
+	addiu	t4,	t4, 0x6400 // 20*SCREENWIDTH*2
 
 	subu	t1,	t1,	t6
 	multu	t1,	t0
@@ -154,6 +155,8 @@ R_DrawColumnLow_TrueColor:
 	addu	t4,	t4,	t7
 
 	addiu	t4,	t4, 0x6400 // 20*SCREENWIDTH*2
+	addiu	t4,	t4, 0x6400 // 20*SCREENWIDTH*2
+
 	sra		t4, t4, 2
 	sll		t4, t4, 2
 

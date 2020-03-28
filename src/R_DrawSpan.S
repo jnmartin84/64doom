@@ -72,6 +72,8 @@ R_DrawSpan_TrueColor:
 	addu	t9,	t9,	t5
 	addu	t9,	t9,	t5
 	addiu	t9,	t9, 0x6400 // 20*SCREENWIDTH*2
+	addiu	t9,	t9, 0x6400 // 20*SCREENWIDTH*2
+
 	addu	t9, t9, t6
 	addu	t9, t9, t6
 	lw	t5,	%gp_rel(ds_xfrac)(gp)
@@ -142,6 +144,7 @@ R_DrawSpanLow_TrueColor:
 
 	addu	t9,	t9,	t5
 	addu	t9,	t9,	t5
+	addiu	t9,	t9, 0x6400 // 20*SCREENWIDTH*2
 	addiu	t9,	t9, 0x6400 // 20*SCREENWIDTH*2
 	addu	t9, t9, t2
 	addu	t9, t9, t2

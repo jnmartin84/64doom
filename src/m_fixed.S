@@ -41,9 +41,9 @@ FixedDiv:
 	sra	t2,	a1,	31
 	xor	t1,	a0,	t0
 	xor	t3,	a1,	t2
-	sub	t1,	t1,	t0
+	subu	t1,	t1,	t0
 //	# takes absolute value of a1 (b) and stores in t3
-	sub	t3,	t3,	t2
+	subu	t3,	t3,	t2
 //	# t1 = abs(a) >> 14
 	srl	t1,	t1,	14
 //	# t0 = a ^ b

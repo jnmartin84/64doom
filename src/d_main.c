@@ -312,7 +312,7 @@ void D_Display(void)
 				redrawsbar = false;              // just put away the help screen
 			}
 
-//			ST_Drawer((viewheight == SCREENHEIGHT), redrawsbar );
+			ST_Drawer((viewheight == SCREENHEIGHT), redrawsbar );
 			fullscreen = (viewheight == SCREENHEIGHT);
 			break;
 		}
@@ -343,9 +343,7 @@ void D_Display(void)
 	if ((gamestate == GS_LEVEL) && !automapactive && gametic)
 	{
 		R_RenderPlayerView(&players[displayplayer]);
-			ST_Drawer((viewheight == SCREENHEIGHT), redrawsbar );
-
-		}
+	}
 
 	if ((gamestate == GS_LEVEL) && gametic)
 	{

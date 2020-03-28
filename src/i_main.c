@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 #if 1
     for (j=0;j</*240*/480;j++)
     {
-        ytab[j]   = ((j+20   )*640);
+        ytab[j]   = ((j+40   )*640);
 //        y10tab[j] = ((j+10)*SCREENW);
 //	y20tab[j] = ((j+20)*SCREENW);
     }
