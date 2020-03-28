@@ -9,10 +9,8 @@
 #include "libdragon.h"
 extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
 extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
-
-#define memcpy __n64_memcpy_ASM
-#define memset __n64_memset_ASM
-
+extern void __n64_memset_ZERO_ASM(const void *d, const char x, const size_t l);
+	
 /**
  * @defgroup display Display Subsystem
  * @ingroup libdragon
@@ -319,7 +317,7 @@ void display_init( resolution_t res, bitdepth_t bit, uint32_t num_buffers, gamma
     }
 
     /* Copy over to temporary for extra initializations */
-    memcpy( registers, reg_values[tv_type], sizeof( uint32_t ) * REGISTER_COUNT );
+    __n64_memcpy_ASM( registers, reg_values[tv_type], sizeof( uint32_t ) * REGISTER_COUNT );
 
     /* Figure out control register based on input given */
     switch( bit )
@@ -416,7 +414,7 @@ void display_init( resolution_t res, bitdepth_t bit, uint32_t num_buffers, gamma
         __safe_buffer[i] = ALIGN_64BYTE( UNCACHED_ADDR( buffer[i] ) );
 
         /* Baseline is blank */
-        memset( __safe_buffer[i], 0, __width * __height * __bitdepth );
+        __n64_memset_ZERO_ASM( __safe_buffer[i], 0, __width * __height * __bitdepth );
     }
 
     /* Set the first buffer as the displaying buffer */

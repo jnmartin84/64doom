@@ -11,9 +11,7 @@
 
 extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
 extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
-
-#define memcpy __n64_memcpy_ASM
-#define memset __n64_memset_ASM
+extern void __n64_memset_ZERO_ASM(const void *d, const char x, const size_t l);
 
 /**
  * @defgroup audio Audio Subsystem
@@ -258,7 +256,7 @@ void audio_init(const int frequency, int numbuffers)
 			while(1) {}
 			//exit(-1);
 		}
-        memset(buffers[i], 0, sizeof(short) * 2 * _buf_size);
+        __n64_memset_ZERO_ASM(buffers[i], 0, sizeof(short) * 2 * _buf_size);
     }
 #endif
     /* Set up ring buffer pointers */
@@ -312,7 +310,7 @@ void audio_close()
 
 /*static*/ void audio_paused_callback(short *buffer, size_t numsamples)
 {
-    memset(UncachedShortAddr(buffer), 0, numsamples * sizeof(short) * 2);
+    __n64_memset_ZERO_ASM(UncachedShortAddr(buffer), 0, numsamples * sizeof(short) * 2);
 }
 
 /**
@@ -375,7 +373,7 @@ void audio_write(const short * const buffer)
     /* Copy buffer into local buffers */
     buf_full |= (1<<next);
     now_writing = next;
-    memcpy(UncachedShortAddr(buffers[now_writing]), buffer, _buf_size * 2 * sizeof(short));
+    __n64_memcpy_ASM(UncachedShortAddr(buffers[now_writing]), buffer, _buf_size * 2 * sizeof(short));
     audio_callback();
     enable_interrupts();
 }
@@ -412,7 +410,7 @@ void audio_write_silence()
     /* Copy silence into local buffers */
     buf_full |= (1<<next);
     now_writing = next;
-    memset(UncachedShortAddr(buffers[now_writing]), 0, _buf_size * 2 * sizeof(short));
+    __n64_memset_ZERO_ASM(UncachedShortAddr(buffers[now_writing]), 0, _buf_size * 2 * sizeof(short));
     audio_callback();
     enable_interrupts();
 }

@@ -14,11 +14,7 @@
 #include "libdragon.h"
 
 extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
-extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
-
-#define memcpy __n64_memcpy_ASM
-#define memset __n64_memset_ASM
-
+extern void __n64_memset_ZERO_ASM(const void *d, const char x, const size_t l);
 
 
 /**
@@ -238,7 +234,7 @@ void console_clear()
     render_now = render;
 
     /* Remove all data */
-    memset(render_buffer, 0, CONSOLE_SIZE);
+    __n64_memset_ZERO_ASM(render_buffer, 0, CONSOLE_SIZE);
     
     /* Should we display? */
     if(render_now == RENDER_AUTOMATIC)

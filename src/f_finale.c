@@ -46,12 +46,6 @@
 
 extern uint32_t ytab[];
 
-#define n64_cfb_set_pixel( _dc, x, y, color ) \
-	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1)) = (color)
-
-#define n64_cfb_get_pixel( buffer, x, y ) \
- 	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1))
-
 extern uint32_t palarray[256];
 extern void *__safe_buffer[];
 extern display_context_t _dc;
@@ -261,7 +255,6 @@ void F_Ticker (void)
 
 
 
-
 //
 // F_TextWrite
 //
@@ -281,6 +274,7 @@ void F_TextWrite (void)
     int		cx;
     int		cy;
     int i;
+	uint32_t *dest32;
 	
     // erase the entire screen to a tiled background
     src = W_CacheLumpName ( finaleflat , PU_CACHE);
@@ -292,10 +286,12 @@ void F_TextWrite (void)
 	for(i=0;i<64;i++)
 	{
 		uint32_t spot = palarray[*(src+((y&63)<<6)+i)];
-#define dx (((x<<6)+i)<<1)
-#define dy (y<<1)		
-			*(uint32_t *)(__safe_buffer[_dc - 1] + (( (dx)+(ytab[dy]) )<<1)) = spot;
-			*(uint32_t *)(__safe_buffer[_dc - 1] + (( (dx)+(ytab[(dy)+1]) )<<1)) = spot;
+		#define dx (((x<<6)+i)<<1)
+		#define dy (y<<1)		
+		dest32 = (uint32_t *)(__safe_buffer[_dc-1] + (( (dx)+(ytab[dy]) )<<1));
+		*dest32 = spot;
+		dest32+=(SCREENWIDTH>>1);
+		*dest32 = spot;
 	}
 	}
     }
@@ -623,6 +619,7 @@ F_DrawPatchCol
   patch_t*	patch,
   int		col )
 {
+	uint32_t *dest32;
     column_t*	column;
     byte*	source;
     int		count;
@@ -638,12 +635,13 @@ F_DrawPatchCol
 	
 	while (count--)
 	{
-		#define cx (x*2)
-		#define cy (0 + column->topdelta + (not_count - count))
-		n64_cfb_set_pixel(_dc, cx, cy, palarray[*source++]);
-		n64_cfb_set_pixel(_dc, cx+1, cy, palarray[*source++]);
-		n64_cfb_set_pixel(_dc, cx, cy+1, palarray[*source++]);
-		n64_cfb_set_pixel(_dc, cx+1, cy+1, palarray[*source++]);
+		uint32_t spot = palarray[*source++];
+		#define cx (x<<1)
+		#define cy ((0 + column->topdelta + (not_count - count))<<1)
+		dest32 = (uint32_t *)(__safe_buffer[_dc-1] + (((cx)+(ytab[cy]) )<<1));
+		*dest32 = spot;
+		dest32+=(SCREENWIDTH>>1);
+		*dest32 = spot;
 	}
 	column = (column_t *)(  (byte *)column + column->length + 4 );
     }

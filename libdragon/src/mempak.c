@@ -8,10 +8,7 @@
 #include "regsinternal.h"
 
 extern void __n64_memcpy_ASM(const void *d, const void *s, const size_t l);
-extern void __n64_memset_ASM(const void *d, const char x, const size_t l);
-
-#define memcpy __n64_memcpy_ASM
-#define memset __n64_memset_ASM
+extern void __n64_memset_ZERO_ASM(const void *d, const char x, const size_t l);
 
 
 
@@ -423,7 +420,7 @@ static int __read_note( uint8_t *tnote, entry_structure_t *note )
     note->entry_id = 255;
 
     /* Translate n64 to ascii */
-    memset( note->name, 0, sizeof( note->name ) );
+    __n64_memset_ZERO_ASM( note->name, 0, sizeof( note->name ) );
 
     for( int i = 0; i < 16; i++ )
     {
@@ -479,7 +476,7 @@ static int __write_note( entry_structure_t *note, uint8_t *out_note )
     if( !out_note || !note ) { return -1; }
 
     /* Start with baseline */
-    memset( out_note, 0, 32 );
+    __n64_memset_ZERO_ASM( out_note, 0, 32 );
 
     /* Easy stuff */
     out_note[0] = (note->vendor >> 16) & 0xFF;
@@ -499,7 +496,7 @@ static int __write_note( entry_structure_t *note, uint8_t *out_note )
     out_note[9] = 0x03;
 
     /* Translate ascii to n64 */
-    memcpy( tname, note->name, sizeof( note->name ) );
+    __n64_memcpy_ASM( tname, note->name, sizeof( note->name ) );
     for( int i = 18; i >= 0; i-- )
     {
         if( tname[i] == '.' )
@@ -904,7 +901,7 @@ int format_mempak( int controller )
     }
 
     /* Write out entry sectors, which can safely be zero */
-    memset( sector, 0x0, MEMPAK_BLOCK_SIZE );
+    __n64_memset_ZERO_ASM( sector, 0x0, MEMPAK_BLOCK_SIZE );
     if( write_mempak_sector( controller, 3, sector ) ||
         write_mempak_sector( controller, 4, sector ) )
     {
@@ -1204,7 +1201,7 @@ int delete_mempak_entry( int controller, entry_structure_t *entry )
     }
 
     /* The entry matches, so blank it */
-    memset( data, 0, 32 );
+    __n64_memset_ZERO_ASM( data, 0, 32 );
     if( write_mempak_address( controller, (3 * MEMPAK_BLOCK_SIZE) + (entry->entry_id * 32), data ) )
     {
         /* Couldn't update note database */

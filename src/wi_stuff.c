@@ -49,9 +49,7 @@
 
 #include "wi_stuff.h"
 
-
 extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
-
 
 //
 // Data needed to add patches to full screen intermission pics.
@@ -405,14 +403,6 @@ static patch_t**	lnames;
 // slam background
 extern uint32_t ytab[];
 
-#define n64_cfb_set_pixel( _dc, x, y, color ) \
-	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1)) = (color)
-
-
-#define n64_cfb_get_pixel( buffer, x, y ) \
- 	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1))
-
-
 extern uint32_t palarray[256];
 extern void *__safe_buffer[];
 extern display_context_t _dc;
@@ -420,13 +410,16 @@ extern display_context_t _dc;
 void WI_slamBackground(void)
 {
 	int x,y;
+	uint32_t *dest32;
 	for(y=0;y<200;y++)
 	{
 		for(x=0;x<320;x++)
 		{
 			uint32_t spot = palarray[screens[1][x+(y*SCREENWIDTH)]];
-			*(uint32_t *)(__safe_buffer[_dc - 1] + (( (x<<1)+(ytab[y<<1]) )<<1)) = spot;
-			*(uint32_t *)(__safe_buffer[_dc - 1] + (( (x<<1)+(ytab[(y<<1)+1]) )<<1)) = spot;
+			dest32 = (uint32_t *)(__safe_buffer[_dc-1] + (( (x<<1)+(ytab[y<<1]) )<<1));
+			*dest32 = spot;
+			dest32+=(SCREENWIDTH>>1);
+			*dest32 = spot;
 		}
 	}
 }

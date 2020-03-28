@@ -447,8 +447,8 @@ void D_Display(void)
 //  D_DoomLoop
 //
 extern  boolean         demorecording;
-
-
+//extern int16_t minL,minR,maxL,maxR;
+//char minmaxBuf[] = "0x0000 0x0000 0x0000 0x0000";
 void D_DoomLoop(void)
 {
 	I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
@@ -482,6 +482,9 @@ void D_DoomLoop(void)
 		buf16 = (uint16_t *)__safe_buffer[(_dc)-1];
 		//buf16 = (uint16_t *)((uint32_t)buf16 & 0x8FFFFFFF);
         D_Display();
+	//			sprintf(minmaxBuf, "0x%04X 0x%04X 0x%04X 0x%04X", minL,minR, maxL,maxR);
+	//			graphics_buffer_draw_text(buf16, 0, 20, 640, 480, minmaxBuf);
+
 		unlockVideo(_dc);
     }
 }

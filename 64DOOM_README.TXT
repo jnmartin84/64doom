@@ -4,6 +4,23 @@
 
 At long last, the full source + ROM building toolkit release of 64Doom, the best DOOM source port for the Nintendo 64, ever.
 
+This latest release adds 640x480 high resolution mode.
+
+High detail renders the game screen at 640x400 without status bar, scaling down from there. Until you get to a +3 border, it is still higher res than normal 320x200 high detail Doom.
+It is not fast but is playable.
+
+Low detail renders the game screen at 320x400 without status bar, scaling down from there.
+It is smooth and nicely playable on all screen sizes.
+
+Audio mixing is entirely fixed point now, avoiding floating point instructions entirely (on the N64, they share the integer hardware and destroy performance).
+
+The bug where music stopped playing correctly after a level or two is fixed now, solid now.
+
+Save game logic is better now too, no more weirdness about not being able to save or load more than once per boot.
+
+Optimizations in rendering code, mostly to draw doubled pixels as full words where possible.
+
+That's it.
 
 -------------------------
 -SVN repository contents-
@@ -56,4 +73,4 @@ R + Z :: increase gamma correction
 
 Enjoy.
 
-- Jason (jnmartin84), 2020/03/24
+- Jason (jnmartin84), 2020/03/28

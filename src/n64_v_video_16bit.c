@@ -49,13 +49,10 @@ extern uint32_t ytab[];
 	
 extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
-
 // Each screen is [SCREENWIDTH*SCREENHEIGHT];
 byte*	screens[5];
 
 int	__attribute__((aligned(8)))			dirtybox[4];
-
-
 
 // Now where did these came from?
 byte  __attribute__((aligned(8))) gammatable[5][256] =
@@ -172,9 +169,8 @@ V_CopyRect
 { 
     byte*	src;
     byte*	dest; 
-
+	 
 //    V_MarkRect (destx, desty, width, height); 
-
 	if(destscrn == 0)
 	{
 		src = screens[srcscrn]+SCREENWIDTH*srcy+srcx; 
@@ -206,7 +202,6 @@ V_CopyRect
 	}
 } 
  
-
 //
 // V_DrawPatch
 // Masks a column based masked pic to the screen. 
@@ -226,15 +221,13 @@ V_DrawPatch
     byte*	dest;
     byte*	source; 
     int		w; 
-	 
+	uint32_t *dest32; 
     y -= SHORT(patch->topoffset); 
     x -= SHORT(patch->leftoffset); 
  
 //    if (!scrn)
 //	V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height)); 
-    
-    uint32_t y_o = y;
-
+		uint32_t y_o = y;
 
     col = 0; 
     desttop = screens[scrn]+y*SCREENWIDTH+x; 
@@ -257,9 +250,10 @@ V_DrawPatch
 				{
 					byte source_spot = *source++;
 					uint32_t mapped_spot = palarray[source_spot];
-					
-					*(uint32_t *)(__safe_buffer[_dc - 1] + (( (x<<1)+(ytab[y<<1]) )<<1)) = mapped_spot;
-					*(uint32_t *)(__safe_buffer[_dc - 1] + (( (x<<1)+(ytab[(y<<1)+1]) )<<1)) = mapped_spot;
+					dest32 = (uint32_t *)(__safe_buffer[_dc-1] + (( (x<<1)+(ytab[y<<1]) )<<1));
+					*dest32 = mapped_spot;
+					dest32+=(SCREENWIDTH>>1);
+					*dest32 = mapped_spot;
 					y++;
 				} 
 				
@@ -314,11 +308,12 @@ V_DrawPatchFlipped
     byte*	dest;
     byte*	source; 
     int		w; 
+	uint32_t *dest32; 
 	 
     y -= SHORT(patch->topoffset); 
     x -= SHORT(patch->leftoffset); 
  
-    uint32_t y_o = y;
+	uint32_t y_o = y;
  
 // if (!scrn)
 //	V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height)); 
@@ -345,8 +340,10 @@ V_DrawPatchFlipped
 				while (count--)
 				{
 					uint32_t mapped_spot = palarray[*source++];
-					*(uint32_t *)(__safe_buffer[_dc - 1] + (( (x<<1)+(ytab[y<<1]) )<<1)) = mapped_spot;
-					*(uint32_t *)(__safe_buffer[_dc - 1] + (( (x<<1)+(ytab[(y<<1)+1]) )<<1)) = mapped_spot;
+					dest32 = (uint32_t *)(__safe_buffer[_dc-1] + (( (x<<1)+(ytab[y<<1]) )<<1));
+					*dest32 = mapped_spot;
+					dest32+=(SCREENWIDTH>>1);
+					*dest32 = mapped_spot;
 					y++;
 				} 
 
@@ -413,13 +410,12 @@ V_DrawBlock
   byte*		src ) 
 { 
     byte*	dest; 
-	 
+	uint32_t *dest32;	 
+
 //    V_MarkRect (x, y, width, height); 
  
 	if (scrn == 0)
 	{
-//		uint16_t *oldpal = palarray;
-		
 		uint32_t h_o = height;
 		uint32_t i;
 		
@@ -428,8 +424,10 @@ V_DrawBlock
 			for (i = 0; i < width; i++)
 			{	
 				uint32_t spot = palarray[src[i + ((h_o - height)*width)]];
-				*(uint32_t *)(__safe_buffer[_dc - 1] + (( (x<<1)+(ytab[y<<1]) )<<1)) = spot;
-				*(uint32_t *)(__safe_buffer[_dc - 1] + (( (x<<1)+(ytab[(y<<1)+1]) )<<1)) = spot;
+					dest32 = (uint32_t *)(__safe_buffer[_dc-1] + (( ((x+i)<<1)+(ytab[((y+(h_o - height))<<1)]) )<<1));
+					*dest32 = spot;
+					dest32+=(SCREENWIDTH>>1);
+					*dest32 = spot;
 				}
 		}
 		
@@ -471,7 +469,7 @@ V_GetBlock
 	__n64_memcpy_ASM (dest, src, width); 
 	src += SCREENWIDTH; 
 	dest += width; 
-    }
+    } 
 } 
 
 
@@ -487,10 +485,10 @@ void V_Init (void)
 
     // stick these in low dos memory on PCs
 
-    base = I_AllocLow(SCREENWIDTH*SCREENHEIGHT);
+    base = I_AllocLow(SCREENWIDTH*SCREENHEIGHT);//*2);
 
     for (i=0 ; i<3 ; i++)
     {
-	screens[i] = base; // dont wipe or do savegame stuff in screens anymore, only need one to keep game working
+	screens[i] = base; // trust me on this
     }
 }

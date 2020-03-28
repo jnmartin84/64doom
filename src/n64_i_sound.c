@@ -146,8 +146,8 @@ static int __attribute__((aligned(8))) lengths[NUMSFX];
 static ULONG NUM_SAMPLES = 316;       // 1260 = 35Hz, 630 = 70Hz, 315 = 140Hz
 static ULONG BEATS_PER_PASS = 4;       // 4 = 35Hz, 2 = 70Hz, 1 = 140Hz
 
-static short __attribute__((aligned(8))) pcmout1[316 * 2]; // 1260 stereo samples
-static short __attribute__((aligned(8))) pcmout2[316 * 2];
+short __attribute__((aligned(8))) pcmout1[316 * 2]; // 1260 stereo samples
+short __attribute__((aligned(8))) pcmout2[316 * 2];
 static int pcmflip = 0;
 static short *pcmout[2];// = &pcmout1[0];
 
@@ -244,7 +244,7 @@ static unsigned int __attribute__((aligned(8))) pitch_table[256] = {
 
 static int __attribute__((aligned(8))) pan_table[256];
 
-static int32_t master_vol =  0x10000; // 0000.8000
+static int32_t master_vol =  0x19000; // 0000.0000
 
 static int musicdies  = -1;
 static int music_okay =  0;
@@ -259,8 +259,8 @@ static UBYTE *score_ptr;
 
 static int mus_delay    = 0;
 static int mus_looping  = 0;
-static int32_t mus_volume = 1; // scaling factor used for mixing music channels 
-static int mus_playing  = 0;
+static int32_t mus_volume = 127;
+int mus_playing  = 0;
 
 extern struct AI_regs_s *AI_regs;
 
@@ -312,6 +312,14 @@ void reset_midiVoices(void)
         midiVoice[i].length = 2000 << 16;
         midiVoice[i].base = 60;
     }
+/*
+	for(i=SFX_VOICES;i<NUM_VOICES;i++) {
+		if(audVoice[i].wave > 0) {
+			n64_free(audVoice[i].wave);
+		}
+	}
+*/	
+	
 }
 
 
@@ -386,6 +394,34 @@ static void *getsfx (char *sfxname, int *len)
 #define WSWAP(x) x
 #define LSWAP(x) x
 
+#if 0
+void n64_fillBuffer()
+{
+	int fillbuf;
+    fillbuf = pcmflip ? 1 : 0;
+    fill_buffer(pcmout[fillbuf]);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//Audio output
+/////////////////////////////////////////////////////////////////////////////////////////
+
+int audioOutput()
+{
+    int playbuf;
+
+    playbuf = pcmflip ? 0 : 1;
+    pcmflip ^= 1;
+
+    if (audio_can_write())
+    {
+        audio_write(pcmout[playbuf]);
+    }
+
+    return 0;
+}
+#endif 
+
 /**********************************************************************/
 // Init at program start...
 void I_InitSound (void)
@@ -393,9 +429,9 @@ void I_InitSound (void)
     int i;
 
     audio_init(SAMPLERATE, 0);
-    pcmout[0] = pcmout1;
-    pcmout[1] = pcmout2;
-    pcmbuf = pcmout[pcmflip];
+pcmout[0] = pcmout1;
+pcmout[1] = pcmout2;
+pcmbuf = pcmout[pcmflip];
     changepitch = M_CheckParm("-changepitch");
 
 	for (i=0;i<255;i++)
@@ -405,7 +441,7 @@ void I_InitSound (void)
 	
 	for (i=0;i<128;i++) {
 		if(i < 15)
-		vol_table[i] = ((i * 8) + 7) ;
+		vol_table[i] = ((i * 8) + 7);
 		else
 			vol_table[i] = (127);
 	}
@@ -431,6 +467,19 @@ void I_InitSound (void)
 
     printf ("I_InitSound: Pre-cached all sound data.\n");
 
+	// precomputed now
+#if 0
+    // fill in pitch wheel table
+    for (i=0; i<128; i++)
+    {
+        pitch_table[i] = 1.0f + (-3678.0f * (float)(128-i) / 64.0f) / 65536.0f;
+    }
+    for (i=0; i<128; i++)
+    {
+        pitch_table[i+128] =  1.0f + (3897.0f * (float)i / 64.0f)  / 65536.0f;
+    }
+#endif
+
     // Finished initialization.
     printf("I_InitSound: Sound module ready.\n");
 	
@@ -439,19 +488,45 @@ void I_InitSound (void)
 
 /**********************************************************************/
 // ... update sound buffer and audio device at runtime...
+#if 0
+void I_UpdateSound (void)
+{
+//    n64_fillBuffer();
+	int fillbuf;
+    fillbuf = pcmflip ? 1 : 0;
+    fill_buffer(pcmout[fillbuf]);
+}
+#endif 
+/*static*/ extern volatile int buf_full;
+/*static*/ extern int _num_buf;
+/*static*/ extern volatile int now_playing;
+/*static*/ extern volatile int now_writing;
 
+//extern int __full();
 #define AI_STATUS_FULL  ( 1 << 31 )
 /**********************************************************************/
 // ... update sound buffer and audio device at runtime...
 void I_SubmitSound (void)
 {
+#if 0
+    if (audio_can_write())
+    {
+        audio_write(pcmbuf);
+    }
+    pcmflip ^= 1;
+	pcmbuf = pcmout[pcmflip];
+#endif
+#if 1
 	if(!(AI_regs->status & AI_STATUS_FULL)) {
+		//disable_interrupts();
 		AI_regs->address = (uint32_t *)((uint32_t)pcmbuf | (uint32_t)0xA0000000);
 		AI_regs->length = 316*2*2;
 		AI_regs->control = 1;
+		//enable_interrupts();
 		pcmflip ^= 1;
-		pcmbuf = pcmout[pcmflip];
+		pcmbuf = pcmout[pcmflip];//pcmflip ? pcmout2 : pcmout1;
 	}
+#endif
 }
 
 /**********************************************************************/
@@ -643,31 +718,29 @@ void I_UnRegisterSong(int handle)
 
 void Sfx_Start(char *wave, int cnum, int step, int volume, int seperation, int length)
 {
-if(cnum > 7) return;
 if(!volume) return;
-int32_t vol = vol_table[volume]; // it wasn't loud enough
-int32_t sep1 = (seperation*seperation);
-int32_t sep2 = ((seperation-256)*(seperation-256));
+	int32_t vol = vol_table[volume]; // it wasn't loud enough
+	int32_t sep1 = /*pan_table[seperation];//*/(seperation*seperation);
+	int32_t sep2 = /*pan_table[255-seperation];//*/((seperation-256)*(seperation-256));
 
-audVoice[cnum].wave = wave + 8;
-audVoice[cnum].index = 0;
-audVoice[cnum].step = (ULONG)((step<<16) / SAMPLERATE);
-audVoice[cnum].loop = 0 << 16;
-audVoice[cnum].length = (length - 8) << 16;
-audVoice[cnum].ltvol = (vol - (vol*sep1));
-audVoice[cnum].rtvol = (vol - (vol*sep2));
-audVoice[cnum].flags = 0x81;
+  audVoice[cnum].wave = wave + 8;
+  audVoice[cnum].index = 0;
+  audVoice[cnum].step = (ULONG)((step<<16) / SAMPLERATE);
+  audVoice[cnum].loop = 0 << 16;
+  audVoice[cnum].length = (length - 8) << 16;
+  audVoice[cnum].ltvol = (vol - (vol*sep1));
+  audVoice[cnum].rtvol = (vol - (vol*sep2));
+  audVoice[cnum].flags = 0x81;
 }
 
 void Sfx_Update(int cnum, int step, int volume, int seperation)
 {
-if(cnum > 7) return;
 if(!volume) return;
 int32_t vol = vol_table[volume]; // it wasn't loud enough
-int32_t sep1 = (seperation*seperation);
-int32_t sep2 = ((seperation-256)*(seperation-256));
+int32_t sep1 = /*pan_table[seperation];//*/(seperation*seperation);
+	int32_t sep2 = /*pan_table[255-seperation];//*/((seperation-256)*(seperation-256));
 
-audVoice[cnum].step = (ULONG)((step<<16) / SAMPLERATE);
+  audVoice[cnum].step = (ULONG)((step<<16) / SAMPLERATE);
 audVoice[cnum].ltvol = (vol - (vol*sep1));
 audVoice[cnum].rtvol = (vol - (vol*sep2));
 }
@@ -905,32 +978,61 @@ void Mus_Resume(int handle)
 
 
 /**********************************************************************/
-static uint32_t first_voice_to_mix;
-static uint32_t last_voice_to_mix;
-static    ULONG _fb_index;
-static    ULONG _fb_step;
-static    uint32_t _fb_ltvol;
-static  uint32_t _fb_rtvol;
-static int _fb_sample;
-static  int _fb_ix;
-static   int _fb_iy;
-static   ULONG _fb_loop;
-static   ULONG _fb_length;
-static	uint32_t _fb_pval, _fb_pval2;
-static    BYTE *_fb_wvbuff;
+    //short *_fb_smpbuff = pcmbuf;
 extern int snd_SfxVolume;
-int first = 1;
+//void fill_buffer(short *buffer)
+//int first = 1;
 
+typedef struct mixer_state {
+	/*static*/ uint32_t first_voice_to_mix;
+/*static*/ uint32_t last_voice_to_mix;
+/*static*/    ULONG _fb_index;
+/*static*/    ULONG _fb_step;
+/*static*/    uint32_t _fb_ltvol;
+/*static*/  uint32_t _fb_rtvol;
+/*static*/ int _fb_sample;
+/*static*/  int _fb_ix;
+/*static*/   int _fb_iy;
+/*static*/   ULONG _fb_loop;
+/*static*/   ULONG _fb_length;
+/*static*/	uint32_t _fb_pval, _fb_pval2;
+/*static*/    BYTE *_fb_wvbuff;
+} mixer_state_t;
+
+mixer_state_t doom_mixer;
+
+//int16_t minL=32767,maxL=-32768,minR=32767,maxR=-32768;
 void I_UpdateSound (void)
 {   
+size_t first;
+
+///*static*/ uint32_t first_voice_to_mix;
+///*static*/ uint32_t last_voice_to_mix;
+///*static*/    ULONG _fb_index;
+///*static*/    ULONG _fb_step;
+///*static*/    uint32_t _fb_ltvol;
+///*static*/  uint32_t _fb_rtvol;
+///*static*/ int _fb_sample;
+///*static*/  int _fb_ix;
+///*static*/   int _fb_iy;
+///*static*/   ULONG _fb_loop;
+///*static*/   ULONG _fb_length;
+///*static*/	uint32_t _fb_pval, _fb_pval2;
+///*static*/    BYTE *_fb_wvbuff;
+
     // clear buffer
     __n64_memset_ZERO_ASM((void *)pcmbuf, 0, (NUM_SAMPLES << 2));
 
-    if (mus_playing < 0)
+	for(first=0;first<158;first++) {
+		*((uint64_t *)&pcmbuf[first*4]) = 0;
+		//*(((uint64_t *)(pcmbuf + (first<<3))))=0;
+	}
+	
+	if (mus_playing < 0)
     {
-        // music now off
-        mus_playing = 0;
-	goto mix;
+            // music now off
+            mus_playing = 0;
+			goto mix;
     }
 
     if (mus_playing)
@@ -1013,10 +1115,10 @@ nextEvent:      // next event
                                 {
                                     mus_channel[channel].vol = volume;
                                     pan = mus_channel[channel].pan;
-									_fb_pval = (pan*pan);
-									_fb_pval2 = ((pan-256)*(pan-256));
-                                    mus_channel[channel].ltvol = (volume - (volume * _fb_pval));
-                                    mus_channel[channel].rtvol = (volume - (volume * _fb_pval2));
+									doom_mixer._fb_pval = (pan*pan);
+									doom_mixer._fb_pval2 = ((pan-256)*(pan-256));
+                                    mus_channel[channel].ltvol = (volume - (volume * doom_mixer._fb_pval));
+                                    mus_channel[channel].rtvol = (volume - (volume * doom_mixer._fb_pval2));
 
 								}
                                 audVoice[voice + SFX_VOICES].ltvol = mus_channel[channel].ltvol;
@@ -1037,6 +1139,7 @@ nextEvent:      // next event
                                 }
                                 else
                                 {
+//									mus_channel[channel].vol >>= 1;
                                     // percussion channel - note is percussion instrument
                                     inst = (ULONG)note + 100;
                                     // back link for pitch wheel
@@ -1086,21 +1189,21 @@ nextEvent:      // next event
                                     // set channel volume
                                     mus_channel[channel].vol = volume = value;
                                     pan = mus_channel[channel].pan;
-									_fb_pval = (pan*pan);
-									_fb_pval2 = ((pan-256)*(pan-256));
-                                    mus_channel[channel].ltvol = (volume - (volume * _fb_pval));
-                                    mus_channel[channel].rtvol = (volume - (volume * _fb_pval2));
+									doom_mixer._fb_pval = (pan*pan);
+									doom_mixer._fb_pval2 = ((pan-256)*(pan-256));
+                                    mus_channel[channel].ltvol = (volume - (volume * doom_mixer._fb_pval));
+                                    mus_channel[channel].rtvol = (volume - (volume * doom_mixer._fb_pval2));
                                     break;
                                 }
                                 case 4:
                                 {
                                     // set channel pan
                                     mus_channel[channel].pan = pan = value;
-									_fb_pval = (pan*pan);
-									_fb_pval2 = ((pan-256)*(pan-256));
+									doom_mixer._fb_pval = (pan*pan);
+									doom_mixer._fb_pval2 = ((pan-256)*(pan-256));
                                     volume = mus_channel[channel].vol;
-                                    mus_channel[channel].ltvol = (volume - (volume * _fb_pval));
-                                    mus_channel[channel].rtvol = (volume - (volume * _fb_pval2));
+                                    mus_channel[channel].ltvol = (volume - (volume * doom_mixer._fb_pval));
+                                    mus_channel[channel].rtvol = (volume - (volume * doom_mixer._fb_pval2));
                                     break;
                                 }
                             }
@@ -1159,63 +1262,63 @@ mix:
 	return;
 	}
 
-	first_voice_to_mix = snd_SfxVolume ? 0 : SFX_VOICES;
- 	last_voice_to_mix = NUM_VOICES >> (1 - mus_playing);
+	doom_mixer.first_voice_to_mix = snd_SfxVolume ? 0 : SFX_VOICES;
+ 	doom_mixer.last_voice_to_mix = NUM_VOICES >> (1 - mus_playing);
     // mix enabled voices
-    for (_fb_ix=first_voice_to_mix; _fb_ix<last_voice_to_mix; _fb_ix++)
+    for (doom_mixer._fb_ix=doom_mixer.first_voice_to_mix; doom_mixer._fb_ix<doom_mixer.last_voice_to_mix; doom_mixer._fb_ix++)
     {
-        if (audVoice[_fb_ix].flags & 0x01)
+        if (audVoice[doom_mixer._fb_ix].flags & 0x01)
         {
-            _fb_index  = audVoice[_fb_ix].index;
-            _fb_step   = audVoice[_fb_ix].step;
-            _fb_loop   = audVoice[_fb_ix].loop;
-            _fb_length = audVoice[_fb_ix].length;
-            _fb_ltvol  = audVoice[_fb_ix].ltvol;
-            _fb_rtvol  = audVoice[_fb_ix].rtvol;
-            _fb_wvbuff = audVoice[_fb_ix].wave;
+            doom_mixer._fb_index  = audVoice[doom_mixer._fb_ix].index;
+            doom_mixer._fb_step   = audVoice[doom_mixer._fb_ix].step;
+            doom_mixer._fb_loop   = audVoice[doom_mixer._fb_ix].loop;
+            doom_mixer._fb_length = audVoice[doom_mixer._fb_ix].length;
+            doom_mixer._fb_ltvol  = audVoice[doom_mixer._fb_ix].ltvol;
+            doom_mixer._fb_rtvol  = audVoice[doom_mixer._fb_ix].rtvol;
+            doom_mixer._fb_wvbuff = audVoice[doom_mixer._fb_ix].wave;
 
-            if (!(audVoice[_fb_ix].flags & 0x80))
+            if (!(audVoice[doom_mixer._fb_ix].flags & 0x80))
             {
                 // special handling for instrument
-                if (audVoice[_fb_ix].flags & 0x02)
+                if (audVoice[doom_mixer._fb_ix].flags & 0x02)
                 {
                     // releasing
-                    _fb_ltvol >>= 1;
-                    _fb_rtvol >>= 1; 
-                    audVoice[_fb_ix].ltvol = _fb_ltvol;
-                    audVoice[_fb_ix].rtvol = _fb_rtvol;
+                    doom_mixer._fb_ltvol >>= 1; // = ((_fb_ltvol << 3)-_fb_ltvol)>>3;//>> 1;//(_fb_ltvol * 7) >> 3;
+					doom_mixer._fb_rtvol >>= 1; // = ((_fb_rtvol << 3)-_fb_rtvol)>>3;//_fb_rtvol //>> 1;//(_fb_rtvol * 7) >> 3;
+					audVoice[doom_mixer._fb_ix].ltvol = doom_mixer._fb_ltvol;
+                    audVoice[doom_mixer._fb_ix].rtvol = doom_mixer._fb_rtvol;
 
-                    if (_fb_ltvol <= 0x800 && _fb_rtvol <= 0x800)
+                    if (doom_mixer._fb_ltvol <= 0x800 && doom_mixer._fb_rtvol <= 0x800)
                     {
                         // disable voice
-                        audVoice[_fb_ix].flags = 0;
+                        audVoice[doom_mixer._fb_ix].flags = 0;
                         // next voice
                         continue;
                     }
                 }
 
-                _fb_step = (((int64_t)_fb_step * (int64_t)(mus_channel[audVoice[_fb_ix].chan & 15].pitch))>>16);
+                doom_mixer._fb_step = (((int64_t)doom_mixer._fb_step * (int64_t)(mus_channel[audVoice[doom_mixer._fb_ix].chan & 15].pitch))>>16);
 				
-                _fb_ltvol = (((int64_t)_fb_ltvol * ((int64_t)(mus_volume)))>>20);
-                _fb_rtvol = (((int64_t)_fb_rtvol * ((int64_t)(mus_volume)))>>20);
+                doom_mixer._fb_ltvol = (((int64_t)doom_mixer._fb_ltvol * (int64_t)(mus_volume))>>16)>>3;
+                doom_mixer._fb_rtvol = (((int64_t)doom_mixer._fb_rtvol * (int64_t)(mus_volume))>>16)>>3;
             }
 
-            for (_fb_iy=0; _fb_iy < (NUM_SAMPLES << 1); _fb_iy+=2)
+            for (doom_mixer._fb_iy=0; doom_mixer._fb_iy < (NUM_SAMPLES << 1); doom_mixer._fb_iy+=2)
             {
-                if ((ULONG)(_fb_index) >= (ULONG)(_fb_length))
+                if ((ULONG)(doom_mixer._fb_index) >= (ULONG)(doom_mixer._fb_length))
                 {
-                    if (!(audVoice[_fb_ix].flags & 0x80))
+                    if (!(audVoice[doom_mixer._fb_ix].flags & 0x80))
                     {
                         // check if instrument has loop
-                        if (_fb_loop)
+                        if (doom_mixer._fb_loop)
                         {
-                            _fb_index -= _fb_length;
-                            _fb_index += _fb_loop;
+                            doom_mixer._fb_index -= doom_mixer._fb_length;
+                            doom_mixer._fb_index += doom_mixer._fb_loop;
                         }
                         else
                         {
-                            // disable voice
-                            audVoice[_fb_ix].flags = 0;
+                            // disable voice	
+                            audVoice[doom_mixer._fb_ix].flags = 0;
                             // exit sample loop
                             break;
                         }
@@ -1223,24 +1326,33 @@ mix:
                     else
                     {
                         // disable voice
-                        audVoice[_fb_ix].flags = 0;
+                        audVoice[doom_mixer._fb_ix].flags = 0;
                         // exit sample loop
                         break;
                     }
                 }
 
-                _fb_sample = ((((int64_t)_fb_wvbuff[_fb_index>>16]) * (int64_t)master_vol) >> 16);
-                uint16_t ssmp1 = (uint16_t)(((int64_t)_fb_sample * (int64_t)_fb_ltvol)>>16);
-                uint16_t ssmp2 = (uint16_t)(((int64_t)_fb_sample * (int64_t)_fb_rtvol)>>16);
-                uint32_t lsmp = (ssmp1 << 16) | (ssmp2);
-                *((uint32_t *)(&pcmbuf[_fb_iy])) += lsmp;
+	            doom_mixer._fb_sample = ((((int64_t)doom_mixer._fb_wvbuff[doom_mixer._fb_index>>16]) * (int64_t)master_vol) >> 16);
+				int16_t ssmp1 = (int16_t)(((int64_t)doom_mixer._fb_sample * (int64_t)doom_mixer._fb_ltvol)>>16);
+				int16_t ssmp2 = (int16_t)(((int64_t)doom_mixer._fb_sample * (int64_t)doom_mixer._fb_rtvol)>>16);
+				uint32_t lsmp = (ssmp1 << 16) | (ssmp2);
+				*((uint32_t *)(&pcmbuf[doom_mixer._fb_iy])) += lsmp;
 
-                _fb_index += _fb_step;
+	//			if(ssmp1 < minL) minL = ssmp1;
+	//			if(ssmp1 > maxL) maxL = ssmp1;
+	//			if(ssmp2 < minR) minR = ssmp2;
+	//			if(ssmp2 > maxR) maxR = ssmp2;
+				
+                //pcmbuf[_fb_iy    ] += ssmp;//(short)(((int64_t)_fb_sample * (int64_t)_fb_ltvol)>>16);
+				//pcmbuf[_fb_iy  + 1  ] += ssmp;//(short)(((int64_t)_fb_sample * (int64_t)_fb_ltvol)>>16);
+                //pcmbuf[_fb_iy + 1] += (short)(((int64_t)_fb_sample * (int64_t)_fb_rtvol)>>16);
+
+                doom_mixer._fb_index += doom_mixer._fb_step;
             }
 
-            audVoice[_fb_ix].index = _fb_index;
+            audVoice[doom_mixer._fb_ix].index = doom_mixer._fb_index;
         }
     }
 }
 
-/**********************************************************************/	
+/**********************************************************************/		

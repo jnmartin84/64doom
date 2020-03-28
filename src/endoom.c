@@ -13,15 +13,20 @@ extern void unlockVideo(display_context_t _dc);
 extern display_context_t lockVideo(int i);
 extern void *__n64_memset_ASM(void *p, int v, size_t n);
 extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
-
+extern int mus_playing;
+extern short pcmout1[];
+extern short pcmout2[];
 extern void *__safe_buffer[];
 extern display_context_t _dc;
 uint8_t ENDOOM_BYTES[50*80];
 void DoomIsOver(void)
 {
-	
+	mus_playing = -1;
     //display_init(RESOLUTION_640x480, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
 unlockVideo(_dc);
+	__n64_memset_ZERO_ASM(pcmout1,0,316*4);
+	__n64_memset_ZERO_ASM(pcmout2,0,316*4);
+	audio_close();
 	__n64_memset_ZERO_ASM(__safe_buffer[0],0,640*420*2);
 	__n64_memset_ZERO_ASM(__safe_buffer[1],0,640*420*2);
 

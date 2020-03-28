@@ -56,6 +56,7 @@ extern void *__safe_buffer[];
 extern display_context_t _dc;
 
 extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 
 // For use if I do walls with outsides/insides
@@ -623,8 +624,8 @@ void AM_Stop(void)
     automapactive = false;
     ST_Responder(&st_notify);
     stopped = true;
-	__n64_memset_ASM((&((uint16_t *)__safe_buffer[0])[0]), 0, finit_width*finit_height*2);
-    __n64_memset_ASM((&((uint16_t *)__safe_buffer[1])[0]), 0, finit_width*finit_height*2);
+	__n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[0])[0]), 0, finit_width*finit_height*2);
+    __n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[1])[0]), 0, finit_width*finit_height*2);
 }
 
 
@@ -912,7 +913,7 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    __n64_memset_ASM((&((uint16_t *)__safe_buffer[_dc - 1])[0]), 0, finit_width*finit_height*2);
+    __n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[_dc - 1])[0]), 0, finit_width*finit_height*2);
 }
 
 

@@ -63,6 +63,9 @@
 //
 
 
+//extern byte *big_pal;
+
+
 // Palette indices.
 // For damage/bonus red-/gold-shifts
 #define STARTREDPALS		1
@@ -500,12 +503,12 @@ extern uint32_t big_framecount;
 
 void ST_refreshBackground(void)
 {
-	if(big_framecount%9 == 5) { //|| big_framecount %9 == 4) {
+//	if(big_framecount%9 == 5) { //|| big_framecount %9 == 4) {
     if (st_statusbaron)
     {// ST_X,0,BG
 		V_DrawPatch(ST_X, ST_Y, FG, sbar);
     }
-	}
+//	}
 }
 
 
