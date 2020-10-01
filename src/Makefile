@@ -1,5 +1,5 @@
 ROOTDIR			=$(N64_INST)
-DOOMDIR			= /home/Jason/n64dev/git_doom
+DOOMDIR			= .
 
 MIDIPATH_LOW		= $(DOOMDIR)/ADoom_Instr
 MIDIPATH_HIGH		= $(DOOMDIR)/ADoom_Ins
