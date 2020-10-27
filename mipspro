@@ -47,4 +47,4 @@ FixedMul:
 	mflo	$2
 	jr	$31
 	dsra     $2, 16
-	.end FixedDiv
+	.end FixedMul
