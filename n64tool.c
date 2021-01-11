@@ -50,9 +50,7 @@ int main(int argc, char **argv)
 	// 8: title
 	// 9: infilename
 	// total of 10
-	
-	// then 0 to N of the following, argc must be (10 + (3*N))
-	
+		
 #if DEBUG
 	for(int i=0;i<argc;i++) {
 		printf("argv[%d] == %s\n", i, argv[i]);
@@ -103,6 +101,7 @@ int main(int argc, char **argv)
 	write(outfile_fd, buffer, binsize);
 	memset(buffer, 0, padsize);
 
+	// then 0 to N of the following
 	for(int i=10;i<argc;) {
 		char *filestr;
 
