@@ -143,6 +143,7 @@ void pressed_key(struct controller_data pressed_data, int player)
     event_t doom_input_event;
     struct SI_condat pressed = pressed_data.c[player];
 
+#if 0
     // CHEAT WARP TO NEXT LEVEL
     if (pressed.L && pressed.Z)
     {
@@ -153,6 +154,7 @@ void pressed_key(struct controller_data pressed_data, int player)
 
         count += 1;
     }
+#endif
 
     // TOGGLE GOD MODE
     if (pressed.L && pressed.R)

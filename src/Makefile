@@ -57,7 +57,7 @@ HEADERNAME = header
 LIBS = -ldragon -lc -lm -ldragonsys
 LINK_FLAGS = -G4 -L$(ROOTDIR)/lib -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64.ld
 PROG_NAME = doom
-OPTFLAG = -Os
+OPTFLAG = -O3
 
 
 # changed all to pedantic

@@ -2,6 +2,10 @@
 -64DOOM README-
 ---------------
 
+
+Updated 2021/10/25
+
+
 -------------------------
 -git repository contents-
 -------------------------
@@ -12,8 +16,6 @@
 
 "tools" directory contains the contents of the "MAKE YOUR OWN 64DOOM ROM" toolkit, used to turn that .bin file
   (and user-provided .WAD files) into a working .Z64 file for use with 64Drive/Everdrive64 or MESS (emulators, yuck)
-
-"n64memory" directory contains C source, header file and Makefile used to build libn64memory required to build 64Doom
 
 "libdragon" directory contains C source, header file and Makefile used to build customized libdragon required to build 64Doom
 
@@ -47,10 +49,5 @@ A :: shoot
 B :: use (open doors, flip switches)
 START :: ESCAPE key
 L + R :: enable/disable debug output and GOD MODE
-L + Z :: press 5 times in a row to skip to next level
-R + Z :: increase gamma correction
-
 
 Enjoy.
-
-- Jason (jnmartin84), 2021/10/21

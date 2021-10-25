@@ -1,4 +1,4 @@
-BUILD YOUR OWN 64DOOM --- Updated 2021/10/20
+BUILD YOUR OWN 64DOOM --- Updated 2021/10/25
 --------------------------------------------------
 
 
@@ -43,5 +43,3 @@ In the event that a Z64 file was generated before
 the failure occurred, it will be removed.
 
 Enjoy.
-
-- Jason (jnmartin84)

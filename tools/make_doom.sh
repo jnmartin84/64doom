@@ -7,25 +7,22 @@ export ROOTDIR=.
 export PWD=$ROOTDIR/pwd
 export CAT=$ROOTDIR/cat
 export RM=$ROOTDIR/rm
-export N64TOOL=$ROOTDIR/n64tool
+export CHMOD=$ROOTDIR/chmod
+export N64TOOL=$ROOTDIR/newtool
 export CHKSUM64=$ROOTDIR/chksum64
+export TESTFILE=$ROOTDIR/ls
 
-export MIDIPATH_LOW=$ROOTDIR/ADoom_Instr
-export MIDIPATH=$MIDIPATH_LOW
+export MIDIPATH=$ROOTDIR/ADoom_Ins
 export MIDIFILE=MIDI_Instruments
 export MIDI_ROM_OFFSET=1048576B
 
 export IDPATH=$ROOTDIR/identifiers
 export IDFILE=identifier_ULTIMATEDOOM
-export ID_ROM_OFFSET_LOW=5242880B
-export ID_ROM_OFFSET=$ID_ROM_OFFSET_LOW
+export ID_ROM_OFFSET=5242880B
 
 export WADPATH=$ROOTDIR/wadfiles
 export WADFILE=DOOMU.WAD
-export WAD_ROM_OFFSET_LOW=5242896B
-export WAD_ROM_OFFSET=$WAD_ROM_OFFSET_LOW
-
-# WAD_ROM_OFFSET = ID_ROM_OFFSET + 16B
+export WAD_ROM_OFFSET=5242896B
 
 # don't change the following three values
 export HEADERNAME=header
@@ -56,7 +53,7 @@ while read -r opt; do
            ;;
         2)
            echo "You chose Doom 1 - Registered.";
-           export CART_NAME="DOOM1";
+           export CART_NAME="DOOM";
            export IDFILE=identifier_DOOM
            break
            ;;
@@ -109,18 +106,27 @@ echo $($CAT $IDPATH/$IDFILE)
 echo "Using WADFILE $WADPATH/$WADFILE"
 echo ""
 
+if [ ! -f "$WADPATH/$WADFILE" ]; then
+    echo "$WADPATH/$WADFILE doesn't exist. Run again with a valid game selection."
+    exit 255
+fi
+
 # generate N64TOOL command line with corresponding arguments
-export COMMAND_N64TOOL="$N64TOOL -l 32M -t \"$CART_NAME\" -h $HEADERNAME -o $CART_NAME.Z64 $PROG_NAME.bin -s $MIDI_ROM_OFFSET $MIDIPATH/$MIDIFILE -s $ID_ROM_OFFSET $IDPATH/$IDFILE -s $WAD_ROM_OFFSET $WADPATH/$WADFILE"
+export COMMAND_N64TOOL="$N64TOOL -l 32M -h $HEADERNAME -o $CART_NAME.Z64 -t \"$CART_NAME\" $PROG_NAME.bin -v -s $MIDI_ROM_OFFSET $MIDIPATH/$MIDIFILE -s $ID_ROM_OFFSET $IDPATH/$IDFILE -s $WAD_ROM_OFFSET $WADPATH/$WADFILE"
+
+echo "Removing old Z64 file"
+$RM $CART_NAME.Z64
+
 echo "Executing: $COMMAND_N64TOOL"
-
-# execute N64TOOL
+# execute N64TOOL	
 $COMMAND_N64TOOL
-
 # result of running N64TOOL
 RESULT_N64TOOL=$?
 
 # N64TOOL succeeeded
 if [ $RESULT_N64TOOL -eq 0 ]; then
+  export COMMAND_CHMOD="$CHMOD ugo=rw $CART_NAME.Z64"
+  $COMMAND_CHMOD
   # generate CHKSUM64 command line
   export COMMAND_CHKSUM64="$CHKSUM64 $CART_NAME.Z64"
   echo "Executing: $COMMAND_CHKSUM64"
