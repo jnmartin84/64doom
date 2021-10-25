@@ -161,13 +161,13 @@ static long __attribute__((aligned(8))) accum[316*2];
 static short __attribute__((aligned(8))) pcmout1[316 * 2]; // 1260 stereo samples
 static short __attribute__((aligned(8))) pcmout2[316 * 2];
 static int __attribute__((aligned(8))) pcmflip = 0;
-static short __attribute__((aligned(8))) *pcmout[2];// = &pcmout1[0];
+static short __attribute__((aligned(8))) *pcmout[2];
 
-short __attribute__((aligned(8))) *pcmbuf;// = &pcmout1[0];
+short __attribute__((aligned(8))) *pcmbuf;
 
 static int changepitch;
 
-static int32_t master_vol =  0x0000C000;//0C000; // 0000.C000
+static int32_t master_vol =  0x0000C000;
 
 static int musicdies  = -1;
 static int music_okay =  0;
@@ -339,8 +339,8 @@ void I_InitSound (void)
 
     // Finished initialization.
     printf("I_InitSound: Sound module ready.\n");
-    
-    numChannels = SFX_VOICES;//NUM_VOICES;
+
+    numChannels = SFX_VOICES;
 }
 
 /**********************************************************************/
@@ -357,7 +357,7 @@ void I_SubmitSound (void)
         AI_regs->control = 1;
         pcmflip ^= 1;
         pcmbuf = pcmout[pcmflip];
-	}
+    }
 }
 
 /**********************************************************************/
@@ -397,12 +397,8 @@ int I_StartSound (
   int pitch,
   int priority )
 {
-	
     I_StopSound(cnum);
-    Sfx_Start (S_sfx[id].data, cnum, changepitch ? 
-	//freqs[pitch]
-	2765 + (((pitch<<2) + pitch)<<5) //	(160*pitch)
-	: 11025, vol, sep, lengths[id]);
+    Sfx_Start (S_sfx[id].data, cnum, changepitch ? 2765 + (((pitch<<2) + pitch)<<5) : 11025, vol, sep, lengths[id]);
     return cnum;
 }
 
@@ -432,10 +428,7 @@ I_UpdateSoundParams
   int        sep,
   int        pitch )
 {
-    Sfx_Update(handle, changepitch ? 
-//	freqs[pitch]
-	2765 + (((pitch<<2) + pitch)<<5) //	(160*pitch)
-	: 11025, vol, sep);
+    Sfx_Update(handle, changepitch ? 2765 + (((pitch<<2) + pitch)<<5) : 11025, vol, sep);
 }
 
 /**********************************************************************/
@@ -452,9 +445,9 @@ void I_InitMusic(void)
     int mphnd;
 
     reset_midiVoices();
-    
+
     music_okay = 0;
-    
+
     mphnd = rom_open(MIDI_FILE, MIDI_FILESIZE);
     rom_read(mphnd, midi_pointers, sizeof(ULONG)*182);
     rom_close(mphnd);
@@ -555,7 +548,7 @@ void I_UnRegisterSong(int handle)
 
 void Sfx_Start(char *wave, int cnum, int step, int volume, int seperation, int length)
 {
-    int32_t vol = (volume<<3)+7;//vol_table[volume];
+    int32_t vol = (volume<<3);
     int32_t sep = seperation;
 
     audVoice[cnum].wave = wave + 8;
@@ -571,7 +564,7 @@ void Sfx_Start(char *wave, int cnum, int step, int volume, int seperation, int l
 
 void Sfx_Update(int cnum, int step, int volume, int seperation)
 {
-    int32_t vol = (volume<<3)+7;//vol_table[volume];
+    int32_t vol = (volume<<3);
     int32_t sep = seperation;
 
     audVoice[cnum].step = (ULONG)((step<<16) / SAMPLERATE);
@@ -709,7 +702,7 @@ int Mus_Register(void *musdata)
                 {
                     rom_lseek(hnd,ptr + 4 + 4 + 4 + 2,SEEK_SET);
                     rom_read(hnd, sample, length);
-                                    
+
                     midiVoice[i].wave   = (BYTE*)sample;
                     midiVoice[i].index  = 0;
                     midiVoice[i].step   = 1 << 16;
@@ -719,7 +712,7 @@ int Mus_Register(void *musdata)
                     midiVoice[i].rtvol  = 0;
                     midiVoice[i].base   = WSWAP(mhdr->base);
                     midiVoice[i].flags  = 0x00;
-                    
+
                     n64_free(mhdr);
                     rom_close(hnd);
                 }
@@ -728,7 +721,7 @@ int Mus_Register(void *musdata)
                 {
                     I_Error("no sample malloc");
                 }
-#endif				
+#endif
             }
         }
     }
@@ -821,140 +814,29 @@ static int some_sample;
 
 typedef struct event_loop_state_s
 {
-            UBYTE event;
-            UBYTE note;
-            UBYTE time;
-            UBYTE ctrl;
-            
-			UBYTE value;
-			UBYTE a,b,c;
-            
-			ULONG pitch;
-            int next_time;
-            
-			
-			int channel;
-            int voice;
-            int inst;
-            int volume;
-            int pan;
-} event_loop_state_t;
+    UBYTE event;
+    UBYTE note;
+    UBYTE time;
+    UBYTE ctrl;
+    UBYTE value;
+    UBYTE a,b,c;
+    ULONG pitch;
+    int next_time;
+    int channel;
+    int voice;
+    int inst;
+    int volume;
+    int pan;
+}
+event_loop_state_t;
+
 static mixer_state_t doom_mixer;
-//static event_loop_state_t loop_state;
-
-
-/***
-lw      t0,%gp_rel(mus_playing)(gp)
-lui	a0, %hi(accum)
-addu a1, zero, zero
-jal	__n64_memset_ASM
-addiu a2, zero, (NUM_SAMPLES<<3)
-
-blt	t0,zero, music_off
-lui     t1,%hi(loop_state)
-
-// t0 is mus_playing
-// t1 is: pointer to loop state
-addiu t1, t1, %lo(loop_state)
-
-addi t2, zero, 1
-ble  t0, t2, not_restart
-sw t2, %gp_rel(mus_playing)(gp)
-lw      t3,%gp_rel(score_data)(gp)
-lhu     t4,%gp_rel(score_start)(gp)
-// t4 is now score pointer
-addu t4, t3, t4
-
-not_restart:
-  
-
-
-mix:
-
-lui     t1,%hi(doom_mixer)
-addiu	t1,t1,%lo(doom_mixer)
-
-b mixout
-nop
-
-mixout:
-lui     t0,%hi(accum)
-addiu	t0,t0,%lo(accum)
-lw      t1,%gp_rel(pcmbuf)(gp)
-sra		t2, a2, 1
-
-mixout_loop:
-	addu t3, t0, t2
-
-	// accumulate samples
-	lhu  t4, 0(t3)
-	lhu  t5, 2(t3)
-	lhu  t6, 4(t3)
-	lhu  t7, 6(t3)
-
-	// y<<16 | (y+1)
-	sll	t4, t4, 16
-	or t5, t5, t4
-	// y<<16 | (y+1)
-	sll t6, t6, 16
-	or t7, t7, t6
-	
-	// pcmbuf + index
-	addu t3, t1, t2
-
-	sw t5, 0(t3)
-	sw t7, 4(t3)
-	blt t2, a2, mixout_loop
-	// increment index by 2 samples
-	addiu	t2, t2, 8
-
-	jr ra
-	nop
-
-music_off:
-lw t0,%gp_rel(snd_SfxVolume)($28)
-bgt	t0, zero, mixout
-sw zero,%gp_rel(mus_playing)(gp)
-b mix
-nop
-
-    uint32_t lsmp = ((accum[doom_mixer._fb_iy])<<16) | ((accum[doom_mixer._fb_iy+1])&0x0000FFFF);
-        *((uint32_t *)(&pcmbuf[doom_mixer._fb_iy])) = lsmp;
-
-
-
-// t1 is &doom_mixer
-// 0(t0) is first voice to mix
-// 4(t0) is last voice to mix
-    8(t0) _fb_index;
-    12(t0) _fb_step;
-    16(t0) _fb_ltvol;
-    20(t0) _fb_rtvol;
-    24(t0) _fb_sample;
-    28(t0) _fb_ix;
-    32(t0) _fb_iy;
-    36(t0) _fb_loop;
-    40(t0) _fb_length;
-    44(t0) _fb_pval;
-	48(t0) _fb_pval2;
-    52(t0) BYTE *_fb_wvbuff;
-*/
-
-
-
 
 void I_UpdateSound (void)
 {
-	event_loop_state_t loop_state;
-    __n64_memset_ZERO_ASM((void *)accum, 0, (NUM_SAMPLES << 3));
-	// clear buffer
-	// find out if this is faster or slower than memset
-/*    for(int i=0;i<NUM_SAMPLES*2;i+=8) {
-        *(uint64_t *)(&accum[i]) = 0;
-        *(uint64_t *)(&accum[i+2]) = 0;
-        *(uint64_t *)(&accum[i+4]) = 0;
-        *(uint64_t *)(&accum[i+6]) = 0;
-    }*/
+    event_loop_state_t loop_state;
+
+    __n64_memset_ASM((void *)accum, 0, (NUM_SAMPLES << 3));
 
     if (mus_playing < 0)
     {
@@ -983,8 +865,6 @@ void I_UpdateSound (void)
         mus_delay -= BEATS_PER_PASS;
         if (mus_delay <= 0)
         {
-			__n64_memset_ZERO_ASM((void*)&loop_state, 0, sizeof(event_loop_state_t));
-
 nextEvent:
             do
             {
@@ -1220,28 +1100,21 @@ mix:
             doom_mixer._fb_ltvol = audVoice[doom_mixer._fb_ix].ltvol;
             doom_mixer._fb_rtvol = audVoice[doom_mixer._fb_ix].rtvol;
             doom_mixer._fb_wvbuff = audVoice[doom_mixer._fb_ix].wave;
-			
-			if (!(audVoice[doom_mixer._fb_ix].flags & 0x80))
+
+            if (!(audVoice[doom_mixer._fb_ix].flags & 0x80))
             {
                 // special handling for instrument
                 if (audVoice[doom_mixer._fb_ix].flags & 0x02)
                 {
-//					uint32_t ltv,rtv;
-//					ltv = doom_mixer._fb_ltvol;
-//					rtv = doom_mixer._fb_rtvol;
                     // releasing
-					// supposed to be * 7/8 but * 1/2 works and is cheaper
                     doom_mixer._fb_ltvol = ((doom_mixer._fb_ltvol << 3)-doom_mixer._fb_ltvol)>>3;
                     doom_mixer._fb_rtvol = ((doom_mixer._fb_rtvol << 3)-doom_mixer._fb_rtvol)>>3;
                     audVoice[doom_mixer._fb_ix].ltvol = doom_mixer._fb_ltvol;
                     audVoice[doom_mixer._fb_ix].rtvol = doom_mixer._fb_rtvol;
 
-					// 0.02*127 / 2 as 16.16 fixed point
-					// 0x19664D>>1
-					uint32_t cmpvol = 0x19664D>>1;//(uint32_t)((mus_volume<<13)+((mus_volume<<2) - mus_volume));//+(mus_volume<<14)); // 12,11
-                    //if (((uint32_t)doom_mixer._fb_ltvol <= (uint32_t)((0x000CB326*mus_volume) >> 7)) && ((uint32_t)doom_mixer._fb_rtvol <= (uint32_t)((0x000CB326*mus_volume)>>7))) 
+                    uint32_t cmpvol = 0x19664D>>1;
                     if (((uint32_t)doom_mixer._fb_ltvol <= cmpvol) && ((uint32_t)doom_mixer._fb_rtvol <= cmpvol))
-					{
+                    {
                         // disable voice
                         audVoice[doom_mixer._fb_ix].flags = 0;
                         // next voice
@@ -1250,18 +1123,16 @@ mix:
                 }
 
                 doom_mixer._fb_step = (((int64_t)doom_mixer._fb_step * (int64_t)(mus_channel[audVoice[doom_mixer._fb_ix].chan & 15].pitch))>>16);
-//				doom_mixer._fb_ltvol = (((int64_t)doom_mixer._fb_ltvol * (int64_t)(mus_volume<<7))>>16);
-//                doom_mixer._fb_rtvol = (((int64_t)doom_mixer._fb_rtvol * (int64_t)(mus_volume<<7))>>16);	
-				doom_mixer._fb_ltvol = (((int64_t)doom_mixer._fb_ltvol * (int64_t)(mus_volume))>>9);
-                doom_mixer._fb_rtvol = (((int64_t)doom_mixer._fb_rtvol * (int64_t)(mus_volume))>>9);	
-			}
+                doom_mixer._fb_ltvol = (((int64_t)doom_mixer._fb_ltvol * (int64_t)(mus_volume))>>9);
+                doom_mixer._fb_rtvol = (((int64_t)doom_mixer._fb_rtvol * (int64_t)(mus_volume))>>9);
+            }
 
             for (doom_mixer._fb_iy=0; doom_mixer._fb_iy < (NUM_SAMPLES << 1); doom_mixer._fb_iy+=2)
             {
-				if (doom_mixer._fb_index >= doom_mixer._fb_length)
+                if (doom_mixer._fb_index >= doom_mixer._fb_length)
                 {
                     if (audVoice[doom_mixer._fb_ix].flags & 0x80)
-					{
+                    {
                         // disable voice
                         audVoice[doom_mixer._fb_ix].flags = 0;
                         // exit sample loop
@@ -1277,29 +1148,23 @@ mix:
                         }
                         else
                         {
-                            // disable voice    
+                            // disable voice
                             audVoice[doom_mixer._fb_ix].flags = 0;
                             // exit sample loop
                             break;
                         }
                     }
                 }
-				
-				some_sample = 0;
-				if((uint32_t)doom_mixer._fb_wvbuff & 0x80000000)
-				{
-//if(doom_mixer._fb_index == 0 || doom_mixer._fb_index == doom_mixer._fb_length-1) {
-			some_sample = doom_mixer._fb_wvbuff[doom_mixer._fb_index>>16];
-//}
-//else {
-//			some_sample = (doom_mixer._fb_wvbuff[(doom_mixer._fb_index>>16)-1] + doom_mixer._fb_wvbuff[doom_mixer._fb_index>>16]
-//			+
-//			doom_mixer._fb_wvbuff[(doom_mixer._fb_index>>16)+1]) / 3;
-//			
-//}
-				}
+
+                some_sample = 0;
+                // Doom 2 has issues without this
+                if ((uint32_t)doom_mixer._fb_wvbuff & 0x80000000)
+                {
+                    some_sample = doom_mixer._fb_wvbuff[doom_mixer._fb_index>>16];
+                }
                 doom_mixer._fb_sample = musFixedMul(some_sample,master_vol);
-				int ssmp1 = musFixedMul(doom_mixer._fb_sample, doom_mixer._fb_ltvol);
+
+                int ssmp1 = musFixedMul(doom_mixer._fb_sample, doom_mixer._fb_ltvol);
                 int ssmp2 = musFixedMul(doom_mixer._fb_sample, doom_mixer._fb_rtvol);
                 accum[doom_mixer._fb_iy    ] += ssmp1<<1;
                 accum[doom_mixer._fb_iy + 1] += ssmp2<<1;
@@ -1307,7 +1172,6 @@ mix:
             }
             audVoice[doom_mixer._fb_ix].index = doom_mixer._fb_index;
         }
-//		break;
     }
 
 mixout:
