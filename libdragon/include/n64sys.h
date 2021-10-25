@@ -111,7 +111,13 @@ void inst_cache_index_invalidate(volatile void *, unsigned long);
  * will have passed in the count register
  */
 #define COUNTS_PER_SECOND (93750000/2)
+typedef enum {
+    TV_PAL = 0,
+    TV_NTSC = 1,
+    TV_MPAL = 2
+} tv_type_t;
 
+tv_type_t get_tv_type();
 /** @} */
 
 #endif

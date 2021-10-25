@@ -38,6 +38,9 @@ unsigned long	SwapLONG(unsigned long);
 #define LONG(x)         ((long)SwapLONG((unsigned long) (x)))
 
 
+//#define SHORT(x)  (((((uint16_t)x) >> 8)&0x00ff) | ((((uint16_t)x) << 8)&0xff00))
+
+
 #endif
 //-----------------------------------------------------------------------------
 //

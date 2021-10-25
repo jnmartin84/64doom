@@ -458,9 +458,9 @@ typedef struct
 //
 // Now what is a visplane, anyway?
 // 
-typedef struct
+typedef struct visplane
 {
-//  struct visplane *next;        // Next visplane in hash chain -- killough
+  struct visplane *next;        // Next visplane in hash chain -- killough
   
   fixed_t		height;
 

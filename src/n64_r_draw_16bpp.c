@@ -38,16 +38,27 @@
 // State.
 #include "doomstat.h"
 
-extern uint32_t ytab[];
+#if SCREENWIDTH == 320
+#define ytab(y) (((y)<<8)+((y)<<6))
+#elif SCREENWIDTH == 640
+#define ytab(y) (((y)<<9)+((y)<<7))
+#endif
 
 #define n64_cfb_set_pixel( _dc, x, y, color ) \
-	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1)) = (color)
+	*(uint16_t *)((uintptr_t)__safe_buffer[(_dc) - 1] + (( (x)+(ytab(y)) )<<1)) = (color)
 
 #define n64_cfb_get_pixel( buffer, x, y ) \
-	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1))
+	*(uint16_t *)((uintptr_t)__safe_buffer[(_dc) - 1] + (( (x)+(ytab(y)) )<<1))
+
+#if SCREENWIDTH == 640
+#define TOPOFS 40
+#elif SCREENWIDTH == 320
+#define TOPOFS 20
+#endif
+
 
 extern void I_SetPalette(byte* palette);
-	
+
 extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 // special case, always fills with zero
 extern void *__n64_memset_ZERO_ASM(void *ptr, int value, size_t num);
@@ -144,9 +155,7 @@ int	fuzzpos = 0;
 void R_DrawFuzzColumn_TrueColor (void)
 {
     int			count;
-//    fixed_t		frac;
-//    fixed_t		fracstep;
-	uint16_t	*dest;
+    uint16_t	*dest;
 
     // Adjust borders. Low...
     if (!dc_yl)
@@ -159,42 +168,38 @@ void R_DrawFuzzColumn_TrueColor (void)
     {
 	dc_yh = viewheight - 2;
     }
-	
+
     count = dc_yh - dc_yl;
 
     // Zero length.
     if (count < 0)
     {
-		return;
+        return;
     }
 
-	dest = (&((uint16_t *)__safe_buffer[(_dc)-1])[ylookup[dc_yl]+(40*SCREENWIDTH) + columnofs[dc_x]]);
-
-    // Looks familiar.
-//    fracstep = dc_iscale;
-//    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    dest = (&((uint16_t *)__safe_buffer[(_dc)-1])[ylookup[dc_yl] + columnofs[dc_x]]);
 
     // Looks like an attempt at dithering,
     //  using the colormap #6 (of 0-31, a bit
     //  brighter than average).
     do
     {
-		// Lookup framebuffer, and retrieve
-		//  a pixel that is either one column
-		//  left or right of the current one.
-		// Add index from colormap to index.
-		*dest = dest[fuzzoffset[fuzzpos]];
-		
-		// Clamp table lookup index.
-		if (++fuzzpos == FUZZTABLE)
-		{
-			fuzzpos = 0;
-		}
-		dest += SCREENWIDTH;
-//		frac += fracstep;
+        // Lookup framebuffer, and retrieve
+        //  a pixel that is either one column
+        //  left or right of the current one.
+        // Add index from colormap to index.
+        *dest = dest[fuzzoffset[fuzzpos]];
+
+        // Clamp table lookup index.
+        if (++fuzzpos == FUZZTABLE)
+        {
+            fuzzpos = 0;
+        }
+        dest += SCREENWIDTH;
     }
     while (count--);
 }
+
 
 //
 // Framebuffer postprocessing.
@@ -206,11 +211,9 @@ void R_DrawFuzzColumn_TrueColor (void)
 //
 void R_DrawFuzzColumnLow_TrueColor (void)
 {
-    int			count;
-//    fixed_t		frac;
-//    fixed_t		fracstep;
-	uint32_t	*dest32;
-	
+    int		count;
+    uint32_t	*dest32;
+
     // Adjust borders. Low...
     if (!dc_yl)
     {
@@ -222,40 +225,35 @@ void R_DrawFuzzColumnLow_TrueColor (void)
     {
 	dc_yh = viewheight - 2;
     }
-	
+
     count = dc_yh - dc_yl;
     // Zero length.
     if (count < 0)
     {
-		return;
+        return;
     }
 
     x = dc_x << 1;
-	dest32 = (uint32_t *)(__safe_buffer[_dc - 1] + (( (x)+(ylookup2[dc_yl]+(40*SCREENWIDTH)) )<<1));
-	
-    // Looks familiar.
-//    fracstep = dc_iscale;
-//    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    dest32 = (uint32_t *)((uintptr_t)__safe_buffer[_dc - 1] + (( (x)+(ylookup2[dc_yl]) )<<1));
 
     // Looks like an attempt at dithering,
     //  using the colormap #6 (of 0-31, a bit
     //  brighter than average).
     do
     {
-		// Lookup framebuffer, and retrieve
-		//  a pixel that is either one column
-		//  left or right of the current one.
-		// Add index from colormap to index.
-		*dest32 = dest32[fuzzoffset[fuzzpos] >> 1];
-		
-		// Clamp table lookup index.
-		if (++fuzzpos == FUZZTABLE)
-		{
-			fuzzpos = 0;
-		}
+        // Lookup framebuffer, and retrieve
+        //  a pixel that is either one column
+        //  left or right of the current one.
+        // Add index from colormap to index.
+        *dest32 = dest32[fuzzoffset[fuzzpos] >> 1];
 
-		dest32 += SCREENWIDTH>>1;
-//		frac += fracstep;
+        // Clamp table lookup index.
+        if (++fuzzpos == FUZZTABLE)
+        {
+            fuzzpos = 0;
+        }
+
+        dest32 += SCREENWIDTH>>1;
     }
     while (count--);
 }
@@ -278,15 +276,14 @@ void R_DrawTranslatedColumn_TrueColor (void)
     int			count;
     fixed_t		frac;
     fixed_t		fracstep;
-	uint16_t	*dest;
-	
+    uint16_t	*dest;
+
     count = dc_yh - dc_yl;
 
-    if (count < 0)
-    {
-		return;
-    }
-//	int not_count = count;
+//    if (count < 0)
+//    {
+//		return;
+//    }
 
 #ifdef RANGECHECK
     if ((unsigned)dc_x >= SCREENWIDTH
@@ -304,7 +301,7 @@ void R_DrawTranslatedColumn_TrueColor (void)
     // Framebuffer destination address.
     // Use ylookup LUT to avoid multiply with ScreenWidth.
     // Use columnofs LUT for subwindows?
-	dest = (&((uint16_t *)__safe_buffer[(_dc)-1])[ylookup[dc_yl]+(40*SCREENWIDTH) + columnofs[dc_x]]);
+    dest = (&((uint16_t *)__safe_buffer[(_dc)-1])[ylookup[dc_yl] + columnofs[dc_x]]);
 
     // Looks familiar.
     fracstep = dc_iscale;
@@ -318,7 +315,7 @@ void R_DrawTranslatedColumn_TrueColor (void)
 	//  used with PLAY sprites.
 	// Thus the "green" ramp of the player 0 sprite
 	//  is mapped to gray, red, black/indigo.
-	//*dest = palarray[dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]];
+	// *dest = palarray[dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]];
 	//n64_cfb_set_pixel(_dc, dc_x, dc_yl + (not_count - count), palarray[dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]]);
 	*dest = palarray[dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]];
 	dest += SCREENWIDTH;
@@ -341,19 +338,20 @@ void R_DrawTranslatedColumn_TrueColor (void)
 
 void R_DrawTranslatedColumnLow_TrueColor (void)
 {
-    int			count;
-    fixed_t		frac;
-    fixed_t		fracstep;
+    int         count;
+    fixed_t     frac;
+    fixed_t     fracstep;
     uint32_t    *dest32;
+
     count = dc_yh - dc_yl;
 
-    if (count < 0)
-    {
-	return;
-    }
+//    if (count < 0)
+//    {
+//	return;
+//    }
 
     x = dc_x << 1;
-    dest32 = (uint32_t *)(__safe_buffer[_dc - 1] + (( (x)+(ylookup2[dc_yl]+(40*SCREENWIDTH)) )<<1));
+    dest32 = (uint32_t *)((uintptr_t)__safe_buffer[_dc - 1] + (( (x)+(ylookup2[dc_yl]) )<<1));
     // Looks familiar.
     fracstep = dc_iscale;
     frac = dc_texturemid + (dc_yl-centery)*fracstep;
@@ -421,11 +419,10 @@ void R_InitTranslationTables (void)
 // In consequence, flats are not stored by column (like walls),
 //  and the inner loop has to step in texture space u and v.
 //
+int a;
 int			ds_y;
 int			ds_x1;
 int			ds_x2;
-
-lighttable_t*		ds_colormap;
 
 fixed_t			ds_xfrac;
 fixed_t			ds_yfrac;
@@ -433,6 +430,7 @@ fixed_t			ds_xstep;
 fixed_t			ds_ystep;
 
 // start of a 64*64 tile image
+lighttable_t*		ds_colormap;
 byte*			ds_source;
 
 // just for profiling
@@ -468,20 +466,26 @@ void R_InitBuffer ( int width, int height )
     }
     else
     {
-        viewwindowy = ((SCREENHEIGHT-(SBARHEIGHT*2)-height) >> 1);//(SCREENHEIGHT-SBARHEIGHT-height) >> 1;
+#if SCREENWIDTH == 640
+        viewwindowy = ((SCREENHEIGHT-(SBARHEIGHT<<1)-height) >> 1);
+#elif SCREENWIDTH == 320
+        viewwindowy = ((SCREENHEIGHT-(SBARHEIGHT)-height) >> 1);
+#endif
     }
 
-    // Preclaculate all row offsets.
-    offset = (((viewwindowy) * SCREENWIDTH) /** 2*/);
-
+#if SCREENWIDTH == 640
+    offset = ytab(viewwindowy+40);
+#elif SCREENWIDTH == 320
+    offset = ytab(viewwindowy+20);
+#endif
     for (i=0 ; i<height ; i++)
     {
         ylookup[i] = offset;
         ylookup2[i] = ylookup[i] + viewwindowx;
         offset += SCREENWIDTH;
     }
-	
-    p = W_CacheLumpName ("PLAYPAL",PU_CACHE);	
+
+    p = W_CacheLumpName ("PLAYPAL",PU_CACHE);
 }
 
 
@@ -593,19 +597,22 @@ void R_FillBackScreen (void)
 //
 void R_VideoErase ( unsigned ofs, int count )
 {
-	if((byte*)&palarray[0] != p) {
-		// TODO figure out a way to do this without the memcpy, switch pointers or something
-		__n64_memcpy_ASM(oldpal, palarray, 1024);
+    if((byte*)&palarray[0] != p) {
+#if 0
+        // TODO figure out a way to do this without the memcpy, switch pointers or something
+        __n64_memcpy_ASM(oldpal, palarray, 1024);
+        I_SetPalette(p);
+#endif
 
-		I_SetPalette(p);
-
-		for(int i=0;i<count;i+=2)
-		{
-			*(uint32_t *)(__safe_buffer[_dc - 1] + (((40*SCREENWIDTH)+ofs+i)<<1)) = palarray[screens[1][ofs+i]];
-		}
-
-		__n64_memcpy_ASM(palarray, oldpal, 1024);
-	}
+#if SCREENWIDTH == 320
+        __n64_memset_ZERO_ASM((void *)((uintptr_t)__safe_buffer[_dc - 1] + ((ytab(20)+ofs)<<1)), 0, count<<1);
+#elif SCREENWIDTH == 640
+        __n64_memset_ZERO_ASM((void *)((uintptr_t)__safe_buffer[_dc - 1] + ((ytab(40)+ofs)<<1)), 0, count<<1);
+#endif
+#if 0
+        __n64_memcpy_ASM(palarray, oldpal, 1024);
+#endif
+    }
 }
 
 
@@ -628,18 +635,23 @@ void R_DrawViewBorder (void)
 	return;
     }
 
-    top = (((SCREENHEIGHT-SBARHEIGHT*2)-viewheight)/2);
+#if SCREENWIDTH == 320
+    top = (((SCREENHEIGHT-SBARHEIGHT)-viewheight)/2);
+#elif SCREENWIDTH == 640
+    top = (((SCREENHEIGHT-SBARHEIGHT<<1)-viewheight)/2);
+#endif
+
     side = (SCREENWIDTH-scaledviewwidth)/2;
-	
+
     // copy top and one line of left side
-    R_VideoErase (0, top*SCREENWIDTH+side);
+    R_VideoErase (0, ytab(top)+side);
 
     // copy one line of right side and bottom
-    ofs = (viewheight+top)*SCREENWIDTH-side;
-    R_VideoErase (ofs, top*SCREENWIDTH+side);
+    ofs = ytab(viewheight+top)-side;
+    R_VideoErase (ofs, ytab(top)+side);
 
     // copy sides using wraparound
-    ofs = top*SCREENWIDTH + SCREENWIDTH-side;
+    ofs = ytab(top) + SCREENWIDTH-side;
     side <<= 1;
 
     for (i=1 ; i<viewheight ; i++)

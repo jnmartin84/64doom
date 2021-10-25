@@ -1,9 +1,9 @@
 ROOTDIR = $(N64_INST)
 
 ifndef LIBDRAGON_VERSION_MAJOR
-CFLAGS = -std=gnu99 -G4 -O3 -Wall -Werror -mtune=vr4300 -march=vr4300 -I$(CURDIR)/include -I$(ROOTDIR)/mips64-elf/include
+CFLAGS = -mno-branch-likely -mno-llsc -mno-check-zero-division -std=gnu99 -mabi=o64 -G4 -O3 -Wall -Werror -mtune=vr4300 -march=vr4300 -I$(CURDIR)/include -I$(ROOTDIR)/mips64-elf/include
 else
-CFLAGS = -std=gnu99 -G4 -O3 -Wall -Werror -DLIBDRAGON_VERSION_MAJOR=$(LIBDRAGON_VERSION_MAJOR) -DLIBDRAGON_VERSION_MINOR=$(LIBDRAGON_VERSION_MINOR) -DLIBDRAGON_VERSION_REVISION=$(LIBDRAGON_VERSION_REVISION) -mtune=vr4300 -march=vr4300 -I$(CURDIR)/include -I$(ROOTDIR)/mips64-elf/include
+CFLAGS = -mno-branch-likely -mno-llsc -mno-check-zero-division -std=gnu99 -mabi=o64 -G4 -O3 -Wall -Werror -DLIBDRAGON_VERSION_MAJOR=$(LIBDRAGON_VERSION_MAJOR) -DLIBDRAGON_VERSION_MINOR=$(LIBDRAGON_VERSION_MINOR) -DLIBDRAGON_VERSION_REVISION=$(LIBDRAGON_VERSION_REVISION) -mtune=vr4300 -march=vr4300 -I$(CURDIR)/include -I$(ROOTDIR)/mips64-elf/include
 endif
 
 ASFLAGS = -mtune=vr4300 -march=vr4300
@@ -66,7 +66,7 @@ install: libdragon.a libdragonsys.a
 	install -m 0644 include/mempak.h $(INSTALLDIR)/mips64-elf/include/mempak.h
 	install -m 0644 include/controller.h $(INSTALLDIR)/mips64-elf/include/controller.h
 	install -m 0644 include/graphics.h $(INSTALLDIR)/mips64-elf/include/graphics.h
-	install -m 0644 include/rdp.h $(INSTALLDIR)/mips64-elf/include/rdp.h
+	install -m 0644 include/new_rdp.h $(INSTALLDIR)/mips64-elf/include/new_rdp.h
 	install -m 0644 include/rsp.h $(INSTALLDIR)/mips64-elf/include/rsp.h
 	install -m 0644 include/timer.h $(INSTALLDIR)/mips64-elf/include/timer.h
 	install -m 0644 include/exception.h $(INSTALLDIR)/mips64-elf/include/exception.h

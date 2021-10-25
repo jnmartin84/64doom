@@ -754,7 +754,7 @@ void P_SpawnMapThing (mapthing_t* mthing)
     for (i=0 ; i< NUMMOBJTYPES ; i++)
 	if (mthing->type == mobjinfo[i].doomednum)
 	    break;
-	
+#ifdef RANGECHECK	
     if (i==NUMMOBJTYPES)
         {
           char er[256];
@@ -763,6 +763,7 @@ void P_SpawnMapThing (mapthing_t* mthing)
 		 mthing->x, mthing->y);
            I_Error(er);
 	}	
+#endif	
     // don't spawn keycards and players in deathmatch
     if (deathmatch && mobjinfo[i].flags & MF_NOTDMATCH)
 	return;

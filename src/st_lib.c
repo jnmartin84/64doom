@@ -41,9 +41,9 @@
 
 
 // in AM_map.c
-extern boolean		automapactive; 
+extern boolean		automapactive;
 
-
+extern char errstr[256];
 
 
 //
@@ -79,7 +79,7 @@ STlib_initNum
 }
 
 
-// 
+//
 // A fairly efficient way to draw a number
 //  based on differences from the old number.
 // Note: worth the trouble?
@@ -88,12 +88,16 @@ void STlib_drawNum(st_number_t* n, boolean refresh)
 {
     int numdigits = n->width;
     int num = *n->num;
-    
+
+    refresh = false;
+
     int w = SHORT(n->p[0]->width);
-//    int h = SHORT(n->p[0]->height);
+#if 0
+    int h = SHORT(n->p[0]->height);
+#endif
     int x = n->x;
     const int y = n->y;
-    
+
     int neg;
 
     n->oldnum = *n->num;
@@ -104,41 +108,42 @@ void STlib_drawNum(st_number_t* n, boolean refresh)
     {
         if (numdigits == 2 && num < -9)
         {
-            num = -9;	
+            num = -9;
         }
         else if (numdigits == 3 && num < -99)
-        {			
+        {
             num = -99;
-	    }
+        }
         num = -num;
     }
 
     // clear the area
     x = n->x - numdigits*w;
 
-
 #ifdef RANGECHECK
     unsigned int c = y - ST_Y;
 
     if (c > y)
     {
-	    char ermac[256];
-        sprintf(ermac,"STlib_drawNum: n->y - ST_Y < 0; %d - %d < 0", y, ST_Y);
-        I_Error(ermac);
+        sprintf(errstr,"STlib_drawNum: n->y - ST_Y < 0; %d - %d < 0", y, ST_Y);
+        I_Error(errstr);
     }
-#endif 
+#endif
 
-    //V_CopyRect(x, y - ST_Y, BG, w*numdigits, h, x, y, FG);
+    // changes from not using 8bpp framebuffers, no background to copy from
+#if 0
+    V_CopyRect(x, y - ST_Y, BG, w*numdigits, h, x, y, FG);
+#endif
 
     // if non-number, do not draw it
     if (num == 1994)
-	return;
+        return;
 
     x = n->x;
 
     // in the special case of 0, you draw 0
     if (!num)
-	V_DrawPatch(x - w, y, FG, n->p[ 0 ]);
+        V_DrawPatch(x - w, y, FG, n->p[ 0 ]);
 
     // draw the new number
     while (num && numdigits--)
@@ -190,10 +195,10 @@ STlib_updatePercent
   int			refresh )
 {
     if (refresh && *per->n.on)
-	{
-	    V_DrawPatch(per->n.x, per->n.y, FG, per->p);
+    {
+        V_DrawPatch(per->n.x, per->n.y, FG, per->p);
     }
-	
+
     STlib_updateNum(&per->n, refresh);
 }
 
@@ -222,32 +227,37 @@ STlib_updateMultIcon
 ( st_multicon_t*	mi,
   boolean		refresh )
 {
-#if 0
     int			w;
     int			h;
     int			x;
     int			y;
-#endif
 
+#if 0
+    refresh = false;
+#endif
     if (*mi->on && (mi->oldinum != *mi->inum || refresh) && (*mi->inum!=-1))
     {
-#if 0
         if (mi->oldinum != -1)
-		{
-			x = mi->x - SHORT(mi->p[mi->oldinum]->leftoffset);
-			y = mi->y - SHORT(mi->p[mi->oldinum]->topoffset);
-			w = SHORT(mi->p[mi->oldinum]->width);
-			h = SHORT(mi->p[mi->oldinum]->height); 	
+        {
+            x = mi->x - SHORT(mi->p[mi->oldinum]->leftoffset);
+            y = mi->y - SHORT(mi->p[mi->oldinum]->topoffset);
+            w = SHORT(mi->p[mi->oldinum]->width);
+            h = SHORT(mi->p[mi->oldinum]->height);
 #ifdef RANGECHECK
-			if (y - ST_Y < 0)
-			I_Error("STlib_updateMultIcon: y - ST_Y < 0");
+            if (y - ST_Y < 0)
+            {
+                sprintf(errstr,"STlib_updateMultIcon: y - ST_Y < 0");
+                I_Error(errstr);
+            }
 #endif
-			V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
-		}
+            // changes from not using 8bpp framebuffers, no background to copy from
+#if 0
+            V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
 #endif
+        }
 
-		V_DrawPatch(mi->x, mi->y, FG, mi->p[*mi->inum]);
-		mi->oldinum = *mi->inum;
+        V_DrawPatch(mi->x, mi->y, FG, mi->p[*mi->inum]);
+        mi->oldinum = *mi->inum;
     }
 }
 
@@ -271,37 +281,39 @@ void STlib_initBinIcon
 
 void STlib_updateBinIcon(st_binicon_t* bi, boolean refresh)
 {
-#if 0
     int			x;
     int			y;
     int			w;
     int			h;
+
+#if 0
+    refresh = false;
 #endif
     if (*bi->on && (bi->oldval != *bi->val || refresh))
     {
-#if 0
-		x = bi->x - SHORT(bi->p->leftoffset);
-		y = bi->y - SHORT(bi->p->topoffset);
-		w = SHORT(bi->p->width);
-		h = SHORT(bi->p->height);
+        x = bi->x - SHORT(bi->p->leftoffset);
+        y = bi->y - SHORT(bi->p->topoffset);
+        w = SHORT(bi->p->width);
+        h = SHORT(bi->p->height);
 #ifdef RANGECHECK
-		if (y - ST_Y < 0)
-		{
-			I_Error("STlib_updateBinIcon: y - ST_Y < 0");
-		}
+        if (y - ST_Y < 0)
+        {
+            sprintf(errstr,"STlib_updateBinIcon: y - ST_Y < 0");
+            I_Error(errstr);
+        }
 #endif
 
-		if (*bi->val)
-		{
-#endif
-			V_DrawPatch(bi->x, bi->y, FG, bi->p);
+        if (*bi->val)
+        {
+            V_DrawPatch(bi->x, bi->y, FG, bi->p);
+        }
+        // changes from not using 8bpp framebuffers, no background to copy from
 #if 0
-		}
-		else
-		{
-			V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
-		}
+        else
+        {
+            V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
+        }
 #endif
-		bi->oldval = *bi->val;
+        bi->oldval = *bi->val;
     }
 }

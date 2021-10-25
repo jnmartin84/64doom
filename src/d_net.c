@@ -1,27 +1,4 @@
-// Emacs style mode select   -*- C++ -*-
-//-----------------------------------------------------------------------------
-//
-// $Id:$
-//
-// Copyright (C) 1993-1996 by id Software, Inc.
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// $Log:$
-//
-// DESCRIPTION:
-//	DOOM Network game communication and protocol,
-//	all OS independend parts.
-//
-//-----------------------------------------------------------------------------
+#define DATALENGTH 512
 
 #include "m_menu.h"
 #include "i_system.h"
@@ -31,9 +8,21 @@
 #include "doomdef.h"
 #include "doomstat.h"
 
-
 extern void *__n64_memset_ASM(void *p, int v, size_t n);
 extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #define	NCMD_EXIT		0x80000000
@@ -42,10 +31,8 @@ extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 #define	NCMD_KILL		0x10000000	// kill game
 #define	NCMD_CHECKSUM	 	0x0fffffff
 
-
 doomcom_t*	doomcom;
 doomdata_t*	netbuffer;		// points inside doomcom
-
 
 //
 // NETWORKING
@@ -82,15 +69,14 @@ void G_BuildTiccmd(ticcmd_t *cmd);
 void D_DoAdvanceDemo(void);
 
 boolean		reboundpacket;
-doomdata_t	reboundstore;
-
+doomdata_t		__attribute__((aligned(16))) reboundstore;
 
 //
 //
 //
 int NetbufferSize(void)
 {
-    return (int)&(((doomdata_t *)0)->cmds[netbuffer->numtics]);
+    return DATALENGTH;//(int)&(((doomdata_t *)0)->cmds[netbuffer->numtics]);
 }
 
 //
@@ -98,11 +84,11 @@ int NetbufferSize(void)
 //
 unsigned NetbufferChecksum (void)
 {
-#if 0
     unsigned		c;
+    c = 0;//0x1234567;
+#if 0
     int		i,l;
 
-    c = 0x1234567;
     // FIXME -endianess?
 #ifdef NORMALUNIX
     return 0;			// byte order problems
@@ -115,7 +101,8 @@ unsigned NetbufferChecksum (void)
     return c & NCMD_CHECKSUM;*/
 #endif
 
-    return 0;
+//    return 0;
+return c & NCMD_CHECKSUM;
 }
 
 
@@ -140,12 +127,13 @@ int ExpandTics (int low)
     {
     return (maketic&~0xff) + 256 + low;
     }
-
+#ifdef RANGECHECK
     char ermac[256];
     sprintf(ermac, "ExpandTics: strange value %i at maketic %i", low, maketic);
     I_Error(ermac);
-
+#endif
     return 0;
+	
 }
 
 
@@ -159,6 +147,7 @@ void HSendPacket(int node, int flags)
 
     if (!node)
     {
+	//	printf("HSendPacket: rebound store\n");
         reboundstore = *netbuffer;
         reboundpacket = true;
         return;
@@ -168,16 +157,17 @@ void HSendPacket(int node, int flags)
     {
 	return;
     }
-
+#ifdef RANGECHECK
     if (!netgame)
     {
         I_Error("HSendPacket: Tried to transmit to another node");
     }
-
+#endif
     doomcom->command = CMD_SEND;
     doomcom->remotenode = node;
     doomcom->datalength = NetbufferSize ();
-
+//printf("HSendPacket: write %d\n", node);
+	#if 0
     if (debugfile)
     {
 //        int		i;
@@ -199,7 +189,7 @@ void HSendPacket(int node, int flags)
 
 	fprintf (debugfile,"\n");*/
     }
-
+#endif
     I_NetCmd();
 }
 
@@ -211,6 +201,7 @@ boolean HGetPacket(void)
 {
     if (reboundpacket)
     {
+		//printf("HGetPacket: rebound packet\n");
 	*netbuffer = reboundstore;
 	doomcom->remotenode = 0;
 	reboundpacket = false;
@@ -231,25 +222,25 @@ boolean HGetPacket(void)
 
     if (doomcom->datalength != NetbufferSize ())
     {
-	if (debugfile)
-;//	    fprintf (debugfile,"bad packet length %i\n",doomcom->datalength);
+	//if (debugfile)
+	  //  printf ("bad packet length %i\n",doomcom->datalength);
 	return false;
     }
 	
-    if (NetbufferChecksum () != (netbuffer->checksum&NCMD_CHECKSUM) )
+    if (NetbufferChecksum()&NCMD_CHECKSUM!= (/*netbuffer->checksum&*/NCMD_CHECKSUM) )
     {
-	if (debugfile)
-;//	    fprintf (debugfile,"bad packet checksum\n");
+//	if (debugfile)
+	//    printf ("bad packet checksum\n");
 	return false;
     }
-
-    if (debugfile)
+//printf("HGetPacket %d\n", doomcom->remotenode);
+    /*if (1)
     {
 	int		realretrans;
 //	int	i;
 			
 	if (netbuffer->checksum & NCMD_SETUP)
-;//	    fprintf (debugfile,"setup packet\n");
+	{}    //printf ("setup packet\n");
 	else
 	{
 	    if (netbuffer->checksum & NCMD_RETRANSMIT)
@@ -257,16 +248,18 @@ boolean HGetPacket(void)
 	    else
 		realretrans = -1;
 	    
-/*	    fprintf (debugfile,"get %i = (%i + %i, R %i)[%i] ",
+	   printf ("get %i = (%i + %i, R %i)[%i] ",
 		     doomcom->remotenode,
 		     ExpandTics(netbuffer->starttic),
 		     netbuffer->numtics, realretrans, doomcom->datalength);
-*/
-/*	    for (i=0 ; i<doomcom->datalength ; i++)
-		fprintf (debugfile,"%i ",((byte *)netbuffer)[i]);
-	    fprintf (debugfile,"\n");*/
+
+//	    for (i=0 ; i<doomcom->datalength ; i++)
+	//	fprintf (debugfile,"%i ",((byte *)netbuffer)[i]);
+	  //  fprintf (debugfile,"\n")
 	}
-    }
+    }*/
+
+
     return true;	
 }
 
@@ -275,7 +268,7 @@ boolean HGetPacket(void)
 // GetPackets
 //
 char    exitmsg[80];
-
+#define PACKETS_PER_CALL 10
 void GetPackets (void)
 {
     int		netconsole;
@@ -283,12 +276,13 @@ void GetPackets (void)
     ticcmd_t	*src, *dest;
     int		realend;
     int		realstart;
-				 
-    while ( HGetPacket() )
+	int i;
+    while ( HGetPacket() ) //&& i++ < PACKETS_PER_CALL)
     {
-	if (netbuffer->checksum & NCMD_SETUP)
-	    continue;		// extra setup packet
-			
+	if (netbuffer->checksum & NCMD_SETUP) {
+	    //printf("extra setup packet\n");
+		continue;		// extra setup packet
+	}
 	netconsole = netbuffer->player & ~PL_DRONE;
 	netnode = doomcom->remotenode;
 	
@@ -296,6 +290,10 @@ void GetPackets (void)
 	// Figure out what the rest of the bytes are
 	realstart = ExpandTics (netbuffer->starttic);		
 	realend = (realstart+netbuffer->numtics);
+
+if(realstart == realend) {
+	//return;
+}
 	
 	// check for exiting the game
 	if (netbuffer->checksum & NCMD_EXIT)
@@ -323,8 +321,8 @@ void GetPackets (void)
 	     && (netbuffer->checksum & NCMD_RETRANSMIT) )
 	{
 	    resendto[netnode] = ExpandTics(netbuffer->retransmitfrom);
-	    if (debugfile)
-;//		fprintf (debugfile,"retransmit from %i\n", resendto[netnode]);
+	    //if (debugfile)
+//		fprintf (debugfile,"retransmit from %i\n", resendto[netnode]);
 	    resendcount[netnode] = RESENDCOUNT;
 	}
 	else
@@ -332,12 +330,15 @@ void GetPackets (void)
 	
 	// check for out of order / duplicated packet		
 	if (realend == nettics[netnode])
-	    continue;
-			
+	{	
+//return;   
+    continue;
+	}
+	
 	if (realend < nettics[netnode])
 	{
-	    if (debugfile)
-;/*		fprintf (debugfile,
+	//    if (debugfile)
+/*		fprintf (debugfile,
 			 "out of order packet (%i + %i)\n" ,
 			 realstart,netbuffer->numtics);*/
 	    continue;
@@ -347,8 +348,8 @@ void GetPackets (void)
 	if (realstart > nettics[netnode])
 	{
 	    // stop processing until the other system resends the missed tics
-	    if (debugfile)
-;/*		fprintf (debugfile,
+//	    if (debugfile)
+/*		fprintf (debugfile,
 			 "missed tics from %i (%i - %i)\n",
 			 netnode, realstart, nettics[netnode]);*/
 	    remoteresend[netnode] = true;
@@ -356,8 +357,8 @@ void GetPackets (void)
 	}
 
 	// update command store from the packet
-        {
-	    int		start;
+    {
+		int		start;
 
 	    remoteresend[netnode] = false;
 		
@@ -372,6 +373,7 @@ void GetPackets (void)
 		src++;
 	    }
 	}
+	
     }
 }
 
@@ -484,8 +486,8 @@ void CheckAbort(void)
 
     I_StartTic ();
 
-//    for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) )
-    for ( ; eventtail != eventhead ; eventtail = (eventtail+1)&(MAXEVENTS-1) )
+    for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) )
+//    for ( ; eventtail != eventhead ; eventtail = (eventtail+1)&(MAXEVENTS-1) )
     {
         ev = &events[eventtail];
 
@@ -502,6 +504,85 @@ void CheckAbort(void)
 //
 void D_ArbitrateNetStart (void)
 {
+#if 0
+	char __attribute__((aligned(16))) packet[DATALENGTH];
+	int			oldsec;
+	int			localstage, remotestage;
+	char		str[20];
+	char		idstr[7];
+	char		remoteidstr[7];
+	int			i;		int idnum = 0;
+	idstr[0] = '0' + idnum/ 100000l;
+	idnum -= (idstr[0]-'0')*100000l;
+	idstr[1] = '0' + idnum/ 10000l;
+	idnum -= (idstr[1]-'0')*10000l;
+	idstr[2] = '0' + idnum/ 1000l;
+	idnum -= (idstr[2]-'0')*1000l;
+	idstr[3] = '0' + idnum/ 100l;
+	idnum -= (idstr[3]-'0')*100l;
+	idstr[4] = '0' + idnum/ 10l;
+	idnum -= (idstr[4]-'0')*10l;
+	idstr[5] = '0' + idnum;
+	idstr[6] = 0;
+	//
+// sit in a loop until things are worked out
+//
+// the packet is:  ID000000_0
+// the first field is the idnum, the second is the acknowledge stage
+// ack stage starts out 0, is bumped to 1 after the other computer's id
+// is known, and is bumped to 2 after the other computer has raised to 1
+//
+	oldsec = -1;
+	localstage = remotestage = 0;
+
+	do {
+		if (!bi_usb_can_rd()) {
+			//doomcom->remotenode = -1;
+			//return;
+			continue; // ?
+		}
+		
+		int c = bi_usb_rd(packet, DATALENGTH);
+		// successful read
+		if(0 == c)
+		{
+			if(packet[0] != 10)
+			{
+				continue;
+			}		
+			if (strncmp(&packet[0+4],"ID",2) )
+				continue;
+			strncpy (remoteidstr,&packet[2+4],6);
+			//printf("got %s\n", remoteidstr);
+			remotestage = packet[9+4] - '0';
+			localstage = remotestage+1;
+			oldsec = -1;			
+		}
+		
+		int time = I_GetTime();
+		if(time != oldsec)
+		{
+			oldsec = time;
+sprintf (str,"ID%s_%i",idstr,localstage);
+		//printf("sent %s\n", str);
+		packet[0] = strlen(str);
+		packet[1] = 0; packet[2] = 0; packet[3] = 0;
+		__n64_memcpy_ASM(&packet[4], str, strlen(str));
+		while(!bi_usb_can_wr()) {}
+		//WritePacket (str,strlen(str))
+			bi_usb_wr(packet,DATALENGTH);
+		}
+	} while (localstage < 2);
+	
+		deathmatch = 1;
+		nomonsters = 1;
+		startskill = sk_medium;
+    startepisode = 2;
+    startmap = 1;
+
+return;
+#endif
+#if 1
     int		i;
     boolean	gotinfo[MAXNETNODES];
 
@@ -511,7 +592,7 @@ void D_ArbitrateNetStart (void)
     if (doomcom->consoleplayer)
     {
 	// listen for setup info from key player
-//	printf ("listening for network start info...\n");
+	printf ("listening for network start info...\n");
 	while (1)
 	{
 	    CheckAbort ();
@@ -533,10 +614,21 @@ void D_ArbitrateNetStart (void)
     }
     else
     {
+		/*startskill = 0;
+		deathmatch = 1;
+		nomonsters = 1;
+		startepisode = 1;
+		startmap = 1;*/
+		deathmatch = 1;
+		nomonsters = 1;
+		startskill = sk_medium;
+    startepisode = 1;
+    startmap = 1;
 	// key player, send the setup info
-//	printf ("sending network start info...\n");
-	do
+	printf ("sending network start info...\n");
+//	do
 	{
+		//printf("next loop\n");
 	    CheckAbort ();
 	    for (i=0 ; i<doomcom->numnodes ; i++)
 	    {
@@ -552,13 +644,16 @@ void D_ArbitrateNetStart (void)
 		netbuffer->numtics = 0;
 		HSendPacket (i, NCMD_SETUP);
 	    }
-
+/*
 #if 1
 	    for(i = 10 ; i  &&  HGetPacket(); --i)
 	    {
-		if((netbuffer->player&0x7f) < MAXNETNODES)
-		    gotinfo[netbuffer->player&0x7f] = true;
-	    }
+			if((netbuffer->player&0x7f) < MAXNETNODES)
+			{	
+				//printf("gotinfo %d == true\n", netbuffer->player&0x7f);
+				gotinfo[netbuffer->player&0x7f] = true;
+			}
+		}
 #else
 	    while (HGetPacket ())
 	    {
@@ -569,8 +664,16 @@ void D_ArbitrateNetStart (void)
 	    for (i=1 ; i<doomcom->numnodes ; i++)
 		if (!gotinfo[i])
 		    break;
-	} while (i < doomcom->numnodes);
+*/
+gotinfo[0] = true;
+gotinfo[1] = true;
+//i=2;
+		}
+//		while (i < doomcom->numnodes); 
     }
+	  //  nodeingame[0] = 1;
+	//nodeingame[1] = 1;
+#endif	
 }
 
 //
@@ -599,11 +702,20 @@ void D_CheckNetGame (void)
     
     netbuffer = &doomcom->data;
     consoleplayer = displayplayer = doomcom->consoleplayer;
-    if (netgame)
+    
+	//n64_sleep_millis(1000);
+	
+	if (netgame)
 	D_ArbitrateNetStart ();
+//			deathmatch = 1;
+//		nomonsters = 1;
+//		startskill = sk_medium;
+ //   startepisode = 2;
+  //  startmap = 1;
 
-/*    printf ("startskill %i  deathmatch: %i  startmap: %i  startepisode: %i\n",
-	    startskill, deathmatch, startmap, startepisode);*/
+
+//   printf ("startskill %i  deathmatch: %i  startmap: %i  startepisode: %i\n",
+	//    startskill, deathmatch, startmap, startepisode);
 	
     // read values out of doomcom
     ticdup = doomcom->ticdup;
@@ -616,8 +728,8 @@ void D_CheckNetGame (void)
     for (i=0 ; i<doomcom->numnodes ; i++)
 	nodeingame[i] = true;
 	
-//////    printf ("player %i of %i (%i nodes)\n",
-//////	    consoleplayer+1, doomcom->numplayers, doomcom->numnodes);
+//    printf ("player %i of %i (%i nodes)\n",
+	//    consoleplayer+1, doomcom->numplayers, doomcom->numnodes);
 
 }
 
@@ -660,13 +772,13 @@ int	frameskip[4];
 int	oldnettics;
 
 extern	boolean	advancedemo;
-
+    static int	oldentertics=0;
 void TryRunTics (void)
 {
     int		i;
     int		lowtic;
     int		entertic;
-    static int	oldentertics;
+
     int		realtics;
     int		availabletics;
     int		counts;
@@ -713,11 +825,17 @@ void TryRunTics (void)
 
     if (!demoplayback)
     {	
-	// ideally nettics[0] should be 1 - 3 tics above lowtic
-	// if we are consistantly slower, speed up time
-	for (i=0 ; i<MAXPLAYERS ; i++)
-	    if (playeringame[i])
-		break;
+		// ideally nettics[0] should be 1 - 3 tics above lowtic
+		// if we are consistantly slower, speed up time
+		for (i=0 ; i<MAXPLAYERS ; i++)
+		{
+			if (playeringame[i])
+			{
+				break;
+			}
+		}
+	//}
+	
 	if (consoleplayer == i)
 	{
 	    // the key player does not adapt
@@ -726,15 +844,15 @@ void TryRunTics (void)
 	{
 	    if (nettics[0] <= nettics[nodeforplayer[i]])
 	    {
-		gametime--;
-		// printf ("-");
+			gametime--;
+			// printf ("-");
 	    }
 	    frameskip[frameon&3] = (oldnettics > nettics[nodeforplayer[i]]);
 	    oldnettics = nettics[0];
 	    if (frameskip[0] && frameskip[1] && frameskip[2] && frameskip[3])
 	    {
-		skiptics = 1;
-		// printf ("+");
+			skiptics = 1;
+			// printf ("+");
 	    }
 	}
     }// demoplayback

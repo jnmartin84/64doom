@@ -43,11 +43,12 @@
 #define DOOMCOM_ID		0x12345678l
 
 // Max computers/players in a game.
-#define MAXNETNODES		8
+#define MAXNETNODES		2
+//8
 
 
 // Networking and tick handling related.
-#define BACKUPTICS		12
+#define BACKUPTICS		14
 
 typedef enum
 {
@@ -60,18 +61,20 @@ typedef enum
 //
 // Network packet data.
 //
+// always 128 bytes
 typedef struct
 {
     // High bit is retransmit request.
-    unsigned		checksum;
+    uint32_t		checksum;
     // Only valid if NCMD_RETRANSMIT.
     byte		retransmitfrom;
     
     byte		starttic;
     byte		player;
     byte		numtics;
+	
     ticcmd_t		cmds[BACKUPTICS];
-
+	char bufpad[388];
 } doomdata_t;
 
 

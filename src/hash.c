@@ -8,8 +8,6 @@
 
 #define n64_free(x) free((x))
 #define n64_malloc(x) malloc((x))
-//extern void n64_free(void *buf);
-//extern void *n64_malloc(size_t size_to_alloc);
 
 
 /*

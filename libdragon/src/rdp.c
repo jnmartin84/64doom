@@ -194,7 +194,7 @@ static inline uint32_t __rdp_ringbuffer_size( void )
  * @param[in] data
  *            32 bits of data to be queued at the end of the current command
  */
-static void __rdp_ringbuffer_queue( uint32_t data )
+void __rdp_ringbuffer_queue( uint32_t data )
 {
     /* Only add commands if we have room */
     if( __rdp_ringbuffer_size() + sizeof(uint32_t) >= RINGBUFFER_SIZE ) { return; }
@@ -203,6 +203,40 @@ static void __rdp_ringbuffer_queue( uint32_t data )
     rdp_ringbuffer[rdp_end / 4] = data;
     rdp_end += 4;
 }
+int tri_set = 0x0A000000; // textured by default
+
+// Triangle setup
+void rdp_triangle_setup( int type )
+{
+    switch ( type )
+    {
+        case 0:
+            tri_set = 0x08000000; // Flat
+            break;
+        case 1:
+            tri_set = 0x0C000000; // Goraud
+            break;
+        case 2:
+            tri_set = 0x0A000000; // Textured
+            break;
+        case 3:
+            tri_set = 0x0E000000; // Goraud Textured
+            break;
+        case 4:
+            tri_set = 0x09000000; // Flat Z-Buffer
+            break;
+        case 5:
+            tri_set = 0x0D000000; // Goraud Z-Buffer
+            break;
+        case 6:
+            tri_set = 0x0B000000; // Textured Z-Buffer
+            break;
+        case 7:
+            tri_set = 0x0F000000; // Goraud Textured Z-Buffer
+            break;
+    }
+}
+
 
 /**
  * @brief Send a completed command to the RDP that is queued in the ring buffer
@@ -212,7 +246,7 @@ static void __rdp_ringbuffer_queue( uint32_t data )
  * kicking off execution of the command in the RDP.  After calling this function, it is
  * safe to start writing to the ring buffer again.
  */
-static void __rdp_ringbuffer_send( void )
+void __rdp_ringbuffer_send( void )
 {
     /* Don't send nothingness */
     if( __rdp_ringbuffer_size() == 0 ) { return; }
@@ -308,6 +342,16 @@ void rdp_attach_display( display_context_t disp )
     __rdp_ringbuffer_send();
 }
 
+void rdp_attach_addr(uint32_t addr)
+{
+    if( addr == 0 ) { return; }
+
+    /* Set the rasterization buffer */
+    __rdp_ringbuffer_queue( 0xFF000000 | ((__bitdepth == 2) ? 0x00100000 : 0x00180000) | (__width - 1) );
+    __rdp_ringbuffer_queue( (uint32_t)addr );
+    __rdp_ringbuffer_send();
+}
+
 /**
  * @brief Detach the RDP from a display context
  *
@@ -334,7 +378,24 @@ void rdp_detach_display( void )
     /* Set back to zero for next detach */
     wait_intr = 0;
 }
-
+// Load invidivual palette into TMEM
+void rdp_load_palette( uint8_t pal, uint8_t col_num, uint16_t *palette )
+{	
+    // Set Texture Image (Palette)
+    __rdp_ringbuffer_queue( 0x3D100000 ); // format RGBA / size 16bit
+    __rdp_ringbuffer_queue( (uint32_t)palette );		
+    __rdp_ringbuffer_send();
+	
+    // Set Tile (TLUT)
+    __rdp_ringbuffer_queue( 0x35000100 | ((pal & 15) << 4) ); // TMEM position
+    __rdp_ringbuffer_queue( 0x07000000 ); // tile 7 to avoid SYNC TILE		
+    __rdp_ringbuffer_send();
+	
+    // Load TLUT
+    __rdp_ringbuffer_queue( 0x30000000 );
+    __rdp_ringbuffer_queue( 0x07000000 | (col_num << 2) << 12 ); // tile 7
+    __rdp_ringbuffer_send();
+}
 /**
  * @brief Perform a sync operation
  *
@@ -406,7 +467,7 @@ void rdp_set_default_clipping( void )
 void rdp_enable_primitive_fill( void )
 {
     /* Set other modes to fill and other defaults */
-    __rdp_ringbuffer_queue( 0xEFB000FF );
+    __rdp_ringbuffer_queue( 0x2FB000FF );//EFB000FF );
     __rdp_ringbuffer_queue( 0x00004000 );
     __rdp_ringbuffer_send();
 }
@@ -418,7 +479,7 @@ void rdp_enable_primitive_fill( void )
  */
 void rdp_enable_blend_fill( void )
 {
-    __rdp_ringbuffer_queue( 0xEF0000FF );
+    __rdp_ringbuffer_queue( 0x2F0000FF );
     __rdp_ringbuffer_queue( 0x80000000 );
     __rdp_ringbuffer_send();
 }
@@ -468,7 +529,7 @@ static uint32_t __rdp_load_texture( uint32_t texslot, uint32_t texloc, mirror_t 
     /* Invalidate data associated with sprite in cache */
     if( flush_strategy == FLUSH_STRATEGY_AUTOMATIC )
     {
-        data_cache_hit_writeback_invalidate( sprite->data, sprite->width * sprite->height * sprite->bitdepth );
+        data_cache_hit_writeback_invalidate( sprite->data, (sprite->width * sprite->height * (sprite->bitdepth > 0 ? sprite->bitdepth : 1)) >> (sprite->bitdepth == 0 : 1 ? 0));
     }
 
     /* Point the RDP at the actual sprite data */
@@ -756,6 +817,15 @@ void rdp_set_primitive_color( uint32_t color )
     __rdp_ringbuffer_send();
 }
 
+void rdp_set_primitive_color_2( uint8_t r, uint8_t g, uint8_t b, uint8_t a )
+{
+    /* Set packed color */
+    __rdp_ringbuffer_queue( 0x3A000000 );
+    __rdp_ringbuffer_queue( r << 24 | g << 16 | b << 8 | a );
+    __rdp_ringbuffer_send();
+}
+
+
 /**
  * @brief Set the blend draw color for subsequent filled primitive operations
  *
@@ -769,6 +839,14 @@ void rdp_set_blend_color( uint32_t color )
     __rdp_ringbuffer_queue( 0xF9000000 );
     __rdp_ringbuffer_queue( color );
     __rdp_ringbuffer_send();
+}
+
+// Set Blend Color (R,G,B,A)
+void rdp_set_blend_color_2( uint8_t r, uint8_t g, uint8_t b, uint8_t a )
+{
+    __rdp_ringbuffer_queue( 0x39000000 );
+    __rdp_ringbuffer_queue( r << 24 | g << 16 | b << 8 | a );
+    __rdp_ringbuffer_send();	
 }
 
 /**
@@ -854,7 +932,7 @@ void rdp_draw_filled_triangle( float x1, float y1, float x2, float y2, float x3,
     int winding = ( x1 * y2 - x2 * y1 ) + ( x2 * y3 - x3 * y2 ) + ( x3 * y1 - x1 * y3 );
     int flip = ( winding > 0 ? 1 : 0 ) << 23;
     
-    __rdp_ringbuffer_queue( 0xC8000000 | flip | yl );
+    __rdp_ringbuffer_queue( tri_set | flip | yl );
     __rdp_ringbuffer_queue( ym | yh );
     __rdp_ringbuffer_queue( xl );
     __rdp_ringbuffer_queue( dxldy );
@@ -885,3 +963,4 @@ void rdp_set_texture_flush( flush_t flush )
 }
 
 /** @} */
+	

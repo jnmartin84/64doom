@@ -178,7 +178,7 @@ void P_InitPicAnims (void)
 
 	lastanim->istexture = animdefs[i].istexture;
 	lastanim->numpics = lastanim->picnum - lastanim->basepic + 1;
-
+#ifdef RANGECHECK
 	if (lastanim->numpics < 2)
 	{
 	    char ermac[256];
@@ -187,6 +187,7 @@ void P_InitPicAnims (void)
 		     animdefs[i].endname);
 	    I_Error(ermac);
 	}
+#endif	
 	lastanim->speed = animdefs[i].speed;
 	lastanim++;
     }
@@ -1068,7 +1069,7 @@ void P_PlayerInSpecialSector (player_t* player)
 	if (player->health <= 10)
 	    G_ExitLevel();
 	break;
-			
+#ifdef RANGECHECK			
       default:
 	{
 	    char ermac[256];
@@ -1078,6 +1079,7 @@ void P_PlayerInSpecialSector (player_t* player)
 	    I_Error(ermac);
 	    break;
 	}
+#endif	
     };
 }
 

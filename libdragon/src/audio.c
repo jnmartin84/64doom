@@ -140,8 +140,9 @@ extern void __n64_memset_ZERO_ASM(const void *d, const char x, const size_t l);
  * This function is called whenever internal buffers are running low.  It will
  * send as many buffers as possible to the AI until the AI is full.
  */
-/*static*/ void audio_callback()
+static void audio_callback()
 {
+#if 0
     /* Do not copy more data if we've freed the audio system */
 /*    if(!buffers)
     {
@@ -183,6 +184,7 @@ extern void __n64_memset_ZERO_ASM(const void *d, const char x, const size_t l);
 
     /* Safe to enable interrupts here */
     enable_interrupts();
+#endif
 }
 
 /**
@@ -238,8 +240,8 @@ void audio_init(const int frequency, int numbuffers)
     _frequency = 2 * clockrate / ((2 * clockrate / frequency) + 1);
 
     /* Set up hardware to notify us when it needs more data */
-    register_AI_handler(audio_callback);
-    set_AI_interrupt(1);
+//    register_AI_handler(audio_callback);
+ //   set_AI_interrupt(1);
 
     /* Set up buffers */
     _buf_size = CALC_BUFFER(_frequency);
@@ -308,7 +310,7 @@ void audio_close()
     _buf_size = 0;
 }
 
-/*static*/ void audio_paused_callback(short *buffer, size_t numsamples)
+static void audio_paused_callback(short *buffer, size_t numsamples)
 {
     __n64_memset_ZERO_ASM(UncachedShortAddr(buffer), 0, numsamples * sizeof(short) * 2);
 }

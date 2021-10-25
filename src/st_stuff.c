@@ -680,7 +680,7 @@ ST_Responder (event_t* ev)
       int		map;
       
       cht_GetParam(&cheat_clev, buf);
-      
+ 	  
       if (gamemode == commercial)
       {
 	epsd = 1;
@@ -692,11 +692,11 @@ ST_Responder (event_t* ev)
 	map = buf[1] - '0';
       }
 
-      if (((gamemode == shareware) || (gamemode == retail) || (gamemode == registered))
-          && (epsd == 0))
-      {
-          epsd = 1;
-      }
+   //   if (((gamemode == shareware) || (gamemode == retail) || (gamemode == registered))
+     //     && (epsd == 0))
+     // {
+       //   epsd = 1;
+     // }
 
       // Catch invalid maps.
       if (epsd < 1)
@@ -1052,21 +1052,23 @@ void ST_doPaletteStuff(void)
 
     if (plyr->powers[pw_strength])
     {
-	// slowly fade the berzerk out
-  	bzc = 12 - (plyr->powers[pw_strength]>>6);
+		// slowly fade the berzerk out
+		bzc = 12 - (plyr->powers[pw_strength]>>6);
 
-	if (bzc > cnt)
-	    cnt = bzc;
-    }
+		if (bzc > cnt)
+		{
+			cnt = bzc;
+		}
+	}
 	
     if (cnt)
     {
-	palette = (cnt+7)>>3;
+		palette = (cnt+7)>>3;
 	
-	if (palette >= NUMREDPALS)
-	    palette = NUMREDPALS-1;
+		if (palette >= NUMREDPALS)
+			palette = NUMREDPALS-1;
 
-	palette += STARTREDPALS;
+		palette += STARTREDPALS;
     }
 
     else if (plyr->bonuscount)

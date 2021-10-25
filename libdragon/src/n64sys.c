@@ -3,6 +3,7 @@
  * @brief N64 System Interface
  * @ingroup n64sys
  */
+#include <stdint.h>
 #include "n64sys.h"
 
 /**
@@ -222,4 +223,19 @@ void inst_cache_index_invalidate(volatile void * addr, unsigned long length)
     cache_op(0x00);
 }
 
+
+/** @brief Memory location to read which determines the TV type. */
+#define TV_TYPE_LOC  0x80000300
+
+/**
+ * @brief Is system NTSC/PAL/MPAL
+ * 
+ * Checks enum hard-coded in PIF BootROM to indicate the tv type of the system.
+ * 
+ * @return enum value indicating PAL, NTSC or MPAL
+ */
+tv_type_t get_tv_type() 
+{
+    return *((uint32_t *) TV_TYPE_LOC);
+}
 /** @} */

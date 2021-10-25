@@ -54,7 +54,7 @@ void wipe_shittyColMajorXform(short* array, int width, int height)
     int    y;
     short* dest;
 
-    dest = (short*)Z_Malloc(width*height*2, PU_STATIC, 0);
+    dest = (short*)Z_Malloc((width*height)*2, PU_STATIC, 0);
 
     for (y=0;y<height;y++)
     {
@@ -64,8 +64,7 @@ void wipe_shittyColMajorXform(short* array, int width, int height)
         }
     }
 
-//    n64_memcpy(array, dest, width*height*2);
-    __n64_memcpy_ASM(array, dest, width*height*2);
+    __n64_memcpy_ASM(array, dest, (width*height)*2);
 
     Z_Free(dest);
 }
@@ -73,7 +72,6 @@ void wipe_shittyColMajorXform(short* array, int width, int height)
 
 int wipe_initColorXForm(int width, int height, int ticks)
 {
-//    n64_memcpy(wipe_scr, wipe_scr_start, width*height);
     __n64_memcpy_ASM(wipe_scr, wipe_scr_start, width*height);
     return 0;
 }
@@ -149,13 +147,12 @@ int wipe_initMelt(int width, int height, int ticks)
     int r;
 
     // copy start screen to main screen
-//    n64_memcpy(wipe_scr, wipe_scr_start, width*height);
     __n64_memcpy_ASM(wipe_scr, wipe_scr_start, width*height);
 
     // makes this wipe faster (in theory)
     // to have stuff in column-major format
-    wipe_shittyColMajorXform((short*)wipe_scr_start, width >> 1, height); // width/2
-    wipe_shittyColMajorXform((short*)wipe_scr_end, width >> 1, height); // width/2
+    wipe_shittyColMajorXform((short*)wipe_scr_start, width /2 , height);
+    wipe_shittyColMajorXform((short*)wipe_scr_end, width /2, height);
 
     // setup initial column positions
     // (y<0 => not ready to scroll yet)
@@ -191,7 +188,6 @@ int wipe_doMelt(int width, int height, int ticks)
     boolean done = true;
 
     width /= 2;
-//    width >>= 1;
 
     while (ticks--)
     {
@@ -277,21 +273,19 @@ int wipe_ScreenWipe(int wipeno, int x, int y, int width, int height, int ticks)
 	wipe_initMelt, wipe_doMelt, wipe_exitMelt
     };
 
-    void V_MarkRect(int, int, int, int);
+//    void V_MarkRect(int, int, int, int);
 
     // initial stuff
     if (!go)
     {
 	go = 1;
-	// wipe_scr = (byte *) Z_Malloc(width*height, PU_STATIC, 0); // DEBUG
 	wipe_scr = screens[0];
 	(*wipes[wipeno*3])(width, height, ticks);
     }
 
     // do a piece of wipe-in
-    V_MarkRect(0, 0, width, height);
+    //V_MarkRect(0, 0, width, height);
     rc = (*wipes[wipeno*3+1])(width, height, ticks);
-    //V_DrawBlock(x, y, 0, width, height, wipe_scr); // DEBUG
 
     // final stuff
     if (rc)

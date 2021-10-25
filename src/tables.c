@@ -37,26 +37,17 @@
 //-----------------------------------------------------------------------------
 
 #include <stdint.h>
-
+#include "doomdef.h"
 #include "tables.h"
 
-int SlopeDiv(unsigned num, unsigned den)
-{
-    unsigned ans;
+#if SCREENWIDTH == 640
+uint32_t /*__attribute__((aligned(4)))*/ ytab[480];//[240];
+#endif
+#if SCREENWIDTH == 320
+uint32_t ytab[240];
+#endif
 
-    if (den < 512)
-    {
-        return SLOPERANGE;
-    }
-
-    ans = (num<<3) / (den>>8);
-
-    return ((ans <= SLOPERANGE) ? ans : SLOPERANGE);
-}
-
-uint32_t __attribute__((aligned(8))) ytab[480];
-
-int __attribute__((aligned(8))) finetangent[4096] =
+int __attribute__((aligned(64))) finetangent[4096] =
 {
     -170910304,-56965752,-34178904,-24413316,-18988036,-15535599,-13145455,-11392683,
     -10052327,-8994149,-8137527,-7429880,-6835455,-6329090,-5892567,-5512368,
@@ -573,7 +564,7 @@ int __attribute__((aligned(8))) finetangent[4096] =
 };
 
 
-int __attribute__((aligned(8))) finesine[10240] =
+int __attribute__((aligned(64))) finesine[10240] =
 {
     25,75,125,175,226,276,326,376,
     427,477,527,578,628,678,728,779,
@@ -1858,7 +1849,7 @@ int __attribute__((aligned(8))) finesine[10240] =
 };
 
 
-angle_t __attribute__((aligned(8))) tantoangle[2049] =
+angle_t __attribute__((aligned(64))) tantoangle[2049] =
 {
     0,333772,667544,1001315,1335086,1668857,2002626,2336395,
     2670163,3003929,3337694,3671457,4005219,4338979,4672736,5006492,

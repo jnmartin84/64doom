@@ -73,9 +73,6 @@
 #define BYTES_TO_BLOCKS(bytes) ((bytes + (BYTES_PER_BLOCK - 1)) / BYTES_PER_BLOCK)
 #define SAVE_SIZE_IN_BLOCKS(bytes) (BYTES_TO_BLOCKS(bytes) + 1)
 
-//extern void *n64_malloc(size_t n);
-//extern void n64_free(void *p);
-extern void n64_sleep_millis(int count);
 extern void I_Error(char *error);
 extern void I_Warn(char *str);
 
@@ -106,6 +103,8 @@ void	G_DoVictory (void);
 void	G_DoWorldDone (void); 
 void	G_DoSaveGame (void); 
  
+
+int splitscreen_mode = 0;
  
 gameaction_t    gameaction; 
 gamestate_t     gamestate; 
@@ -152,9 +151,9 @@ wbstartstruct_t wminfo;               	// parms for world map / intermission
  
 short		consistancy[MAXPLAYERS][BACKUPTICS]; 
  
-byte	__attribute__((aligned(8)))	savebuffer[SAVEGAMESIZE];
- 
- 
+byte *savebuffer = (byte *)0;
+uint8_t *mempak_data = (uint8_t *)0;
+
 // 
 // controls (have defaults) 
 // 
@@ -453,12 +452,14 @@ void G_BuildTiccmd (ticcmd_t* cmd)
 //
 // G_DoLoadLevel 
 //
+extern int dobg;
+
 extern  gamestate_t     wipegamestate; 
 extern GameMode_t gamemode; 
 void G_DoLoadLevel (void) 
 { 
     int             i; 
-
+dobg = 0;
     // Set the sky map.
     // First thing, we have a dummy sky texture name,
     //  a flat. The data is in the WAD only because
@@ -481,6 +482,25 @@ void G_DoLoadLevel (void)
 		}
     }
 
+	if ( gamemode != commercial )
+	{
+		switch (gameepisode) 
+		{ 
+		  case 1: 
+			skytexture = R_TextureNumForName ("SKY1"); 
+			break; 
+		  case 2: 
+			skytexture = R_TextureNumForName ("SKY2"); 
+			break; 
+		  case 3: 
+			skytexture = R_TextureNumForName ("SKY3"); 
+			break; 
+		  case 4:	// Special Edition sky
+			skytexture = R_TextureNumForName ("SKY4");
+			break;
+		} 
+	}
+	
     levelstarttic = gametic;        // for time calculation
     
     if (wipegamestate == GS_LEVEL) 
@@ -499,7 +519,11 @@ void G_DoLoadLevel (void)
 	    __n64_memset_ZERO_ASM (players[i].frags,0,sizeof(players[i].frags)); 
     } 
 		 
+//printf("before setuplevel\n");
+
     P_SetupLevel (gameepisode, gamemap, 0, gameskill);    
+//printf("after setuplevel\n");
+//while(1) {}
     displayplayer = consoleplayer;		// view the guy you are playing    
     starttime = I_GetTime (); 
     gameaction = ga_nothing; 
@@ -512,6 +536,8 @@ void G_DoLoadLevel (void)
     sendpause = sendsave = paused = false; 
     __n64_memset_ZERO_ASM (mousebuttons, 0, sizeof(mousebuttons)); 
     __n64_memset_ZERO_ASM (joybuttons, 0, sizeof(joybuttons)); 
+//printf("returning from setuplevel\n");
+//while(1) {}
 } 
  
  
@@ -675,46 +701,48 @@ void G_Ticker (void)
  
     for (i=0 ; i<MAXPLAYERS ; i++)
     {
-	if (playeringame[i]) 
-	{ 
-	    cmd = &players[i].cmd; 
- 
-//	    n64_memcpy (cmd, &netcmds[i][buf], sizeof(ticcmd_t)); 
-	    __n64_memcpy_ASM (cmd, &netcmds[i][buf], sizeof(ticcmd_t)); 
- 
-	    if (demoplayback) 
-		G_ReadDemoTiccmd (cmd); 
-	    if (demorecording) 
-		G_WriteDemoTiccmd (cmd);
-	    
-	    // check for turbo cheats
-	    if (cmd->forwardmove > TURBOTHRESHOLD 
-		&& !(gametic&31) && ((gametic>>5)&3) == i )
-	    {
-		static char turbomessage[80];
-		extern char *player_names[4];
-		sprintf (turbomessage, "%s is turbo!",player_names[i]);
-		players[consoleplayer].message = turbomessage;
-	    }
+		if (playeringame[i]) 
+		{ 
+			cmd = &players[i].cmd; 
+	 
+	//	    n64_memcpy (cmd, &netcmds[i][buf], sizeof(ticcmd_t)); 
+			__n64_memcpy_ASM (cmd, &netcmds[i][buf], sizeof(ticcmd_t)); 
+	 
+			if (demoplayback) 
+			G_ReadDemoTiccmd (cmd); 
+			if (demorecording) 
+			G_WriteDemoTiccmd (cmd);
+			
+			// check for turbo cheats
+			if (cmd->forwardmove > TURBOTHRESHOLD 
+			&& !(gametic&31) && ((gametic>>5)&3) == i )
+			{
+			static char turbomessage[80];
+			extern char *player_names[4];
+			sprintf (turbomessage, "%s is turbo!",player_names[i]);
+			players[consoleplayer].message = turbomessage;
+			}
 
-	    if (netgame && !netdemo && !(gametic%ticdup))
-	    {
-		if (gametic > BACKUPTICS && consistancy[i][buf] != cmd->consistancy)
-		{
-		    char ermac[256];
-		    sprintf(ermac, "G_Ticker: consistency failure (%i should be %i)", cmd->consistancy, consistancy[i][buf]);
-		    I_Error(ermac);
+			if (netgame && !netdemo && !(gametic%ticdup))
+			{
+				if ((gametic > BACKUPTICS) && (consistancy[i][buf] != cmd->consistancy))
+				{
+					char ermac[256];
+					sprintf(ermac, "G_Ticker: consistency failure (%i should be %i)", cmd->consistancy, consistancy[i][buf]);
+					I_Error(ermac);
+					
+				}
+
+				if (players[i].mo)
+				{
+					consistancy[i][buf] = players[i].mo->x;
+				}
+				else
+				{
+					consistancy[i][buf] = rndindex;
+				}
+			}
 		}
-		if (players[i].mo)
-		{
-		    consistancy[i][buf] = players[i].mo->x;
-		}
-		else
-		{
-		    consistancy[i][buf] = rndindex;
-		}
-	    }
-	}
     }
 
     // check for special buttons
@@ -924,13 +952,14 @@ void G_DeathMatchSpawnPlayer(int playernum)
     int selections;
 
     selections = deathmatch_p - deathmatchstarts;
+#ifdef RANGECHECK
     if (selections < 4)
     {
 	char ermac[256];
 	sprintf(ermac, "G_DeathMatchSpawnPlayer: Only %i deathmatch spots, 4 required", selections);
 	I_Error(ermac);
     }
- 
+#endif
     for (j=0 ; j<20 ; j++) 
     { 
 	i = P_Random() % selections; 
@@ -1207,11 +1236,6 @@ void G_DoWorldDone (void)
     viewactive = true; 
 } 
  
-byte array1[256*128];	
-byte array2[256*128];
-	
-
-
 //
 // G_InitFromSavegame
 // Can be called by the startup code or the menu task. 
@@ -1231,119 +1255,175 @@ void G_LoadGame (char* name)
  
 #define VERSIONSIZE		16 
 
-// a block of memory that is the full size of one mempak
-byte __attribute__((aligned(8))) readbuffer[MEMPAK_BLOCK_SIZE * 128];
-
+char msg[256];
+//extern uint32_t max_save_p;
 void G_DoLoadGame (void)
 {
     char *gameid = get_GAMEID();
-    char *msg = "Loaded game from mempak.";
+    entry_structure_t entry;
     int i;
     int j;
     int lmn;
     int a,b,c;
     char vcheck[VERSIONSIZE];
-
-    gameaction = ga_nothing;
-
-    int err = 0;
-    entry_structure_t entry;
-
+    int err;
     // flag set when mempak entry name matches the current game identifier
-    int entry_found = 1;
-    int any_entries = 0;
+    int entry_found;
+    int any_entries;
 
-	// maximum 16 mempak entries
-	for (j=0;j<16;j++)
-	{
+    disable_interrupts();
+    sprintf(msg, "Loaded game from mempak.");
+
+    if(0 == savebuffer)
+    {
+        savebuffer = malloc(SAVEGAMESIZE);
+    }
+    if(0 == mempak_data)
+    {
+        mempak_data = malloc(256*123);
+    }
+
+    if(0 == savebuffer)
+    {
+        I_Error("couldnt malloc savebuffer");
+    }
+    if(0 == mempak_data)
+    {
+        I_Error("couldnt malloc mempak_data");
+    }
+
+    __n64_memset_ZERO_ASM(savebuffer,  0, SAVEGAMESIZE);
+    __n64_memset_ZERO_ASM(mempak_data, 0, 256*123);
+
+    struct controller_data output;
+    get_accessories_present(&output);
+
+    any_entries = 0;
+    err = 0;
+    // maximum 16 mempak entries
+    for (j=0;j<16;j++)
+    {
         // reset this flag on each iteration! -- bug-fixed 2014/09/11 23:45
         entry_found = 1;
-		
-		get_mempak_entry( 0, j, &entry );
-		
-		if( entry.valid )
-		{
-			any_entries = 1;
 
-			// using value of get_GAMEID() without the ".WAD" suffix as identifier for entry
-			// clears "entry_found" if strings don't match
-			// breaks when a "." is found in the name (filename)
-			for(lmn = 0; lmn < strlen(gameid)-1; lmn++)
- 			{
- 				if(gameid[lmn] == '.') break;
-				if(entry.name[lmn] != gameid[lmn]) entry_found = 0;
-			}
-			
-			// this means that one of the mempak entries had a name matching current game version
-			if(entry_found)
-			{
-				break;
-			}
-		}
-		// invalid entry
-		else
-		{
-			entry_found = 0;
-		}
-	}
+        /**
+          * @retval 0 if the entry was read successfully
+          * @retval -1 if the entry is out of bounds or entry_data is null
+          * @retval -2 if the mempak is bad or not present
+          */
+        int rv = get_mempak_entry( 0, j, &entry );
+        if (-1 == rv)
+        {
+            sprintf(msg, "entry out of bounds or entry_data null");
+            goto the_end_of_loading;
+        }
+        else if (-2 == rv)
+        {
+            sprintf(msg, "pak bad or not present");
+            goto the_end_of_loading;
+        }
 
-    // bug-fix 2017-10-06 12:29 modified get_GAMEID to use a static char[16]
-#if 0
-    // get_GAMEID uses n64_malloc to create the buffer it returns
-    n64_free(gameid);
-#endif
-	
+        if ( entry.valid )
+        {
+            any_entries = 1;
+
+            // using value of get_GAMEID() without the ".WAD" suffix as identifier for entry
+            // clears "entry_found" if strings don't match
+            // breaks when a "." is found in the name (filename)
+            for (lmn = 0; lmn < strlen(gameid)-1; lmn++)
+            {
+                if (gameid[lmn] == '.')
+                {
+                    break;
+                }
+                if (entry.name[lmn] != gameid[lmn])
+                {
+                    entry_found = 0;
+                    break;
+                }
+            }
+
+            // this means that one of the mempak entries had a name matching current game version
+            if(entry_found)
+            {
+                break;
+            }
+        }
+    }
+
     // not finding an entry is NOT an error case that should case the game to hang
     // suggest to Doom that it print a message about it
     if (!entry_found || !any_entries)
     {
-        msg = "Must save a game to load!";
+        sprintf(msg, "Must save a game to load!");
         goto the_end_of_loading;
     }
-	
+
     // found an entry, but the "valid" flag is not set, this is probably an error case
     // I am going to make this just print a message and return, instead of I_Error-ing
     if (any_entries && entry_found && (!entry.valid))
     {
-        msg = "Save game invalid. Not loading.";
+        sprintf(msg, "Save entry invalid. Not loading.");
         goto the_end_of_loading;
-    }	
+    }
 
     // read the mempak blocks referenced by the entry into readbuf for later processing
-    err |= read_mempak_entry_data(0, &entry, readbuffer);
-    if (err)
+    err = 0;
+    err |= read_mempak_entry_data(0, &entry, mempak_data);
+    if (0 != err)
     {
         I_Error("G_DoLoadGame: Error loading data!\nread_mempak_entry_data failed.");
     }
-	
-    // the first block of the entry is used to store the exact size in bytes of the savebuffer
-    // this size is the original un-compressed size
-    // wasting 256 bytes to store a 4 byte int... oh well
-    int *size_block_ptr = (int *)readbuffer;
-    int dec_size = *size_block_ptr;
-	
-    // allocate another block of memory for the LZW-decoded savebuffer
-    byte *to_decode = array2;//n64_malloc(dec_size);
-    // if we try to lzw_decode the savebuffer directly from the blocks we read into readbuffer,
-    // it will fail due to all of the extra bytes stuck on the end, even if they are empty
-    // sequence doesn't end with correct symbol, some kind of error like that
-    for (i=0;i<dec_size;i++)
+    if (!entry.valid)
     {
-        to_decode[i] = readbuffer[MEMPAK_BLOCK_SIZE + i];
+        sprintf(msg,"Save game invalid after mempak read. Not loading.");
+        goto the_end_of_loading;
     }
 
-    // dec ends up with the original, un-compressed savebuffer
-	unsigned int unencsize = 0x2c000;
-	byte *dec = array1;//(byte*)n64_malloc(dec_size * 4);
-    lzfx_decompress(to_decode, dec_size, dec, &unencsize);
-	
-    // copy the data from "dec" into "savebuffer" so the rest of the original G_DoLoadGame code can do its thing like before
-    __n64_memcpy_ASM(savebuffer, dec, unencsize);
-	
-//    n64_free(dec);
- //   n64_free(to_decode);
+    if (entry.blocks < 2)
+    {
+        I_Error("less than 2 blocks");
+    }
+    // I don't remember why this isn't redundant with the above, maybe it is
+    if (entry.blocks < 3)
+    {
+        I_Error("less than 3 blocks");
+    }
 
-	save_p = savebuffer + SAVESTRINGSIZE;
+    unsigned int uncompressed_save_size = 0;
+    unsigned int compressed_save_size = *(uint32_t *)(&mempak_data[0]);
+
+    if(compressed_save_size < 1)
+    {
+        I_Error("compressed save size too small");
+    }
+
+    if(compressed_save_size > 256*122)
+    {
+        I_Error("compressed save too large");
+    }
+
+    uint8_t *compressed_data = &mempak_data[256];
+    int rv = lzfx_decompress(compressed_data, compressed_save_size, savebuffer, &uncompressed_save_size);
+    if (rv < 0 && rv != LZFX_ESIZE3)
+    {
+        I_Error("decompress get size failure");
+    }
+    rv = lzfx_decompress(compressed_data, compressed_save_size, savebuffer, &uncompressed_save_size);
+    if (rv < 0)
+    {
+        I_Error("decompress failure");
+    }
+    if (0 == uncompressed_save_size)
+    {
+        I_Error("failed to decompress save data");
+    }
+    if (SAVEGAMESIZE < uncompressed_save_size)
+    {
+        I_Error("uncompressed save too large");
+    }
+
+    save_p = savebuffer + SAVESTRINGSIZE;
 
     // skip the description field
     __n64_memset_ZERO_ASM(vcheck,0,sizeof(vcheck));
@@ -1351,286 +1431,326 @@ void G_DoLoadGame (void)
     if (strcmp ((char *)save_p, vcheck))
     {
         // bad version
-        msg = "Save game failed version check.";
-        // done
+        sprintf(msg, "Save game failed version check (%s,%s)",(char*)save_p,vcheck);
         goto the_end_of_loading;
     }
 
     save_p += VERSIONSIZE;
 
-    gameskill = *save_p++; 
-    gameepisode = *save_p++; 
-    gamemap = *save_p++; 
-    for (i=0 ; i<MAXPLAYERS ; i++) 
-	playeringame[i] = *save_p++; 
+    gameskill = *save_p++;
+    gameepisode = *save_p++;
+    gamemap = *save_p++;
+    for (i=0 ; i<MAXPLAYERS ; i++)
+	playeringame[i] = *save_p++;
 
-    // load a base level 
-    G_InitNew (gameskill, gameepisode, gamemap); 
-    // get the times 
-    a = *save_p++; 
-    b = *save_p++; 
-    c = *save_p++; 
-    leveltime = (a<<16) + (b<<8) + c; 
-	 
+    // load a base level
+    G_InitNew (gameskill, gameepisode, gamemap);
+    // get the times
+    a = *save_p++;
+    b = *save_p++;
+    c = *save_p++;
+    leveltime = (a<<16) + (b<<8) + c;
+
     // dearchive all the modifications
-    P_UnArchivePlayers (); 
-    P_UnArchiveWorld (); 
-    P_UnArchiveThinkers (); 
-    P_UnArchiveSpecials (); 
- 
+    P_UnArchivePlayers ();
+    P_UnArchiveWorld ();
+    P_UnArchiveThinkers ();
+    P_UnArchiveSpecials ();
+
+    // consistency marker
     if (*save_p != 0x1d)
     {
 	    I_Error ("G_DoLoadGame: Bad savegame");
     }
-	
+
     // done
 the_end_of_loading:
-    __n64_memset_ZERO_ASM(savebuffer, 0x00, SAVEGAMESIZE);
-
     players[consoleplayer].message = msg;
+
+    gameaction = ga_nothing;
 
     if (setsizeneeded)
     {
 	    R_ExecuteSetViewSize();
     }
 
-    // draw the pattern into the back screen
-    R_FillBackScreen();
-} 
- 
+    enable_interrupts();
+}
 
 //
 // G_SaveGame
 // Called by the menu task.
-// Description is a 24 byte text string 
+// Description is a 24 byte text string
 //
 void
 G_SaveGame
 ( int	slot,
-  char*	description ) 
-{ 
-    savegameslot = slot; 
-    strcpy (savedescription, description); 
-    sendsave = true; 
-} 
- 
-byte __attribute__((aligned(8))) size_block[MEMPAK_BLOCK_SIZE] = {0};
-byte __attribute__((aligned(8))) final_block[MEMPAK_BLOCK_SIZE] = {0};
-	
-void G_DoSaveGame (void) 
-{ 
-    char	name[100]; 
-    char	name2[VERSIONSIZE]; 
-    char*	description; 
-    char    *msg = "Saved game to mempak.";
-	int     available_free_blocks;
-    int		length; 
-    int		i; 
-	int     j;
-	int     k;
-	
-    if (M_CheckParm("-cdrom"))
+  char*	description )
+{
+    savegameslot = slot;
+    strcpy (savedescription, description);
+    sendsave = true;
+}
+
+
+
+
+void G_DoSaveGame (void)
+{
+    char	name[100];
+    char	name2[VERSIONSIZE];
+    char*	description;
+    int		length;
+    int		i;
+    int     j;
+    int     k;
+    disable_interrupts();
+    sprintf(name,SAVEGAMENAME"%d.dsg",savegameslot);
+    sprintf(msg, "Saved game to mempak.");
+
+    if (0 == savebuffer)
     {
-	    sprintf(name,"c:\\doomdata\\"SAVEGAMENAME"%d.dsg",savegameslot);
+        savebuffer = malloc(SAVEGAMESIZE);
     }
-    else
+    if (0 == mempak_data)
     {
-	    sprintf(name,SAVEGAMENAME"%d.dsg",savegameslot);
+        mempak_data = malloc(256*123);
+    }
+    if (0 == savebuffer)
+    {
+        I_Error("couldnt malloc savebuffer");
+    }
+    if (0 == mempak_data)
+    {
+        I_Error("couldnt malloc mempak_data");
     }
 
-    description = savedescription; 
-	 
-    save_p = savebuffer;// = screens[1]+0x4000;
-	 
+    __n64_memset_ZERO_ASM(savebuffer,0,SAVEGAMESIZE);
+    __n64_memset_ZERO_ASM(mempak_data, 0, 256*123);
+
+    save_p = savebuffer;
+
+    description = savedescription;
+
     __n64_memcpy_ASM (save_p, description, SAVESTRINGSIZE);
     save_p += SAVESTRINGSIZE;
     __n64_memset_ZERO_ASM (name2,0,sizeof(name2));
     sprintf (name2,"version %i",VERSION);
     __n64_memcpy_ASM (save_p, name2, VERSIONSIZE);
     save_p += VERSIONSIZE;
- 	 
-    *save_p++ = gameskill; 
-    *save_p++ = gameepisode; 
-    *save_p++ = gamemap; 
+
+    *save_p++ = gameskill;
+    *save_p++ = gameepisode;
+    *save_p++ = gamemap;
     for (i=0 ; i<MAXPLAYERS ; i++)
-	{
-	    *save_p++ = playeringame[i]; 
-	}
-    *save_p++ = leveltime>>16; 
-    *save_p++ = leveltime>>8; 
-    *save_p++ = leveltime; 
- 
-    P_ArchivePlayers (); 
-    P_ArchiveWorld (); 
-    P_ArchiveThinkers (); 
-    P_ArchiveSpecials (); 
-	 
-    *save_p++ = 0x1d;		// consistancy marker 
-	 
-    length = save_p - savebuffer; 
+    {
+	    *save_p++ = playeringame[i];
+    }
+    *save_p++ = leveltime>>16;
+    *save_p++ = leveltime>>8;
+    *save_p++ = leveltime;
+
+    P_ArchivePlayers ();
+    P_ArchiveWorld ();
+    P_ArchiveThinkers ();
+    P_ArchiveSpecials ();
+
+    *save_p++ = 0x1d;		// consistancy marker
+
+    length = save_p - savebuffer;
     if (length > SAVEGAMESIZE)
     {
 	    I_Error("G_DoSaveGame: Savegame buffer overrun");
-    } 
-	
-    // CHECK AVAILABLE FREE SPACE ON THE MEMPAK IN FIRST CONTROLLER
-    // VALUE IS IN BLOCKS (256 byte chunks)
+    }
+
+    int available_free_blocks = 0;
+    struct controller_data output;
+    get_accessories_present(&output);
     available_free_blocks = get_mempak_free_space(0);
-	
-	if (0 == available_free_blocks)
-	{
-		msg = "Mempak is full. Not saving.";
-		goto the_end_of_saving;
-	}
-    last_save_size = length*4;
-	byte *enc = array1;//(byte *)n64_malloc(length*4);
-	int rv = lzfx_compress(savebuffer, length, enc, &last_save_size);
-	if(0 > rv) {
-		//	char errbufmac[256];
-	//sprintf(errbufmac, "lzfx_compress failed %08X %d", length, rv);
-	//I_Error(errbufmac);
-		msg = "cant malloc for compress";
-		goto the_end_of_saving;
-		//I_Error("lzfx_compress failed");
-	}
-/*	char errbufmac[256];
-	sprintf(errbufmac, "%08X", last_save_size);
-	I_Error(errbufmac);*/
-	
-	int save_size_in_blocks = SAVE_SIZE_IN_BLOCKS(last_save_size);
-	
-	int err = 0;
-	
-    int num_blocks = last_save_size / MEMPAK_BLOCK_SIZE;
-    int last_block_size = last_save_size % MEMPAK_BLOCK_SIZE;
-	
-	__n64_memset_ZERO_ASM (size_block, 0, MEMPAK_BLOCK_SIZE);
-	__n64_memset_ZERO_ASM (final_block, 0, MEMPAK_BLOCK_SIZE);
-	
-	int *size_block_ptr = (int *)size_block;
-	*size_block_ptr = last_save_size;
-	
-	int total_blocks = 1 + num_blocks + 1;
-	byte *tmp_blocks = array2;//(byte *)n64_malloc(MEMPAK_BLOCK_SIZE * total_blocks);
-	
-    if (NULL == tmp_blocks)
+    if (0 == available_free_blocks)
     {
-        msg = "No memory to malloc save data.";
-        err = -1;
+        sprintf(msg, "Mempak is full. Not saving.");
         goto the_end_of_saving;
     }
-	
-    for (j=0; j<last_block_size;j++)
+
+    unsigned int uncompressed_save_size = length;
+    unsigned int compressed_save_size = 256*122;
+
+    uint8_t *compressed_data = &mempak_data[256];
+
+    int rv = lzfx_compress(savebuffer, uncompressed_save_size, compressed_data, &compressed_save_size);
+    if (0 > rv)
     {
-        final_block[j] = enc[(num_blocks * MEMPAK_BLOCK_SIZE) + j];
+        I_Error("lzfx_compress failed");
+    }
+    if (LZFX_EARGS == rv)
+    {
+        I_Error("lzfx_compress EARGS");
+    }
+    else if (LZFX_ESIZE3 == rv)
+    {
+        I_Error("lzfx_compress ESIZE3");
     }
 
-    for (k=0;k<MEMPAK_BLOCK_SIZE;k++)
+    if (compressed_save_size > 256*122)
     {
-        tmp_blocks[k] = size_block[k];
+        I_Error("compressed save too large");
     }
 
-    for (j=0;j<num_blocks;j++)
-    {
-        for (k=0;k<MEMPAK_BLOCK_SIZE;k++)
-        {
-            tmp_blocks[((j+1)*MEMPAK_BLOCK_SIZE)+k] = enc[(j*MEMPAK_BLOCK_SIZE)+k];
-        }
-    }
-	
-    for (k=0;k<last_block_size;k++)
-    {
-        tmp_blocks[((num_blocks+1)*MEMPAK_BLOCK_SIZE)+k] = final_block[k];
-    }
-	
+    *(uint32_t *)(&mempak_data[0]) = compressed_save_size;
+
     int old_entry_existed = 0;
     int old_entry_size = -1;
-	
+
     char *gameid = get_GAMEID();
-	
+    int save_size_in_blocks = SAVE_SIZE_IN_BLOCKS(compressed_save_size) + 1;
+    int gobackid = -1;
+    int gobacksize = -1;
+
     for (int j = 0; j < 16; j++)
     {
         entry_structure_t entry;
-        get_mempak_entry(0, j, &entry);
 
-        int matches = 1;
+        /**
+          * @retval 0 if the entry was read successfully
+          * @retval -1 if the entry is out of bounds or entry_data is null
+          * @retval -2 if the mempak is bad or not present
+          */
+        int rv = get_mempak_entry( 0, j, &entry );
+
+        if (-1 == rv)
+        {
+            sprintf(msg, "entry out of bounds or entry_data null");
+            goto the_end_of_saving;
+        }
+        else if (-2 == rv)
+        {
+            sprintf(msg, "pak bad or not present");
+            goto the_end_of_saving;
+        }
 
         if (entry.valid)
         {
-            for(int lmn = 0; lmn < strlen(gameid)-1; lmn++)
+            int matches = 1;
+            for (int lmn = 0; lmn < strlen(gameid)-1; lmn++)
             {
-                if(gameid[lmn] == '.') break;
-                if(entry.name[lmn] != gameid[lmn]) matches = 0;
+                if (gameid[lmn] == '.')
+                {
+                    break;
+                }
+                if (entry.name[lmn] != gameid[lmn])
+                {
+                    matches = 0;
+                    break;
+                }
             }
 
+            if(!matches) {
+                // FUCK: just nuke it
+                rv = 0;
+                rv |= delete_mempak_entry(0, &entry);
+                continue;
+            }
             if(matches)
             {
-                old_entry_existed = 1;
-                old_entry_size = entry.blocks;
-
-                if (save_size_in_blocks > (available_free_blocks + old_entry_size))
-                {
-                    msg = "Not enough mempak space for new save.";
-  //                I_Error(msg);
-  //                  err = -1;
-                    goto the_end_of_saving;
-                }
-
-                err |= delete_mempak_entry(0, &entry);
-                if( err )
-                {
-                      msg = "Can't remove old data, can't save.";
-//                      I_Error(msg);
-                      goto the_end_of_saving;
-                }
-
-                break;
+                gobackid = j;
+                gobacksize = entry.blocks;
+                continue;
             }
+        }
+    }
+
+    if(gobackid != -1)
+    {
+        old_entry_existed = 1;
+        old_entry_size = gobacksize;
+
+        available_free_blocks = get_mempak_free_space(0);
+        if (0 == available_free_blocks)
+        {
+            sprintf(msg, "Mempak is full. Not saving.");
+            goto the_end_of_saving;
+        }
+
+        if (save_size_in_blocks > (available_free_blocks + old_entry_size))
+        {
+            sprintf(msg,"Not enough mempak space for new save.");
+            goto the_end_of_saving;
+        }
+
+        entry_structure_t entry;
+
+        int rv = get_mempak_entry( 0, gobackid, &entry );
+        rv |= delete_mempak_entry(0, &entry);
+        if (0 != rv)
+        {
+            sprintf(msg,"Can't remove old data, can't save.");
+            goto the_end_of_saving;
         }
     }
 
     entry_structure_t doom_save_entry;
-    doom_save_entry.blocks = total_blocks;
+    doom_save_entry.blocks = save_size_in_blocks;
     doom_save_entry.region = 'A';
-	
+    doom_save_entry.valid = 1;
+    __n64_memset_ZERO_ASM(doom_save_entry.name, '\0', 19);
+    __n64_memset_ZERO_ASM(doom_save_entry.name, ' ', 18);
+
     for (i=0;i<strlen(gameid)-1;i++)
     {
-        if (gameid[i] == '.') break;
+        if (gameid[i] == '.')
+        {
+            break;
+        }
+
         doom_save_entry.name[i] = gameid[i];
     }
 
-    // bug-fix 2017-10-06 12:31 changed get_GAMEID to use static char[16]	
-#if 0
-    // get_GAMEID uses n64_malloc to create the buffer it returns
-    n64_free(gameid);
-#endif
+    rv = 0;
+    rv |= write_mempak_entry_data(0, &doom_save_entry, mempak_data);
 
-    err = 0;
-    err |= write_mempak_entry_data(0, &doom_save_entry, tmp_blocks);
-    if (err)
+/*
+ * @retval 0 if the entry was created and written successfully
+ * @retval -1 if the parameters were invalid or the note has no length
+ * @retval -2 if the mempak wasn't present or was bad
+ * @retval -3 if there was an error writing to the mempak
+ * @retval -4 if there wasn't enough space to store the note
+ * @retval -5 if there is no room in the TOC to add a new entry
+*/
+    if (-1 == rv)
     {
-        msg = "Error saving, all mempak data lost.";
-        goto the_end_of_saving;
+        sprintf(msg,"param invalid or no note len");
     }
-	
- //   n64_free(tmp_blocks);
- //   n64_free(enc);
-	
-the_end_of_saving:
-    gameaction = ga_nothing;
-    savedescription[0] = 0;
+    else if (-2 == rv)
+    {
+        sprintf(msg,"pak not present or bad");
+    }
+    else if (-3 == rv)
+    {
+        sprintf(msg,"error writing to pak");
+    }
+    else if (-4 == rv)
+    {
+        sprintf(msg,"not enough space for note %d", save_size_in_blocks);
+    }
+    else if (-5 == rv)
+    {
+        sprintf(msg,"no room in TOC for new entry");
+    }
 
+the_end_of_saving:
     players[consoleplayer].message = msg;
 
-    if (setsizeneeded)
-    {
-	R_ExecuteSetViewSize();
-    }
+    savedescription[0] = 0;
 
-    // draw the pattern into the back screen
-    R_FillBackScreen ();	
-} 
- 
+	gameaction = ga_nothing;
+
+    if (setsizeneeded)
+        R_ExecuteSetViewSize();
+
+    enable_interrupts();
+}
+
 
 //
 // G_InitNew
@@ -1672,7 +1792,7 @@ void G_DoNewGame (void)
 // The sky texture to be used instead of the F_SKY1 dummy.
 extern  int	skytexture; 
 
-
+extern int current_episode;
 void
 G_InitNew
 ( skill_t	skill,
@@ -1714,7 +1834,7 @@ G_InitNew
 	episode = 3;
     }
     
-
+current_episode = episode;
   
     if (map < 1) 
 	map = 1;
@@ -1764,31 +1884,35 @@ G_InitNew
     viewactive = true;
     
     // set the sky map for the episode
-    if ( gamemode == commercial)
+    if ( gamemode != commercial )
+	{
+		switch (episode) 
+		{ 
+		  case 1: 
+			skytexture = R_TextureNumForName ("SKY1"); 
+			break; 
+		  case 2: 
+			skytexture = R_TextureNumForName ("SKY2"); 
+			break; 
+		  case 3: 
+			skytexture = R_TextureNumForName ("SKY3"); 
+			break; 
+		  case 4:	// Special Edition sky
+			skytexture = R_TextureNumForName ("SKY4");
+			break;
+		} 
+	}
+//    if ( gamemode == commercial)
+	else 
     {
-	skytexture = R_TextureNumForName ("SKY3");
-	if (gamemap < 12)
-	    skytexture = R_TextureNumForName ("SKY1");
-	else
-	    if (gamemap < 21)
-		skytexture = R_TextureNumForName ("SKY2");
-    }
-    else
-	switch (episode) 
-	{ 
-	  case 1: 
-	    skytexture = R_TextureNumForName ("SKY1"); 
-	    break; 
-	  case 2: 
-	    skytexture = R_TextureNumForName ("SKY2"); 
-	    break; 
-	  case 3: 
-	    skytexture = R_TextureNumForName ("SKY3"); 
-	    break; 
-	  case 4:	// Special Edition sky
-	    skytexture = R_TextureNumForName ("SKY4");
-	    break;
-	} 
+		skytexture = R_TextureNumForName ("SKY3");
+		if (gamemap < 12) {
+			skytexture = R_TextureNumForName ("SKY1");
+		}
+		else if (gamemap < 21) {
+			skytexture = R_TextureNumForName ("SKY2");
+		}
+	}
     G_DoLoadLevel (); 
 } 
  
@@ -1902,7 +2026,7 @@ void G_DoPlayDemo (void)
 //      fprintf( stderr, "Demo is from a different game version!\n");
 //      /*I_Error*/printf("Demo is from a different game version!\n");
       gameaction = ga_nothing;
-      return;
+      //return;
     }
     
     skill = *demo_p++; 

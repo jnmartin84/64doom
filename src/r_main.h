@@ -98,12 +98,25 @@ extern	int		detailshift;
 // Function pointers to switch refresh/drawing functions.
 // Used to select shadow mode etc.
 //
-extern void		(*colfunc) (void);
-extern void		(*skycolfunc) (void);
-extern void		(*basecolfunc) (void);
-extern void		(*fuzzcolfunc) (void);
+extern void		(*colfunc) (
+//int yl, int yh, int x
+);
+extern void		(*skycolfunc) (
+//int yl, int yh, int x
+);
+extern void		(*basecolfunc) (
+//int yl, int yh, int x
+);
+extern void		(*fuzzcolfunc) (
+//int yl, int yh, int x
+);
+extern void		(*transcolfunc) (
+//int yl, int yh, int x
+);
 // No shadow effects on floors.
-extern void		(*spanfunc) (void);
+extern void		(*spanfunc) (void
+//int x1, int x2, int y
+);
 
 
 //

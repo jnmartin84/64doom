@@ -57,10 +57,8 @@
 
 #include "m_misc.h"
 
-
 extern void *__n64_memset_ASM(void *p, int v, size_t n);
 extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
-
 
 //
 // M_DrawText
@@ -237,8 +235,8 @@ typedef struct
 default_t	defaults[] =
 {
     {"mouse_sensitivity",&mouseSensitivity, 5},
-    {"sfx_volume",&snd_SfxVolume, 9},
-    {"music_volume",&snd_MusicVolume, 9},
+    {"sfx_volume",&snd_SfxVolume, 15 - 3},
+    {"music_volume",&snd_MusicVolume, 15 - 7},
     {"show_messages",&showMessages, 1},
     
 
@@ -286,8 +284,8 @@ default_t	defaults[] =
 
 
 
-    {"usegamma",&usegamma, 2},
-
+    {"usegamma",&usegamma, 0},
+/*
     {"chatmacro0", (int *) &chat_macros[0], (int) HUSTR_CHATMACRO0 },
     {"chatmacro1", (int *) &chat_macros[1], (int) HUSTR_CHATMACRO1 },
     {"chatmacro2", (int *) &chat_macros[2], (int) HUSTR_CHATMACRO2 },
@@ -298,7 +296,7 @@ default_t	defaults[] =
     {"chatmacro7", (int *) &chat_macros[7], (int) HUSTR_CHATMACRO7 },
     {"chatmacro8", (int *) &chat_macros[8], (int) HUSTR_CHATMACRO8 },
     {"chatmacro9", (int *) &chat_macros[9], (int) HUSTR_CHATMACRO9 }
-
+*/
 };
 
 int	numdefaults;

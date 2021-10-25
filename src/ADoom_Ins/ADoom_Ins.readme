@@ -1,0 +1,34 @@
+Short:    New better MIDI-Instruments for ADoom
+Uploader: zrx.oms@sci.fi (Zer0-X/o'Moses)
+Author:   zrx.oms@sci.fi (Zer0-X/o'Moses)
+Type:     game/shoot
+
+These new MIDI-Instruments for ADoom should sound yet even more better than
+the ones made by Joseph Fenton.  They also need some more disk space and
+memory though (over 4 megs unarchived).
+
+!! Just for a little test, try out the level 8 in episode 1 from Shareware,
+Registered or Ultimate Doom, (Cheat: IDCLEV18) to compare the sets ;=) !!
+
+
+I created this using the samples taken from Christian Buchner's GMPlay V1.3
+archive.  (Hope you don't mind :)
+
+To use it, unpack the archive into your ADoom directory, overwriting the
+(possibly) existing old MIDI_Instruments file (no source is included). Then
+start ADoom with the -music option or MUSIC icon tooltype.
+
+
+Little info about the samples:
+
+- The original ones in GMPlay V1.3 were in 8bit, 44100 Hz, mono, and I have
+  converted them into 11025 Hz.
+
+- The end from some samples has been cropped to save disk space and memory
+  a bit since who needs the silence in the end of them.
+
+- All the neccessary samples have been (hopefully) correctly looped.
+
+- Basenote-levels are (hopefully) set correctly according to GMPlay V1.3.
+
+- A little over 12 hours of work has gone into this.

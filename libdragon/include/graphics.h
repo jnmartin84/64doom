@@ -53,6 +53,25 @@ typedef struct
     uint32_t data[0];
 } sprite_t;
 
+
+/** @brief Sprite structure */
+typedef struct
+{
+    /** @brief Width in pixels */
+    uint16_t width;
+    /** @brief Height in pixels */
+    uint16_t height;
+    /** 
+     * @brief Bit depth expressed in bytes
+     *
+     * A 32 bit sprite would have a value of '4' here
+     */
+    uint8_t bitdepth;
+    /** @brief Start of graphics data */
+    void *data;
+} mutable_sprite_t;
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif

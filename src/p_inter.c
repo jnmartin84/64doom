@@ -74,14 +74,14 @@ boolean P_GiveAmmo(player_t* player, ammotype_t ammo, int num)
     {
 	return false;
     }
-
+#ifdef RANGECHECK
     if (ammo < 0 || ammo > NUMAMMO)
     {
 	char ermac[256];
         sprintf(ermac, "P_GiveAmmo: bad type %i", ammo);
 	I_Error(ermac);
     }
-
+#endif
     if (player->ammo[ammo] == player->maxammo[ammo])
     {
 	return false;
@@ -654,9 +654,10 @@ P_TouchSpecialThing
 	player->message = GOTSHOTGUN2;
 	sound = sfx_wpnup;	
 	break;
-		
+#ifdef RANGECHECK
       default:
 	I_Error ("P_TouchSpecialThing: Unknown gettable thing");
+#endif
     }
 	
     if (special->flags & MF_COUNTITEM)

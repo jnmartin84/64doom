@@ -28,7 +28,7 @@
 #ifdef __GNUG__
 #pragma interface
 #endif
-
+#include <inttypes.h>
 
 //
 // Fixed point, 32bit as 16.16.
@@ -41,11 +41,17 @@
 
 typedef int fixed_t;
 
-fixed_t FixedMul	(fixed_t a, fixed_t b);
-fixed_t FixedDiv	(fixed_t a, fixed_t b);
-fixed_t FixedDiv2	(fixed_t a, fixed_t b);
+static inline fixed_t __attribute__((always_inline)) FixedMul(fixed_t a, fixed_t b)
+{
+    return (fixed_t)(((uint64_t)((uint64_t)a*(uint64_t)b))>>16);
+}
 
-
+static inline fixed_t __attribute__((always_inline)) FixedDiv(fixed_t a, fixed_t b)
+{
+    long long c;
+    c = ((long long)a<<16) / ((long long)b);
+    return (fixed_t) c;
+}
 
 #endif
 //-----------------------------------------------------------------------------

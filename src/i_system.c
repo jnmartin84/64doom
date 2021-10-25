@@ -51,10 +51,13 @@ extern void DebugOutput_String_For_IError(const char *str, int lineNumber, int g
 extern void *__n64_memset_ASM(void *p, int v, size_t n);
 extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
+#define USE_TIMER 0
 
-unsigned long change_ticrate = TICRATE;
+#if USE_TIMER
+static volatile uint64_t timekeeping;
+#endif
 
-int	mb_used = 4;
+int	kb_used = (4096+1024);
 int	based_zone = 0;
 
 
@@ -66,12 +69,11 @@ void I_Tactile(int on, int off, int total)
 
 
 ticcmd_t	emptycmd;
-inline ticcmd_t*	I_BaseTiccmd(void)
+inline ticcmd_t* I_BaseTiccmd(void)
 {
     return &emptycmd;
 }
 
-extern unsigned int Z_ZoneSize(void);
 
 int I_GetHeapSize(void)
 {
@@ -80,7 +82,7 @@ int I_GetHeapSize(void)
         return 0;
     }
 
-    return mb_used*1024*1024;
+    return kb_used*1024;
 }
 
 
@@ -88,24 +90,9 @@ byte* I_ZoneBase(int* size)
 {
     based_zone = 1;
 
-    *size = mb_used*1024*1024;
+    *size = kb_used*1024;
 
     return (byte *)n64_malloc(*size);
-}
-
-
-static unsigned long t0;
-
-
-double get_elapsed_seconds(void)
-{
-    return (double)(get_ticks() / COUNTS_PER_SECOND);//(double)(get_ticks_ms()) / 1000.0;
-}
-
-
-unsigned long get_doom_ticks(void)
-{
-    return (get_ticks_ms() * TICRATE) / 1000L;//2294 >> 16;
 }
 
 
@@ -115,8 +102,19 @@ unsigned long get_doom_ticks(void)
 //
 unsigned long I_GetTime(void)
 {
-    return (get_ticks_ms() * TICRATE) / 1000L; //get_doom_ticks();
+#if USE_TIMER
+    return timekeeping>>1;
+#else
+    return (get_ticks_ms() * TICRATE) / 1000L;
+#endif
 }
+
+
+#if USE_TIMER
+void tickercb(int o, int a, int b, int c) {
+	timekeeping++;
+}
+#endif
 
 
 //
@@ -126,10 +124,16 @@ void I_Init(void)
 {
     I_InitSound();
     I_InitMusic();
-    t0 = get_doom_ticks();
+
+#if USE_TIMER
+    timer_init();
+    timekeeping = 0;
+    new_timer(669643, TF_CONTINUOUS, 0, 0, 0, tickercb);
+#endif
 }
 
 int return_from_D_DoomMain = 0;
+
 //
 // I_Quit
 //
@@ -140,8 +144,7 @@ void I_Quit(void)
     I_ShutdownMusic();
     M_SaveDefaults();
     I_ShutdownGraphics();
-//    exit(0);
-return_from_D_DoomMain = 1;
+    return_from_D_DoomMain = 1;
 }
 
 
@@ -158,7 +161,7 @@ void n64_sleep_millis(int count)
 
 void I_WaitVBL(int count)
 {
-    n64_sleep_millis(count / change_ticrate);
+//    n64_sleep_millis(count / TICRATE);
 }
 
 
@@ -187,45 +190,51 @@ byte* I_AllocLow(int length)
 //
 extern boolean demorecording;
 
+// for IError
+char errstr[256];
+
 
 void I_Error(char *error)
 {
-//    printf("%s\n", error);
-//	printf("...\n");
+    unlockVideo(_dc);
+    _dc = lockVideo(1);
     DebugOutput_String_For_IError(error, 0, 0);
-		unlockVideo(_dc);
-		_dc = lockVideo(1);
+    unlockVideo(_dc);
+    _dc = lockVideo(1);
     DebugOutput_String_For_IError(error, 0, 0);
-		unlockVideo(_dc);
-		
-    while(1)
-    {}
+    unlockVideo(_dc);
+    _dc = lockVideo(1);
+    DebugOutput_String_For_IError(error, 0, 0);
+    unlockVideo(_dc);
+    _dc = lockVideo(1);
+    DebugOutput_String_For_IError(error, 0, 0);
+    unlockVideo(_dc);
+    _dc = lockVideo(1);
+    DebugOutput_String_For_IError(error, 0, 0);
+    unlockVideo(_dc);
+    _dc = lockVideo(1);
+    DebugOutput_String_For_IError(error, 0, 0);
+    unlockVideo(_dc);
 
-#if 0
     D_QuitNetGame();
     I_ShutdownGraphics();
+
+#if 1
+    while (1)
+    {}
+#elif 0
     exit(-1);
 #endif
 }
 
 void I_Warn(char *error)
 {
-#if 1
-//    char ermac[512] = {'\0'};
-//    sprintf(ermac, "%s", error);
-
     DebugOutput_String_For_IError(error, 0, 1);
-		unlockVideo(_dc);
-		_dc = lockVideo(1);
+    unlockVideo(_dc);
+    _dc = lockVideo(1);
     DebugOutput_String_For_IError(error, 0, 1);
-		unlockVideo(_dc);
+    unlockVideo(_dc);
 
-    while(1)
+    while (1)
     {}
-    //n64_sleep_millis(250*1);
-
-//    D_QuitNetGame();
-//    I_ShutdownGraphics();
-//    exit(-1);
-#endif
 }

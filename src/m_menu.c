@@ -22,7 +22,7 @@
 //	Sliders and icons. Kinda widget stuff.
 //
 //-----------------------------------------------------------------------------
-
+extern int dobg;
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -61,9 +61,10 @@
 
 #include "m_menu.h"
 
-
 extern void *__n64_memset_ASM(void *p, int v, size_t n);
 extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
+extern void *__safe_buffer[];
+extern display_context_t _dc;
 
 
 extern byte *screens[];
@@ -81,30 +82,32 @@ int			mouseSensitivity;       // has default
 
 // Show messages has default, 0 = off, 1 = on
 int			showMessages;
-	
+
+// Anti-aliasing, has default, 0 = off, 1 = on
+int aaSetting = 1;
 
 // Blocky mode, has default, 0 = high, 1 = normal
-int			detailLevel;		
+int			detailLevel;
 int			screenblocks;		// has default
 
 // temp for screenblocks (0-9)
-int			screenSize;		
+int			screenSize;
 
 // -1 = no quicksave slot picked!
-int			quickSaveSlot;          
+int			quickSaveSlot;
 
  // 1 = message to be printed
 int			messageToPrint;
 // ...and here is the message string!
-char*			messageString;		
+char*			messageString;
 
 // message x & y
-int			messx;			
+int			messx;
 int			messy;
 int			messageLastMenuActive;
 
 // timed message = no input from user
-boolean			messageNeedsInput;     
+boolean			messageNeedsInput;
 
 void    (*messageRoutine)(int response);
 
@@ -120,11 +123,11 @@ char gammamsg[5][26] =
 };
 
 // we are going to be entering a savegame string
-int			saveStringEnter;              
+int			saveStringEnter;
 int             	saveSlot;	// which slot to save in
 int			saveCharIndex;	// which char we're editing
 // old save description before edit
-char			saveOldString[SAVESTRINGSIZE];  
+char			saveOldString[SAVESTRINGSIZE];
 
 boolean			inhelpscreens;
 boolean			menuactive;
@@ -196,6 +199,7 @@ void M_ReadThis2(int choice);
 void M_QuitDOOM(int choice);
 void M_Cheat(int choice);
 
+void M_VideoSettings(int choice);
 void M_ChangeMessages(int choice);
 void M_ChangeSensitivity(int choice);
 void M_SfxVol(int choice);
@@ -221,6 +225,13 @@ void M_DrawOptions(void);
 void M_DrawSound(void);
 void M_DrawLoad(void);
 void M_DrawSave(void);
+void M_DrawVideoSettings(void);
+#if SCREENWIDTH == 640
+void M_AntiAliasing(int choice);
+#endif
+#if SCREENWIDTH == 320
+void M_AdjustGamma(int choice);
+#endif
 
 void M_DrawSaveLoadBorder(int x,int y);
 void M_SetupNextMenu(menu_t *menudef);
@@ -234,8 +245,6 @@ void M_StartControlPanel(void);
 void M_StartMessage(char *string,void *routine,boolean input);
 void M_StopMessage(void);
 void M_ClearMenus (void);
-
-
 
 
 //
@@ -337,7 +346,6 @@ menu_t  NewDef =
 };
 
 
-
 //
 // OPTIONS MENU
 //
@@ -345,9 +353,10 @@ enum
 {
     endgame,
     messages,
-    detail,
-    scrnsize,
-    option_empty1,
+ //   detail,
+ //   scrnsize,
+    videoset,
+//	option_empty1,
     mousesens,
     option_empty2,
     soundvol,
@@ -358,9 +367,9 @@ menuitem_t OptionsMenu[]=
 {
     {1,"M_ENDGAM",	M_EndGame,'e'},
     {1,"M_MESSG",	M_ChangeMessages,'m'},
-    {1,"M_DETAIL",	M_ChangeDetail,'g'},
-    {2,"M_SCRNSZ",	M_SizeDisplay,'s'},
-    {-1,"",0},
+	{1,"X_VIDSET", M_VideoSettings,'v'},
+	//{1,"M_DETAIL",	M_ChangeDetail,'g'},
+    //{2,"M_SCRNSZ",	M_SizeDisplay,'s'},
     {2,"M_MSENS",	M_ChangeSensitivity,'m'},
     {-1,"",0},
     {1,"M_SVOL",	M_Sound,'s'}
@@ -372,6 +381,44 @@ menu_t  OptionsDef =
     &MainDef,
     OptionsMenu,
     M_DrawOptions,
+    60,37,
+    0
+};
+// VIDEO SETTINGS menu
+enum
+{
+    detail,
+    scrnsize,
+    vid_empty0,
+#if SCREENWIDTH == 320
+    gamma,
+	vid_empty1,
+#endif
+#if SCREENWIDTH == 640
+    aa,
+#endif
+    vid_end
+} videoset_e;
+
+menuitem_t VideoSettingsMenu[]=
+{
+	{1,"X_RESOLU",	M_ChangeDetail,'g'},
+    {2,"M_SCRNSZ",	M_SizeDisplay,'s'},
+    {-1,"",0},
+#if SCREENWIDTH == 320
+	{2,"X_GAMMA",	M_AdjustGamma,'a'},
+    {-1,"",0},
+#endif
+#if SCREENWIDTH == 640
+	{1,"X_AA",	M_AntiAliasing,'a'},
+#endif
+};
+menu_t  VideoSettingsDef =
+{
+    vid_end,
+    &OptionsDef,
+    VideoSettingsMenu,
+    M_DrawVideoSettings,
     60,37,
     0
 };
@@ -522,7 +569,7 @@ void M_ReadSaveStrings(void)
     int             count;
     int             i;
 //    char    name[256];
-	
+
     for (i = 0;i < load_end;i++)
     {
 /*	if (M_CheckParm("-cdrom"))
@@ -573,7 +620,7 @@ void M_ReadSaveStrings(void)
 void M_DrawLoad(void)
 {
     int             i;
-	
+
     V_DrawPatchDirect (72,28,0,W_CacheLumpName("M_LOADG",PU_CACHE));
     for (i = 0;i < load_end; i++)
     {
@@ -590,9 +637,9 @@ void M_DrawLoad(void)
 void M_DrawSaveLoadBorder(int x,int y)
 {
     int             i;
-	
+
     V_DrawPatchDirect (x-8,y+7,0,W_CacheLumpName("M_LSLEFT",PU_CACHE));
-	
+
     for (i = 0;i < 24;i++)
     {
 	V_DrawPatchDirect (x,y+7,0,W_CacheLumpName("M_LSCNTR",PU_CACHE));
@@ -626,10 +673,10 @@ void M_LoadGame (int choice)
 {
     if (netgame)
     {
-	M_StartMessage(LOADNET,NULL,false);
+	M_StartMessage(LOADNET,(void*)NULL,false);
 	return;
     }
-	
+
     M_SetupNextMenu(&LoadDef);
     M_ReadSaveStrings();
 }
@@ -641,14 +688,14 @@ void M_LoadGame (int choice)
 void M_DrawSave(void)
 {
     int             i;
-	
+
     V_DrawPatchDirect (72,28,0,W_CacheLumpName("M_SAVEG",PU_CACHE));
     for (i = 0;i < load_end; i++)
     {
 	M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
 	M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*i,savegamestrings[i]);
     }
-	
+
     if (saveStringEnter)
     {
 	i = M_StringWidth(savegamestrings[saveSlot]);
@@ -676,7 +723,7 @@ void M_SaveSelect(int choice)
 {
     // we are going to be intercepting all chars
     saveStringEnter = 1;
-    
+
     saveSlot = choice;
     strcpy(saveOldString,savegamestrings[choice]);
     if (!strcmp(savegamestrings[choice],EMPTYSTRING))
@@ -691,13 +738,13 @@ void M_SaveGame (int choice)
 {
     if (!usergame)
     {
-	M_StartMessage(SAVEDEAD,NULL,false);
+	M_StartMessage(SAVEDEAD,(void*)NULL,false);
 	return;
     }
-	
+
     if (gamestate != GS_LEVEL)
 	return;
-	
+
     M_SetupNextMenu(&SaveDef);
     M_ReadSaveStrings();
 }
@@ -728,7 +775,7 @@ void M_QuickSave(void)
 
     if (gamestate != GS_LEVEL)
 	return;
-	
+
     if (quickSaveSlot < 0)
     {
 	M_StartControlPanel();
@@ -738,7 +785,7 @@ void M_QuickSave(void)
 	return;
     }
     sprintf(tempstring,QSPROMPT,savegamestrings[quickSaveSlot]);
-    M_StartMessage(tempstring,M_QuickSaveResponse,true);
+    M_StartMessage(tempstring,(void *)M_QuickSaveResponse,true);
 }
 
 
@@ -760,17 +807,17 @@ void M_QuickLoad(void)
 {
     if (netgame)
     {
-	M_StartMessage(QLOADNET,NULL,false);
+	M_StartMessage(QLOADNET,(void*)NULL,false);
 	return;
     }
-	
+
     if (quickSaveSlot < 0)
     {
 	M_StartMessage(QSAVESPOT,NULL,false);
 	return;
     }
     sprintf(tempstring,QLPROMPT,savegamestrings[quickSaveSlot]);
-    M_StartMessage(tempstring,M_QuickLoadResponse,true);
+    M_StartMessage(tempstring,(void*)M_QuickLoadResponse,true);
 }
 
 
@@ -857,7 +904,7 @@ void M_SfxVol(int choice)
 	    snd_SfxVolume++;
 	break;
     }
-	
+
     S_SetSfxVolume(snd_SfxVolume /* *8 */);
 }
 
@@ -874,7 +921,7 @@ void M_MusicVol(int choice)
 	    snd_MusicVolume++;
 	break;
     }
-	
+
     S_SetMusicVolume(snd_MusicVolume /* *8 */);
 }
 
@@ -910,10 +957,10 @@ void M_NewGame(int choice)
 {
     if (netgame && !demoplayback)
     {
-	M_StartMessage(NEWGAME,NULL,false);
+	M_StartMessage(NEWGAME,(void*)NULL,false);
 	return;
     }
-	
+
     if ( gamemode == commercial )
 	M_SetupNextMenu(&NewDef);
     else
@@ -935,7 +982,7 @@ void M_VerifyNightmare(int ch)
 {
 //    if (ch != 'y')
 //	return;
-		
+
     G_DeferedInitNew(nightmare,epi+1,1);
     M_ClearMenus ();
 }
@@ -944,10 +991,10 @@ void M_ChooseSkill(int choice)
 {
     if (choice == nightmare)
     {
-	M_StartMessage(NIGHTMARE,M_VerifyNightmare,true);
+	M_StartMessage(NIGHTMARE,(void*)M_VerifyNightmare,true);
 	return;
     }
-	
+
     G_DeferedInitNew(choice,epi+1,1);
     M_ClearMenus ();
 }
@@ -957,7 +1004,7 @@ void M_Episode(int choice)
     if ( (gamemode == shareware)
 	 && choice)
     {
-	M_StartMessage(SWSTRING,NULL,false);
+	M_StartMessage(SWSTRING,(void*)NULL,false);
 	M_SetupNextMenu(&ReadDef1);
 	return;
     }
@@ -970,7 +1017,7 @@ void M_Episode(int choice)
 	       "M_Episode: 4th episode requires UltimateDOOM\n");
       choice = 0;
     }
-	 
+
     epi = choice;
     M_SetupNextMenu(&NewDef);
 }
@@ -980,25 +1027,83 @@ void M_Episode(int choice)
 //
 // M_Options
 //
+char    aaNames[2][9]       = {"X_AAOFF","X_AAON"};
 char    detailNames[2][9]	= {"M_GDHIGH","M_GDLOW"};
+char    resolutionNames[2][9] = {"X_RZHIGH","X_RZLOW"};
 char	msgNames[2][9]		= {"M_MSGOFF","M_MSGON"};
 
+#if SCREENWIDTH == 640
+void M_AntiAliasing(int choice) {
+    aaSetting = 1 - aaSetting;
+
+    if (aaSetting)
+    {
+        display_close();
+	display_init(RESOLUTION_640x480, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
+    }
+    else
+    {
+        display_close();
+	display_init(RESOLUTION_640x480, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_OFF);
+    }
+}
+#endif
+
+#if SCREENWIDTH == 320
+void M_AdjustGamma(int choice)
+{
+    switch (choice)
+    {
+        case 0:
+	    if (usegamma)
+	        usegamma--;
+	    break;
+        case 1:
+            if (usegamma < 4)
+                usegamma++;
+            break;
+    }
+
+    I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
+}
+#endif
+
+void M_DrawVideoSettings(void)
+{
+    V_DrawPatchDirect (70,15,0,W_CacheLumpName("X_VIDTTL",PU_CACHE));
+
+#if SCREENWIDTH == 640
+    V_DrawPatchDirect (VideoSettingsDef.x + 162,VideoSettingsDef.y+LINEHEIGHT*(aa),0,
+                       W_CacheLumpName(aaNames[aaSetting],PU_CACHE));
+#endif
+
+    V_DrawPatchDirect (VideoSettingsDef.x + 140,VideoSettingsDef.y+LINEHEIGHT*(detail),0,
+                       W_CacheLumpName(resolutionNames[detailLevel],PU_CACHE));
+
+    M_DrawThermo(VideoSettingsDef.x,VideoSettingsDef.y+LINEHEIGHT*(scrnsize+1),
+                 9,screenSize);
+
+#if SCREENWIDTH == 320
+    M_DrawThermo(VideoSettingsDef.x,VideoSettingsDef.y+LINEHEIGHT*(gamma+1),
+                 5,usegamma);
+#endif
+}
+
+
+void M_VideoSettings(int choice)
+{
+    M_SetupNextMenu(&VideoSettingsDef);
+}
 
 void M_DrawOptions(void)
 {
     V_DrawPatchDirect (108,15,0,W_CacheLumpName("M_OPTTTL",PU_CACHE));
-	
-    V_DrawPatchDirect (OptionsDef.x + 175,OptionsDef.y+LINEHEIGHT*detail,0,
-		       W_CacheLumpName(detailNames[detailLevel],PU_CACHE));
 
     V_DrawPatchDirect (OptionsDef.x + 120,OptionsDef.y+LINEHEIGHT*messages,0,
 		       W_CacheLumpName(msgNames[showMessages],PU_CACHE));
 
     M_DrawThermo(OptionsDef.x,OptionsDef.y+LINEHEIGHT*(mousesens+1),
 		 10,mouseSensitivity);
-	
-    M_DrawThermo(OptionsDef.x,OptionsDef.y+LINEHEIGHT*(scrnsize+1),
-		 9,screenSize);
 }
 
 void M_Options(int choice)
@@ -1016,7 +1121,7 @@ void M_ChangeMessages(int choice)
     // warning: unused parameter `int choice'
     choice = 0;
     showMessages = 1 - showMessages;
-	
+
     if (!showMessages)
 	players[consoleplayer].message = MSGOFF;
     else
@@ -1033,7 +1138,7 @@ void M_EndGameResponse(int ch)
 {
 //    if (ch != 'y')
 //	return;
-		
+
     currentMenu->lastOn = itemOn;
     M_ClearMenus ();
     D_StartTitle ();
@@ -1047,14 +1152,14 @@ void M_EndGame(int choice)
 	S_StartSound(NULL,sfx_oof);
 	return;
     }
-	
+
     if (netgame)
     {
-	M_StartMessage(NETEND,NULL,false);
+	M_StartMessage(NETEND,(void*)NULL,false);
 	return;
     }
-	
-    M_StartMessage(ENDGAME,M_EndGameResponse,true);
+
+    M_StartMessage(ENDGAME,(void*)M_EndGameResponse,true);
 }
 
 
@@ -1140,9 +1245,9 @@ void M_QuitDOOM(int choice)
     sprintf(endstring,"%s\n\n"DOSY, endmsg[0] );
   else
     sprintf(endstring,"%s\n\n"DOSY, endmsg[ (gametic%(NUM_QUITMESSAGES-2))+1 ]);
-  
-  //M_StartMessage(endstring,M_QuitResponse,true);
-M_QuitResponse('y');
+
+  M_StartMessage(endstring,(void*)M_QuitResponse,true);
+//M_QuitResponse('y');
 }
 
 
@@ -1170,12 +1275,44 @@ void M_ChangeDetail(int choice)
 {
     detailLevel = 1 - detailLevel;
 
+    if (!detailLevel)
+    {
+	for (int i=0;i<9;i++)
+	{
+            M_SizeDisplay(1);
+	}
+
+	M_SizeDisplay(0);
+
+#if SCREENWIDTH == 640
+	M_SizeDisplay(0);
+	M_SizeDisplay(0);
+#endif
+    }
+    else
+    {
+	for (int i=0;i<9;i++)
+	{
+            M_SizeDisplay(1);
+	}
+	M_SizeDisplay(0);
+    }
+
     R_SetViewSize (screenblocks, detailLevel);
 
     if (!detailLevel)
-	players[consoleplayer].message = DETAILHI;
+        players[consoleplayer].message = DETAILHI;
     else
-	players[consoleplayer].message = DETAILLO;
+        players[consoleplayer].message = DETAILLO;
+
+    R_SetViewSize (screenblocks, detailLevel);
+#if SCREENWIDTH == 320
+    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[0]) + (2 * 20 * 320), 0, 320*2*200);
+    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[1]) + (2 * 20 * 320), 0, 320*2*200);
+#elif SCREENWIDTH == 640
+    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[0] + (40*640*2)), 0, 640*2*400);
+    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[1] + (40*640*2)), 0, 640*2*400);
+#endif
 }
 
 
@@ -1200,12 +1337,10 @@ void M_SizeDisplay(int choice)
 	}
 	break;
     }
-	
+
 
     R_SetViewSize (screenblocks, detailLevel);
 }
-
-
 
 
 //
@@ -1289,7 +1424,7 @@ int M_StringWidth(char* string)
     int             i;
     int             w = 0;
     int             c;
-	
+
     for (i = 0;i < strlen(string);i++)
     {
 	c = toupper(string[i]) - HU_FONTSTART;
@@ -1298,7 +1433,7 @@ int M_StringWidth(char* string)
 	else
 	    w += SHORT (hu_font[c]->width);
     }
-		
+
     return w;
 }
 
@@ -1312,12 +1447,12 @@ int M_StringHeight(char* string)
     int             i;
     int             h;
     int             height = SHORT(hu_font[0]->height);
-	
+
     h = height;
     for (i = 0;i < strlen(string);i++)
 	if (string[i] == '\n')
 	    h += height;
-		
+
     return h;
 }
 
@@ -1336,12 +1471,12 @@ M_WriteText
     int		c;
     int		cx;
     int		cy;
-		
+
 
     ch = string;
     cx = x;
     cy = y;
-	
+
     while(1)
     {
 	c = *ch++;
@@ -1353,14 +1488,14 @@ M_WriteText
 	    cy += 12;
 	    continue;
 	}
-		
+
 	c = toupper(c) - HU_FONTSTART;
 	if (c < 0 || c>= HU_FONTSIZE)
 	{
 	    cx += 4;
 	    continue;
 	}
-		
+
 	w = SHORT (hu_font[c]->width);
 	if (cx+w > SCREENWIDTH)
 	    break;
@@ -1374,23 +1509,6 @@ M_WriteText
 //
 // CONTROL PANEL
 //
-
-/*display_context_t lockVideo(int wait)
-{
-    display_context_t dc;
-
-    if (wait)
-        while (!(dc = display_lock()));
-    else
-        dc = display_lock();
-    return dc;
-}
-
-void unlockVideo(display_context_t dc) {
-        if(dc) {
-                display_show(dc);
-        }
-}*/
 
 
 //
@@ -1406,9 +1524,9 @@ boolean M_Responder (event_t* ev)
     static  int     lasty = 0;
     static  int     mousex = 0;
     static  int     lastx = 0;
-	
+
     ch = -1;
-	
+
     if (ev->type == ev_joystick && joywait < I_GetTime())
     {
 	if (ev->data3 == -1)
@@ -1421,7 +1539,7 @@ boolean M_Responder (event_t* ev)
 	    ch = KEY_DOWNARROW;
 	    joywait = I_GetTime() + 5;
 	}
-		
+
 	if (ev->data2 == -1)
 	{
 	    ch = KEY_LEFTARROW;
@@ -1432,7 +1550,7 @@ boolean M_Responder (event_t* ev)
 	    ch = KEY_RIGHTARROW;
 	    joywait = I_GetTime() + 2;
 	}
-		
+
 	if (ev->data1&1)
 	{
 	    ch = KEY_ENTER;
@@ -1461,7 +1579,7 @@ boolean M_Responder (event_t* ev)
 		mousewait = I_GetTime() + 5;
 		mousey = lasty += 30;
 	    }
-		
+
 	    mousex += ev->data2;
 	    if (mousex < lastx-30)
 	    {
@@ -1475,13 +1593,13 @@ boolean M_Responder (event_t* ev)
 		mousewait = I_GetTime() + 5;
 		mousex = lastx += 30;
 	    }
-		
+
 	    if (ev->data1&1)
 	    {
 		ch = KEY_ENTER;
 		mousewait = I_GetTime() + 15;
 	    }
-			
+
 	    if (ev->data1&2)
 	    {
 		ch = KEY_BACKSPACE;
@@ -1494,11 +1612,11 @@ boolean M_Responder (event_t* ev)
 		ch = ev->data1;
 	    }
     }
-    
+
     if (ch == -1)
 	return false;
 
-    
+
     // Save Game string input
     if (saveStringEnter)
     {
@@ -1511,18 +1629,18 @@ boolean M_Responder (event_t* ev)
 		savegamestrings[saveSlot][saveCharIndex] = 0;
 	    }
 	    break;
-				
+
 	  case KEY_ESCAPE:
 	    saveStringEnter = 0;
 	    strcpy(&savegamestrings[saveSlot][0],saveOldString);
 	    break;
-				
+
 	  case KEY_ENTER:
 	    saveStringEnter = 0;
 	    if (savegamestrings[saveSlot][0])
 		M_DoSave(saveSlot);
 	    break;
-				
+
 	  default:
 	    ch = toupper(ch);
 	    if (ch != 32)
@@ -1540,37 +1658,33 @@ boolean M_Responder (event_t* ev)
 	}
 	return true;
     }
-    
+
     // Take care of any messages that need input
     if (messageToPrint)
     {
 	if (messageNeedsInput == true &&
 	    !(ch == ' ' || ch == 'n' || ch == 'y' || ch == KEY_ESCAPE))
 	    return false;
-		
+
 	menuactive = messageLastMenuActive;
 	messageToPrint = 0;
-/*	if (messageRoutine)
-        {
-	display_context_t _dc = lockVideo(1);
-	graphics_draw_text(_dc, 0, 0, "messageRoutine(ch)\n");
+	if (messageRoutine)
+    {
 	    messageRoutine(ch);
-	graphics_draw_text(_dc, 0, 8, "messageRoutine(ch)\n");
-	unlockVideo(_dc);
-        }*/
-			
+    }
+
 	menuactive = false;
 	S_StartSound(NULL,sfx_swtchx);
 	return true;
     }
-	
+
     if (devparm && ch == KEY_F1)
     {
 	G_ScreenShot ();
 	return true;
     }
-		
-    
+
+
     // F-Keys
     if (!menuactive)
 	switch(ch)
@@ -1581,14 +1695,14 @@ boolean M_Responder (event_t* ev)
 	    M_SizeDisplay(0);
 	    S_StartSound(NULL,sfx_stnmov);
 	    return true;
-				
+
 	  case KEY_EQUALS:        // Screen size up
 	    if (automapactive || chat_on)
 		return false;
 	    M_SizeDisplay(1);
 	    S_StartSound(NULL,sfx_stnmov);
 	    return true;
-				
+
 	  case KEY_F1:            // Help key
 	    M_StartControlPanel ();
 
@@ -1596,60 +1710,60 @@ boolean M_Responder (event_t* ev)
 	      currentMenu = &ReadDef2;
 	    else
 	      currentMenu = &ReadDef1;
-	    
+
 	    itemOn = 0;
 	    S_StartSound(NULL,sfx_swtchn);
 	    return true;
-				
+
 	  case KEY_F2:            // Save
 	    M_StartControlPanel();
 	    S_StartSound(NULL,sfx_swtchn);
 	    M_SaveGame(0);
 	    return true;
-				
+
 	  case KEY_F3:            // Load
 	    M_StartControlPanel();
 	    S_StartSound(NULL,sfx_swtchn);
 	    M_LoadGame(0);
 	    return true;
-				
+
 	  case KEY_F4:            // Sound Volume
 	    M_StartControlPanel ();
 	    currentMenu = &SoundDef;
 	    itemOn = sfx_vol;
 	    S_StartSound(NULL,sfx_swtchn);
 	    return true;
-				
+
 	  case KEY_F5:            // Detail toggle
 	    M_ChangeDetail(0);
 	    S_StartSound(NULL,sfx_swtchn);
 	    return true;
-				
+
 	  case KEY_F6:            // Quicksave
 	    S_StartSound(NULL,sfx_swtchn);
 	    M_QuickSave();
 	    return true;
-				
+
 	  case KEY_F7:            // End game
 	    S_StartSound(NULL,sfx_swtchn);
 	    M_EndGame(0);
 	    return true;
-				
+
 	  case KEY_F8:            // Toggle messages
 	    M_ChangeMessages(0);
 	    S_StartSound(NULL,sfx_swtchn);
 	    return true;
-				
+
 	  case KEY_F9:            // Quickload
 	    S_StartSound(NULL,sfx_swtchn);
 	    M_QuickLoad();
 	    return true;
-				
+
 	  case KEY_F10:           // Quit DOOM
 	    S_StartSound(NULL,sfx_swtchn);
 	    M_QuitDOOM(0);
 	    return true;
-				
+
 	  case KEY_F11:           // gamma toggle
 	    usegamma++;
 	    if (usegamma > 4)
@@ -1657,10 +1771,10 @@ boolean M_Responder (event_t* ev)
 	    players[consoleplayer].message = gammamsg[usegamma];
 	    I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
 	    return true;
-				
+
 	}
 
-    
+
     // Pop-up menu?
     if (!menuactive)
     {
@@ -1684,6 +1798,7 @@ boolean M_Responder (event_t* ev)
 		itemOn = 0;
 	    else itemOn++;
 	    S_StartSound(NULL,sfx_pstop);
+		dobg = 0;
 	} while(currentMenu->menuitems[itemOn].status==-1);
 	return true;
 		
@@ -1694,6 +1809,7 @@ boolean M_Responder (event_t* ev)
 		itemOn = currentMenu->numitems-1;
 	    else itemOn--;
 	    S_StartSound(NULL,sfx_pstop);
+		dobg = 0;
 	} while(currentMenu->menuitems[itemOn].status==-1);
 	return true;
 
@@ -1737,6 +1853,7 @@ boolean M_Responder (event_t* ev)
 	currentMenu->lastOn = itemOn;
 	M_ClearMenus ();
 	S_StartSound(NULL,sfx_swtchx);
+	dobg = 0;
 	return true;
 		
       case KEY_BACKSPACE:
@@ -1847,9 +1964,10 @@ void M_Drawer (void)
 
     for (i=0;i<max;i++)
     {
-	if (currentMenu->menuitems[i].name[0])
+	if (currentMenu->menuitems[i].name[0]) {
 	    V_DrawPatchDirect (x,y,0,
 			       W_CacheLumpName(currentMenu->menuitems[i].name ,PU_CACHE));
+	}
 	y += LINEHEIGHT;
     }
 
@@ -1866,6 +1984,7 @@ void M_Drawer (void)
 //
 void M_ClearMenus (void)
 {
+    dobg = 0;
     menuactive = 0;
     // if (!netgame && usergame && paused)
     //       sendpause = true;

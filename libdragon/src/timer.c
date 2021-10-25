@@ -94,7 +94,7 @@ static int __proc_timers(timer_link_t * head)
 			/* yes - timed out, do callback */
 			head->ovfl = head->left;
 			if (head->callback)
-				head->callback(head->ovfl);
+				head->callback(head->ovfl,head->param1,head->param2,head->param3);
 
 			/* reset ticks if continuous */
 			if (head->flags & TF_CONTINUOUS)
@@ -184,7 +184,7 @@ void timer_init(void)
  *
  * @return A pointer to the timer structure created
  */
-timer_link_t *new_timer(int ticks, int flags, void (*callback)(int ovfl))
+timer_link_t *new_timer(int ticks, int flags, int param1, int param2, int param3, void (*callback)(int ovfl, int param1, int param2, int param3))
 {
 	timer_link_t *timer = malloc(sizeof(timer_link_t));
 	if (timer)
@@ -193,6 +193,9 @@ timer_link_t *new_timer(int ticks, int flags, void (*callback)(int ovfl))
 		timer->set = ticks;
 		timer->flags = flags;
 		timer->callback = callback;
+timer->param1 = param1;
+timer->param2 = param2;
+timer->param3 = param3;
 
 		disable_interrupts();
 
@@ -224,7 +227,7 @@ timer_link_t *new_timer(int ticks, int flags, void (*callback)(int ovfl))
  * @param[in] callback
  *            Callback function to call when the timer expires
  */
-void start_timer(timer_link_t *timer, int ticks, int flags, void (*callback)(int ovfl))
+void start_timer(timer_link_t *timer, int ticks, int flags, int param1, int param2, int param3, void (*callback)(int ovfl,int param1,int param2, int param3))
 {
 	if (timer)
 	{
@@ -232,7 +235,9 @@ void start_timer(timer_link_t *timer, int ticks, int flags, void (*callback)(int
 		timer->set = ticks;
 		timer->flags = flags;
 		timer->callback = callback;
-
+timer->param1 = param1;
+timer->param2 = param2;
+timer->param3 = param3;
 		disable_interrupts();
 
 		timer->next = TI_timers;
@@ -267,6 +272,11 @@ void stop_timer(timer_link_t *timer)
 	if (timer)
 	{
 		disable_interrupts();
+
+		timer->param1 = 0;
+		timer->param2 = 0;
+		timer->param3 = 0;
+
 		head = TI_timers;
 		while (head)
 		{
@@ -298,6 +308,10 @@ void delete_timer(timer_link_t *timer)
 {
 	if (timer)
 	{
+		timer->param1 = 0;
+		timer->param2 = 0;
+		timer->param3 = 0;
+
 		stop_timer(timer);
 		free(timer);
 	}
@@ -313,8 +327,7 @@ void delete_timer(timer_link_t *timer)
 void timer_close(void)
 {
 	disable_interrupts();
-    
-    unregister_TI_handler(timer_callback);
+        unregister_TI_handler(timer_callback);
 
 	timer_link_t *head = TI_timers;
 	while (head)
@@ -346,7 +359,8 @@ void timer_close(void)
 long long timer_ticks(void)
 {
 	disable_interrupts();
-	timer_callback();					// force processing the timers
+	// force processing the timers
+	timer_callback();
 	enable_interrupts();
 	return total_ticks;
 }

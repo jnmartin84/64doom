@@ -151,7 +151,12 @@ void HUlib_eraseTextLine(hu_textline_t* l)
     {
 	lh = SHORT(l->f[0]->height) + 1;
 
+#if SCREENWIDTH == 320
+	for (y=l->y,yoffset=y*SCREENWIDTH ; y<l->y+(lh) ; y++,yoffset+=SCREENWIDTH)
+#endif
+#if SCREENWIDTH == 640
 	for (y=l->y,yoffset=y*SCREENWIDTH ; y<l->y+(lh*2) ; y++,yoffset+=SCREENWIDTH)
+#endif
 	{
 		
 	    if (y < viewwindowy || y >= viewwindowy + viewheight)

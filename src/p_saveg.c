@@ -41,7 +41,7 @@ byte*		save_p;
 
 // Pads save_p to a 4-byte boundary
 //  so that the load/save works on SGI&Gecko.
-#define PADSAVEP()	save_p += (4 - ((int) save_p & 3)) & 3
+#define PADSAVEP()	save_p += (4 - ((uint32_t) save_p & 3)) & 3
 
 
 
@@ -482,6 +482,7 @@ void P_ArchiveSpecials (void)
 
 }
 
+//uint32_t max_save_p;
 
 //
 // P_UnArchiveSpecials
@@ -501,6 +502,9 @@ void P_UnArchiveSpecials (void)
     // read in saved thinkers
     while (1)
     {
+//	if((uint32_t)save_p > max_save_p) {
+//		I_Error("read past end of savebuffer");
+//	}
 	tclass = *save_p++;
 	switch (tclass)
 	{

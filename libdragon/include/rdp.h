@@ -78,6 +78,7 @@ void rdp_draw_sprite( uint32_t texslot, int x, int y ,  mirror_t mirror);
 void rdp_draw_sprite_scaled( uint32_t texslot, int x, int y, double x_scale, double y_scale,  mirror_t mirror);
 void rdp_set_primitive_color( uint32_t color );
 void rdp_set_blend_color( uint32_t color );
+void rdp_set_blend_color2( uint8_t r, uint8_t g, uint8_t b, uint8_t a );
 void rdp_draw_filled_rectangle( int tx, int ty, int bx, int by );
 void rdp_draw_filled_triangle( float x1, float y1, float x2, float y2, float x3, float y3 );
 void rdp_set_texture_flush( flush_t flush );

@@ -27,6 +27,7 @@
 #include "doomdef.h"
 #include "d_event.h"
 
+#include "z_zone.h"
 #include "p_local.h"
 
 #include "doomstat.h"
@@ -36,7 +37,7 @@
 // Index of the special effects (INVUL inverse) map.
 #define INVERSECOLORMAP		32
 
-
+extern int global_do_invul;
 //
 // Movement.
 //
@@ -360,10 +361,14 @@ void P_PlayerThink (player_t* player)
     {
 	if (player->powers[pw_invulnerability] > 4*32
 	    || (player->powers[pw_invulnerability]&8) )
-	    player->fixedcolormap = INVERSECOLORMAP;
-	else
-	    player->fixedcolormap = 0;
-    }
+		{
+			player->fixedcolormap = INVERSECOLORMAP;
+		}
+		else
+		{
+			player->fixedcolormap = 0;
+		}
+	}
     else if (player->powers[pw_infrared])	
     {
 	if (player->powers[pw_infrared] > 4*32

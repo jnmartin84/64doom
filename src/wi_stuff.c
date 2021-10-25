@@ -49,6 +49,12 @@
 
 #include "wi_stuff.h"
 
+#if SCREENWIDTH == 320
+#define ytab(y) (((y)<<8)+((y)<<6))
+#elif SCREENWIDTH == 640
+#define ytab(y) (((y)<<9)+((y)<<7))
+#endif
+
 extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 //
@@ -86,7 +92,12 @@ extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 #define SP_STATSY		50
 
 #define SP_TIMEX		16
+#if SCREENWIDTH == 320
+#define SP_TIMEY		((SCREENHEIGHT)-32)
+#elif SCREENWIDTH == 640
 #define SP_TIMEY		((SCREENHEIGHT/2)-32)
+#endif
+
 
 
 // NET GAME STUFF
@@ -124,7 +135,7 @@ typedef struct
 {
     int		x;
     int		y;
-    
+
 } point_t;
 
 
@@ -409,18 +420,30 @@ extern display_context_t _dc;
 
 void WI_slamBackground(void)
 {
-	int x,y;
-	uint32_t *dest32;
-	for(y=0;y<200;y++)
-	{
+    int x,y;
+#if SCREENWIDTH == 640
+    uint32_t *dest32 = (uint32_t *)((uintptr_t)__safe_buffer[_dc - 1] + ((ytab(SCREENWIDTH>>4))<<1));
+#elif SCREENWIDTH == 320
+    uint16_t *dest16 = (uint16_t *)((uintptr_t)__safe_buffer[_dc - 1] + ((ytab(SCREENWIDTH>>4))<<1));
+#endif
+    int sy;
+    for (y=0;y<200;y++)
+    {
+        sy = ytab(y);
 		for(x=0;x<320;x++)
 		{
-			uint32_t spot = palarray[screens[1][x+(y*SCREENWIDTH)]];
-			dest32 = (uint32_t *)(__safe_buffer[_dc-1] + (( (x<<1)+(ytab[y<<1]) )<<1));
-			*dest32 = spot;
-			dest32+=(SCREENWIDTH>>1);
-			*dest32 = spot;
-		}
+#if SCREENWIDTH == 640
+			uint32_t spot = palarray[screens[1][x+(sy)]];
+			*(uint32_t *)((uintptr_t)dest32 + ((x+(ytab(y)))<<2)) = spot;
+			//(2y + 1)(SCREENWIDTH)(2) == (4y + 2)(SCREENWIDTH)
+			*(uint32_t *)((uintptr_t)dest32 + (((x<<1)+(ytab(y<<1)+1))<<1)) = spot;
+			#endif
+#if SCREENWIDTH == 320
+			uint16_t spot = palarray[screens[1][x+ytab(y)]];
+			dest16[x + sy] = spot;
+			*dest16 = spot;
+#endif
+}
 	}
 }
 
@@ -438,14 +461,25 @@ void WI_drawLF(void)
     int y = WI_TITLEY;
 
     // draw <LevelName> 
+#if SCREENWIDTH == 320
+    V_DrawPatch(((SCREENWIDTH) - SHORT(lnames[wbs->last]->width))/2,
+		y, FB, lnames[wbs->last]);
+#endif
+#if SCREENWIDTH == 640
     V_DrawPatch(((SCREENWIDTH/2) - SHORT(lnames[wbs->last]->width))/2,
 		y, FB, lnames[wbs->last]);
-
+#endif
     // draw "Finished!"
     y += (5*SHORT(lnames[wbs->last]->height))/4;
     
+#if SCREENWIDTH == 320
+    V_DrawPatch(((SCREENWIDTH) - SHORT(finished->width))/2,
+		y, FB, finished);
+#endif
+#if SCREENWIDTH == 640
     V_DrawPatch(((SCREENWIDTH/2) - SHORT(finished->width))/2,
 		y, FB, finished);
+#endif
 }
 
 
@@ -456,15 +490,25 @@ void WI_drawEL(void)
     int y = WI_TITLEY;
 
     // draw "Entering"
+#if SCREENWIDTH == 320
+    V_DrawPatch(((SCREENWIDTH) - SHORT(entering->width))/2,
+		y, FB, entering);
+#endif
+#if SCREENWIDTH == 640
     V_DrawPatch(((SCREENWIDTH/2) - SHORT(entering->width))/2,
 		y, FB, entering);
-
+#endif		
     // draw level
     y += (5*SHORT(lnames[wbs->next]->height))/4;
 
+#if SCREENWIDTH == 320
+    V_DrawPatch(((SCREENWIDTH) - SHORT(lnames[wbs->next]->width))/2,
+		y, FB, lnames[wbs->next]);
+#endif
+#if SCREENWIDTH == 640
     V_DrawPatch(((SCREENWIDTH/2) - SHORT(lnames[wbs->next]->width))/2,
 		y, FB, lnames[wbs->next]);
-
+#endif
 }
 
 void
@@ -488,10 +532,19 @@ WI_drawOnLnode
 	right = left + SHORT(c[i]->width);
 	bottom = top + SHORT(c[i]->height);
 
+#if SCREENWIDTH == 320
+	if (left >= 0
+	    && right < (SCREENWIDTH)
+	    && top >= 0
+	    && bottom < (SCREENHEIGHT))
+#endif
+#if SCREENWIDTH == 640
 	if (left >= 0
 	    && right < (SCREENWIDTH/2)
 	    && top >= 0
 	    && bottom < (SCREENHEIGHT/2))
+
+#endif
 	{
 	    fits = true;
 	}
@@ -1458,6 +1511,26 @@ void WI_drawStats(void)
     
     WI_drawLF();
 
+#if SCREENWIDTH == 320
+    V_DrawPatch(SP_STATSX, SP_STATSY, FB, kills);
+    WI_drawPercent((SCREENWIDTH) - SP_STATSX, SP_STATSY, cnt_kills[0]);
+
+    V_DrawPatch(SP_STATSX, SP_STATSY+lh, FB, items);
+    WI_drawPercent((SCREENWIDTH) - SP_STATSX, SP_STATSY+lh, cnt_items[0]);
+
+    V_DrawPatch(SP_STATSX, SP_STATSY+2*lh, FB, sp_secret);
+    WI_drawPercent((SCREENWIDTH) - SP_STATSX, SP_STATSY+2*lh, cnt_secret[0]);
+
+    V_DrawPatch(SP_TIMEX, SP_TIMEY, FB, time);
+    WI_drawTime((SCREENWIDTH)/2 - SP_TIMEX, SP_TIMEY, cnt_time);
+
+    if (wbs->epsd < 3)
+    {
+	V_DrawPatch((SCREENWIDTH)/2 + SP_TIMEX, SP_TIMEY, FB, par);
+	WI_drawTime((SCREENWIDTH) - SP_TIMEX, SP_TIMEY, cnt_par);
+    }
+#endif
+#if SCREENWIDTH == 640
     V_DrawPatch(SP_STATSX, SP_STATSY, FB, kills);
     WI_drawPercent((SCREENWIDTH/2) - SP_STATSX, SP_STATSY, cnt_kills[0]);
 
@@ -1476,6 +1549,7 @@ void WI_drawStats(void)
 	WI_drawTime((SCREENWIDTH/2) - SP_TIMEX, SP_TIMEY, cnt_par);
     }
 
+#endif
 }
 
 void WI_checkForAccelerate(void)

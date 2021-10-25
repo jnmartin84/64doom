@@ -24,7 +24,7 @@
 //	and call the startup functions.
 //
 //-----------------------------------------------------------------------------
-
+extern int global_do_invul;
 #define	BGCOLOR		7
 #define	FGCOLOR		8
 
@@ -91,6 +91,9 @@ extern void *__n64_memset_ZERO_ASM(void *ptr, int value, size_t num);
 extern display_context_t lockVideo(int wait);
 extern void unlockVideo(display_context_t dc);
 
+extern void render_sound_buffer_like_rcs(uint16_t *buffer);
+
+
 extern void *__safe_buffer[];
 extern display_context_t _dc;
 
@@ -141,14 +144,11 @@ extern uint32_t RED_COL;
 extern uint32_t GREEN_COL;
 extern uint32_t BLUE_COL;
 
-extern void render_memory_usage();
-
 void D_CheckNetGame(void);
 void D_ProcessEvents(void);
 void G_BuildTiccmd(ticcmd_t* cmd);
 void D_DoAdvanceDemo(void);
 
-extern double get_elapsed_seconds();
 //
 // EVENT HANDLING
 //
@@ -166,7 +166,7 @@ void sound_callback(void)
 //	if(!snd_SfxVolume && !mus_playing)
 //		return;
 	
-    disable_interrupts();
+//    disable_interrupts();
 
     if (should_sound)
     {
@@ -177,15 +177,17 @@ void sound_callback(void)
         I_SubmitSound();
     }
 
-    enable_interrupts();
+//    enable_interrupts();
 }
 
 //
 // D_PostEvent
 // Called by the I/O functions when input is detected
 //
+extern int current_player_for_input;
 void D_PostEvent(event_t* ev)
 {
+	ev->player = current_player_for_input;
     events[eventhead] = *ev;
 
 //d_main.c: In function 'D_PostEvent':
@@ -212,8 +214,8 @@ void D_ProcessEvents (void)
 
 	//d_main.c: In function 'D_ProcessEvents':
 	//d_main.c:207: warning: operation on 'eventtail' may be undefined
-	//    for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) )
-	for ( ; eventtail != eventhead ; eventtail = (eventtail+1)&(MAXEVENTS-1) )
+	    for ( ; eventtail != eventhead ; eventtail = (++eventtail)&(MAXEVENTS-1) )
+	//for ( ; eventtail != eventhead ; eventtail = (eventtail+1)&(MAXEVENTS-1) )
 	{
 		ev = &events[eventtail];
 		if (M_Responder(ev))
@@ -254,7 +256,9 @@ void D_Display(void)
 //	boolean			wipe;
 	boolean		redrawsbar;
 
+#if 1	
 	if (nodrawers)
+#endif
 	{
 		// for comparative timing / profiling
 		return;	
@@ -311,29 +315,32 @@ void D_Display(void)
 			{
 				redrawsbar = false;              // just put away the help screen
 			}
-
+			
+//if(!automapactive) 
+{
 			ST_Drawer((viewheight == SCREENHEIGHT), redrawsbar );
+}		
 			fullscreen = (viewheight == SCREENHEIGHT);
 			break;
 		}
 
 		case GS_INTERMISSION:
 		{
-			I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
+	//		I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
 			WI_Drawer();
 			break;
 		}
 
         case GS_FINALE:
         {
-			I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
+	//		I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
 			F_Drawer();
 			break;
         }
 
         case GS_DEMOSCREEN:
         {
-			I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
+	//		I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
 			D_PageDrawer();
             break;
         }
@@ -360,6 +367,7 @@ void D_Display(void)
 	{
 		viewactivestate = false;    // view was not active
 		R_FillBackScreen();         // draw the pattern into the back screen
+
 	}
 
 	// see if the border needs to be updated to the screen
@@ -437,23 +445,36 @@ void D_Display(void)
 		unlockVideo(_dc);
 		}
 	while (!done);*/
-	big_framecount++;
+//	big_framecount++;
 }
 
+
+		//buf16 = (uint16_t *)__safe_buffer[(_dc)-1];
+//uint16_t *screena;
+//uint16_t *screenb;
 
 //
 //  D_DoomLoop
 //
+
+int tics = 0;
+extern void blastit(void);
 extern  boolean         demorecording;
 //extern int16_t minL,minR,maxL,maxR;
 //char minmaxBuf[] = "0x0000 0x0000 0x0000 0x0000";
+uint16_t *pal; //[256];
+extern uint32_t palarray[256];
+sprite_t *a_new_sprite;
+extern int skytexture;
+
 void D_DoomLoop(void)
 {
 	I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
 
-	while (1)
+	pal = malloc(256*2);
+
+    while (!return_from_D_DoomMain)
     {
-		if(return_from_D_DoomMain) return;
 		// process one or more tics
         if (singletics)
         {
@@ -478,13 +499,18 @@ void D_DoomLoop(void)
 
         _dc = lockVideo(1);
 		buf16 = (uint16_t *)__safe_buffer[(_dc)-1];
-		//buf16 = (uint16_t *)((uint32_t)buf16 & 0x8FFFFFFF);
-        D_Display();
-	//			sprintf(minmaxBuf, "0x%04X 0x%04X 0x%04X 0x%04X", minL,minR, maxL,maxR);
-	//			graphics_buffer_draw_text(buf16, 0, 20, 640, 480, minmaxBuf);
 
+        D_Display();
+
+		//render_sound_buffer_like_rcs(buf16);
+		//blastit();
+		//I_FinishUpdate();
+
+		//			sprintf(minmaxBuf, "0x%04X 0x%04X 0x%04X 0x%04X", minL,minR, maxL,maxR);
+		//			graphics_buffer_draw_text(buf16, 0, 20, 640, 480, minmaxBuf);
 		unlockVideo(_dc);
-    }
+		tics++;
+	}
 }
 
 
@@ -626,6 +652,9 @@ void D_DoAdvanceDemo(void)
             break;
         }
     }
+	
+//	__n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[0] + (40*640*2)), 0, 640*2*400);//336*2);
+//	__n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[1] + (40*640*2)), 0, 640*2*400);//336*2);
 }
 
 
@@ -659,6 +688,7 @@ void D_AddFile(char *file)
     wadfiles[numwadfiles] = file;
 }
 #define stricmp strcasecmp
+extern GameMode_t current_mode;
 
 //
 // IdentifyVersion
@@ -719,8 +749,8 @@ void IdentifyVersion(void)
 
     if (!stricmp(doom2fwad,gameid))
     {
-        gamemode = commercial;
-        // C'est ridicule!
+		gamemode = commercial;
+		// C'est ridicule!
         // Let's handle languages in config files, okay?
         language = french;
         D_AddFile(doom2fwad);
@@ -730,6 +760,7 @@ void IdentifyVersion(void)
     if (!stricmp(doom2wad,gameid))
     {
         gamemode = commercial;
+		current_mode = commercial;
         D_AddFile(doom2wad);
         return;
     }
@@ -737,6 +768,7 @@ void IdentifyVersion(void)
     if (!stricmp(plutoniawad,gameid))
     {
         gamemode = commercial;
+		current_mode = pack_plut;
         D_AddFile(plutoniawad);
         return;
     }
@@ -744,6 +776,7 @@ void IdentifyVersion(void)
     if (!stricmp(tntwad,gameid))
     {
         gamemode = commercial;
+		current_mode = pack_tnt;
         D_AddFile(tntwad);
         return;
     }
@@ -751,6 +784,7 @@ void IdentifyVersion(void)
     if (!stricmp(doomuwad,gameid))
     {
         gamemode = retail;
+		current_mode = commercial;
         D_AddFile(doomuwad);
         return;
     }
@@ -758,6 +792,7 @@ void IdentifyVersion(void)
     if (!stricmp(doomwad,gameid))
     {
         gamemode = registered;
+		current_mode = commercial;
         D_AddFile(doomwad);
         return;
     }
@@ -765,18 +800,19 @@ void IdentifyVersion(void)
     if (!stricmp(doom1wad,gameid))
     {
         gamemode = shareware;
+		current_mode = commercial;
         D_AddFile(doom1wad);
         return;
     }
 
     printf("Game mode indeterminate.\n");
     gamemode = indetermined;
+		current_mode = commercial;
 
     // We don't abort. Let's see what the PWAD contains.
     //exit(1);
     //I_Error ("Game mode indeterminate\n");*/
 }
-
 
 //
 // D_DoomMain
@@ -788,6 +824,8 @@ void D_DoomMain(void)
 
     IdentifyVersion ();
 
+//	current_mode = gamemode;
+	
     modifiedgame = false;
 
     nomonsters = M_CheckParm("-nomonsters");
@@ -802,7 +840,24 @@ void D_DoomMain(void)
     {
         deathmatch = 1;
     }
-
+const char *gameid = get_GAMEID();
+	if (!stricmp(plutoniawad,gameid)) {
+		current_mode = pack_plut;
+			sprintf (title,
+		 //"                   "
+		 "DOOM 2: Plutonia Experiment v%i.%i",
+		 //"                           ",
+		 VERSION/100,VERSION%100);
+	}
+	else if(!stricmp(tntwad,gameid)) {
+		current_mode = pack_tnt;
+			sprintf (title,
+		 //"                     "
+		 "DOOM 2: TNT - Evilution v%i.%i",
+		 //"                           ",
+		 VERSION/100,VERSION%100);
+	}
+	else {
     switch (gamemode)
     {
         case retail:
@@ -857,9 +912,10 @@ void D_DoomMain(void)
 		 VERSION/100,VERSION%100);
 	break;
     }
+	}
 
     printf ("%s\n",title);
-
+#if 0
     // turbo option
     if ( (p=M_CheckParm ("-turbo")) )
     {
@@ -984,7 +1040,7 @@ void D_DoomMain(void)
 	}
 	autostart = true;
     }
-
+#endif
     // init subsystems
     printf ("V_Init: allocate screens.\n");
     V_Init ();
@@ -1041,7 +1097,7 @@ void D_DoomMain(void)
     // Check and print which version is executed.
     switch ( gamemode )
     {
-      case shareware:
+      case shareware: 
       case indetermined:
 	printf ( "%s", shareware_banner
 /*	    "===========================================================================\n"
@@ -1064,7 +1120,22 @@ void D_DoomMain(void)
 	// Ouch.
 	break;
     }
-
+	switch(gamemode) {
+		case shareware:
+		printf("Game mode: shareware\n");
+		break;
+		case registered:
+		printf("Game mode: registered\n");
+		break;
+		case retail:
+		printf("Game mode: retail\n");
+		break;
+		case commercial:
+		printf("Game mode: commercial\n");
+		break;
+		default:
+		break;
+	}
     printf ("M_Init: Init miscellaneous info.\n");
     M_Init ();
 
@@ -1089,6 +1160,7 @@ void D_DoomMain(void)
     printf ("ST_Init: Init status bar.\n");
     ST_Init ();
 
+#if 0
 /*    // check for a driver that wants intermission stats
     p = M_CheckParm ("-statcopy");
     if (p && p<myargc-1)
@@ -1133,6 +1205,7 @@ void D_DoomMain(void)
 	    sprintf(file, SAVEGAMENAME"%c.dsg",myargv[p+1][0]);
 	G_LoadGame (file);
     }*/
+#endif
 
     if (!should_sound)
     {
@@ -1156,24 +1229,14 @@ void D_DoomMain(void)
         }
     }
 
+#if 1
     // clear the console as part of clearing screen before game starts
     console_clear();
     console_close();
 
     // clear screen before game starts
-    for(int vi=0;vi<2;vi++)
-    {
-        _dc = lockVideo(1);
-
-        uint16_t *video_ptr = &((uint16_t *)__safe_buffer[(_dc)-1])[0];
-
-        __n64_memset_ZERO_ASM(video_ptr, 0, 640*480*2);
-
-        unlockVideo(_dc);
-    }
-
-//       _dc = lockVideo(1);
-//unlockVideo(_dc);
-	
+	__n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[0]), 0, SCREENWIDTH*2*SCREENHEIGHT);//336*2);
+    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[1]), 0, SCREENWIDTH*2*SCREENHEIGHT);//336*2);
+#endif
     D_DoomLoop();  // never returns
-	}
+}

@@ -116,6 +116,7 @@ extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 // scale on entry
 #define INITSCALEMTOF (.2*FRACUNIT)
+//#define INITSCALEMTOF 850
 // how much the automap moves window per tic in frame-buffer coordinates
 // moves 140 pixels in 1 second
 #define F_PANINC	4
@@ -246,7 +247,7 @@ static int 	leveljuststarted = 1; 	// kluge until AM_LevelInit() is called
 
 boolean    	automapactive = false;
 static int 	finit_width = SCREENWIDTH;
-static int 	finit_height = SCREENHEIGHT-44;
+static int 	finit_height = SCREENHEIGHT;//-44;
 
 // location of window on screen
 static int 	f_x;
@@ -315,7 +316,7 @@ static boolean stopped = true;
 
 extern boolean viewactive;
 
-extern void V_MarkRect(int x, int y, int width, int height);
+//extern void V_MarkRect(int x, int y, int width, int height);
 
 
 // Calculates the slope and slope according to the x-axis of a line
@@ -606,9 +607,13 @@ void AM_LevelInit(void)
     AM_findMinMaxBoundaries();
     scale_mtof = FixedDiv(min_scale_mtof, (int) (0.7*FRACUNIT));
     if (scale_mtof > max_scale_mtof)
-    {
 	scale_mtof = min_scale_mtof;
-    }
+
+	//    scale_mtof = 1048576 / 24;//FixedDiv(min_scale_mtof, (int) (0.7*FRACUNIT));
+    //if (scale_mtof > max_scale_mtof)
+    //{
+	//scale_mtof = min_scale_mtof;
+   // }
     scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
 }
 
@@ -624,10 +629,18 @@ void AM_Stop(void)
     automapactive = false;
     ST_Responder(&st_notify);
     stopped = true;
-//	__n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[0])[0]), 0, finit_width*finit_height*2);
-//    __n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[1])[0]), 0, finit_width*finit_height*2);
-	__n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[0] + (40*640*2)), 0, 640*336*2);
-	__n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[1] + (40*640*2)), 0, 640*336*2);
+    __n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[0])[0]), 0, finit_width*finit_height*2);
+    __n64_memset_ZERO_ASM((&((uint16_t *)__safe_buffer[1])[0]), 0, finit_width*finit_height*2);
+#if 0
+#if SCREENWIDTH == 320
+    __n64_memset_ZERO_ASM((uint16_t *)((uintptr_t)__safe_buffer[0] + (20*320*2)), 0, 320*200*2);
+    __n64_memset_ZERO_ASM((uint16_t *)((uintptr_t)__safe_buffer[1] + (20*320*2)), 0, 320*200*2);
+#endif
+#if SCREENWIDTH == 640
+    __n64_memset_ZERO_ASM((uint16_t *)((uintptr_t)__safe_buffer[0] + (40*640*2)), 0, 640*2*400);
+    __n64_memset_ZERO_ASM((uint16_t *)((uintptr_t)__safe_buffer[1] + (40*640*2)), 0, 640*2*400);
+#endif
+#endif
 }
 
 
@@ -647,9 +660,9 @@ void AM_Start(void)
 
     if ((lastlevel != gamemap) || (lastepisode != gameepisode))
     {
-	AM_LevelInit();
-	lastlevel = gamemap;
-	lastepisode = gameepisode;
+        AM_LevelInit();
+        lastlevel = gamemap;
+        lastepisode = gameepisode;
     }
 
     AM_initVariables();
@@ -863,11 +876,11 @@ void AM_updateLightLev(void)
     static int nexttic = 0;
 
 // this was originally commented, the next line wasn't
-    static int litelevels[] = { 0, 3, 5, 6, 6, 7, 7, 7 };
+//    static int litelevels[] = { 0, 3, 5, 6, 6, 7, 7, 7 };
 // was the following:
-//    static int litelevels[] = { 0, 4, 7, 10, 12, 14, 15, 15 };
+    static int litelevels[] = { 0, 4, 7, 10, 12, 14, 15, 15 };
     static int litelevelscnt = 0;
-   
+
     // Change light level
     if (amclock > nexttic)
     {
@@ -888,7 +901,6 @@ void AM_updateLightLev(void)
 //
 void AM_Ticker (void)
 {
-
     if (!automapactive)
 	return;
 
@@ -915,7 +927,11 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[_dc - 1] + (40*640*2)), 0, 640*336*2);
+#if SCREENWIDTH == 320
+    __n64_memset_ZERO_ASM((uint16_t *)((uintptr_t)__safe_buffer[_dc - 1] + (20*320*2)), 0, 320*200*2);
+#elif SCREENWIDTH == 640
+    __n64_memset_ZERO_ASM((uint16_t *)((uintptr_t)__safe_buffer[_dc - 1] + (40*640*2)), 0, 640*2*400);
+#endif
 }
 
 
@@ -947,9 +963,9 @@ AM_clipMline
 //    register	outcode1 = 0;
 //    register	outcode2 = 0;
 //    register	outside;
-    /*register */int outcode1 = 0;
-    /*register */int outcode2 = 0;
-    /*register */int outside;
+    register int outcode1 = 0;
+    register int outcode2 = 0;
+    register int outside;
 
 //-Werror fix
 //am_map.c: In function 'AM_clipMline':
@@ -973,7 +989,6 @@ AM_clipMline
     if ((mx) < 0) (oc) |= LEFT; \
     else if ((mx) >= f_w) (oc) |= RIGHT;
 
-    
     // do trivial rejects and outcodes
     if (ml->a.y > m_y2)
 	outcode1 = TOP;
@@ -984,7 +999,7 @@ AM_clipMline
 	outcode2 = TOP;
     else if (ml->b.y < m_y)
 	outcode2 = BOTTOM;
-    
+
     if (outcode1 & outcode2)
 	return false; // trivially outside
 
@@ -992,12 +1007,12 @@ AM_clipMline
 	outcode1 |= LEFT;
     else if (ml->a.x > m_x2)
 	outcode1 |= RIGHT;
-    
+
     if (ml->b.x < m_x)
 	outcode2 |= LEFT;
     else if (ml->b.x > m_x2)
 	outcode2 |= RIGHT;
-    
+
     if (outcode1 & outcode2)
 	return false; // trivially outside
 
@@ -1021,7 +1036,7 @@ AM_clipMline
 	    outside = outcode1;
 	else
 	    outside = outcode2;
-	
+
 	// clip to each side
 	if (outside & TOP)
 	{
@@ -1062,7 +1077,7 @@ AM_clipMline
 	    fl->b = tmp;
 	    DOOUTCODE(outcode2, fl->b.x, fl->b.y);
 	}
-	
+
 	if (outcode1 & outcode2)
 	    return false; // trivially outside
     }
@@ -1071,6 +1086,7 @@ AM_clipMline
 }
 #undef DOOUTCODE
 
+extern void buffer_fast_line_5551(int x, int y, int x2, int y2, uint32_t color, uint16_t *buffer, int buf_w, int buf_h);
 
 //
 // Clip lines, draw visible part sof lines.
@@ -1083,8 +1099,13 @@ AM_drawMline
     static fline_t fl;
 
     if (AM_clipMline(ml, &fl))
-		buffer_fast_line_5551(fl.a.x, fl.a.y+40, fl.b.x, fl.b.y+40, palarray[color], &((uint16_t *)__safe_buffer[(_dc)-1])[0], 640, 480);
-//		graphics_draw_line(_dc, fl.a.x, fl.a.y+20, fl.b.x, fl.b.y+20, palarray[color]);
+    {
+#if SCREENWIDTH == 320
+        buffer_fast_line_5551(fl.a.x, fl.a.y+20, fl.b.x, fl.b.y+20, palarray[color], &((uint16_t *)__safe_buffer[(_dc)-1])[0], 320, 240);
+#elif SCREENWIDTH == 640
+        buffer_fast_line_5551(fl.a.x, fl.a.y+40, fl.b.x, fl.b.y+40, palarray[color], &((uint16_t *)__safe_buffer[(_dc)-1])[0], 640, 480);
+#endif
+    }
 }
 
 
@@ -1101,8 +1122,7 @@ void AM_drawGrid(int color)
     // Figure out start of vertical gridlines
     start = m_x;
     if ((start-bmaporgx)%(MAPBLOCKUNITS<<FRACBITS))
-	start += (MAPBLOCKUNITS<<FRACBITS)
-	    - ((start-bmaporgx)%(MAPBLOCKUNITS<<FRACBITS));
+	start += (MAPBLOCKUNITS<<FRACBITS) - ((start-bmaporgx)%(MAPBLOCKUNITS<<FRACBITS));
     end = m_x + m_w;
 
     // draw vertical gridlines
@@ -1118,8 +1138,7 @@ void AM_drawGrid(int color)
     // Figure out start of horizontal gridlines
     start = m_y;
     if ((start-bmaporgy)%(MAPBLOCKUNITS<<FRACBITS))
-	start += (MAPBLOCKUNITS<<FRACBITS)
-	    - ((start-bmaporgy)%(MAPBLOCKUNITS<<FRACBITS));
+	start += (MAPBLOCKUNITS<<FRACBITS) - ((start-bmaporgy)%(MAPBLOCKUNITS<<FRACBITS));
     end = m_y + m_h;
 
     // draw horizontal gridlines
@@ -1145,7 +1164,7 @@ void AM_drawWalls(void)
 
     for (i=0;i<numlines;i++)
     {
-	l.a.x = lines[i].v1->x;
+        l.a.x = lines[i].v1->x;
 	l.a.y = lines[i].v1->y;
 	l.b.x = lines[i].v2->x;
 	l.b.y = lines[i].v2->y;
@@ -1168,12 +1187,10 @@ void AM_drawWalls(void)
 		    if (cheating) AM_drawMline(&l, SECRETWALLCOLORS + lightlev);
 		    else AM_drawMline(&l, WALLCOLORS+lightlev);
 		}
-		else if (lines[i].backsector->floorheight
-			   != lines[i].frontsector->floorheight) {
+		else if (lines[i].backsector->floorheight != lines[i].frontsector->floorheight) {
 		    AM_drawMline(&l, FDWALLCOLORS + lightlev); // floor level change
 		}
-		else if (lines[i].backsector->ceilingheight
-			   != lines[i].frontsector->ceilingheight) {
+		else if (lines[i].backsector->ceilingheight != lines[i].frontsector->ceilingheight) {
 		    AM_drawMline(&l, CDWALLCOLORS+lightlev); // ceiling level change
 		}
 		else if (cheating) {
@@ -1201,13 +1218,9 @@ AM_rotate
 {
     fixed_t tmpx;
 
-    tmpx =
-	FixedMul(*x,finecosine[a>>ANGLETOFINESHIFT])
-	- FixedMul(*y,finesine[a>>ANGLETOFINESHIFT]);
-    
-    *y   =
-	FixedMul(*x,finesine[a>>ANGLETOFINESHIFT])
-	+ FixedMul(*y,finecosine[a>>ANGLETOFINESHIFT]);
+    tmpx = FixedMul(*x,finecosine[a>>ANGLETOFINESHIFT]) - FixedMul(*y,finesine[a>>ANGLETOFINESHIFT]);
+
+    *y = FixedMul(*x,finesine[a>>ANGLETOFINESHIFT]) + FixedMul(*y,finecosine[a>>ANGLETOFINESHIFT]);
 
     *x = tmpx;
 }
@@ -1253,7 +1266,7 @@ AM_drawLineCharacter
 
 	if (angle)
 	    AM_rotate(&l.b.x, &l.b.y, angle);
-	
+
 	l.b.x += x;
 	l.b.y += y;
 
@@ -1272,13 +1285,9 @@ void AM_drawPlayers(void)
     if (!netgame)
     {
 	if (cheating)
-	    AM_drawLineCharacter
-		(cheat_player_arrow, NUMCHEATPLYRLINES, 0,
-		 plr->mo->angle, WHITE, plr->mo->x, plr->mo->y);
+	    AM_drawLineCharacter(cheat_player_arrow, NUMCHEATPLYRLINES, 0, plr->mo->angle, WHITE, plr->mo->x, plr->mo->y);
 	else
-	    AM_drawLineCharacter
-		(player_arrow, NUMPLYRLINES, 0, plr->mo->angle,
-		 WHITE, plr->mo->x, plr->mo->y);
+	    AM_drawLineCharacter(player_arrow, NUMPLYRLINES, 0, plr->mo->angle, WHITE, plr->mo->x, plr->mo->y);
 	return;
     }
 
@@ -1297,10 +1306,8 @@ void AM_drawPlayers(void)
 	    color = 246; // *close* to black
 	else
 	    color = their_colors[their_color];
-	
-	AM_drawLineCharacter
-	    (player_arrow, NUMPLYRLINES, 0, p->mo->angle,
-	     color, p->mo->x, p->mo->y);
+
+	AM_drawLineCharacter(player_arrow, NUMPLYRLINES, 0, p->mo->angle, color, p->mo->x, p->mo->y);
     }
 
 }
@@ -1318,9 +1325,7 @@ AM_drawThings
 	t = sectors[i].thinglist;
 	while (t)
 	{
-	    AM_drawLineCharacter
-		(thintriangle_guy, NUMTHINTRIANGLEGUYLINES,
-		 16<<FRACBITS, t->angle, colors+lightlev, t->x, t->y);
+	    AM_drawLineCharacter(thintriangle_guy, NUMTHINTRIANGLEGUYLINES, 16<<FRACBITS, t->angle, colors+lightlev, t->x, t->y);
 	    t = t->snext;
 	}
     }
@@ -1348,8 +1353,8 @@ void AM_drawMarks(void)
 
 void AM_drawCrosshair(int color)
 {
-	//graphics_draw_line(_dc, ((f_w >> 1)-1) - 4, ((f_h >> 1) - 1), ((f_w >> 1)-1) + 4, ((f_h >> 1)-1), palarray[color]);
-	//graphics_draw_line(_dc, ((f_w >> 1)-1), ((f_h >> 1) - 1) - 4, ((f_w >> 1)-1), ((f_h >> 1) - 1) + 4, palarray[color]);
+//graphics_draw_line(_dc, ((f_w >> 1)-1) - 4, ((f_h >> 1) - 1), ((f_w >> 1)-1) + 4, ((f_h >> 1)-1), palarray[color]);
+//graphics_draw_line(_dc, ((f_w >> 1)-1), ((f_h >> 1) - 1) - 4, ((f_w >> 1)-1), ((f_h >> 1) - 1) + 4, palarray[color]);
 }
 
 void AM_Drawer (void)
@@ -1362,9 +1367,9 @@ void AM_Drawer (void)
     AM_drawWalls();
     AM_drawPlayers();
     if (cheating==2)
-		AM_drawThings(THINGCOLORS, THINGRANGE);
+        AM_drawThings(THINGCOLORS, THINGRANGE);
     //AM_drawCrosshair(XHAIRCOLORS);
 
     AM_drawMarks();
-    V_MarkRect(f_x, f_y, f_w, f_h);
+    //V_MarkRect(f_x, f_y, f_w, f_h);
 }

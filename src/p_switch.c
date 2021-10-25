@@ -205,8 +205,9 @@ P_StartButton
 	    return;
 	}
     }
-    
+#ifdef RANGECHECK    
     I_Error("P_StartButton: no button slots left!");
+#endif
 }
 
 

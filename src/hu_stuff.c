@@ -105,7 +105,6 @@ extern int		showMessages;
 extern boolean		automapactive;
 
 static boolean		headsupactive = false;
-extern double get_elapsed_seconds();
 //
 // Builtin map names.
 // The actual names can be found in DStrings.h.
@@ -414,6 +413,7 @@ void HU_Stop(void)
 {
     headsupactive = false;
 }
+extern GameMode_t current_mode;
 
 void HU_Start(void)
 {
@@ -441,7 +441,39 @@ void HU_Start(void)
 		       HU_TITLEX, HU_TITLEY,
 		       hu_font,
 		       HU_FONTSTART);
-    
+
+#if 0
+    switch ( current_mode )
+    {
+		case pack_plut:
+		{
+	s = HU_TITLEP;
+	break;
+		}
+    case pack_tnt:
+	{
+	s = HU_TITLET;
+	break;
+	}
+      case shareware:
+      case registered:
+      case retail:
+	  {
+	  s = HU_TITLE;
+	break;
+	  }
+/* FIXME
+ */ 
+/**/
+	
+      case commercial:
+	  {
+	 s = HU_TITLE2;
+	 break;
+	  }
+	 }
+#endif
+#if 1
     switch ( gamemode )
     {
       case shareware:
@@ -464,7 +496,7 @@ void HU_Start(void)
 	 s = HU_TITLE2;
 	 break;
     }
-    
+#endif    
     while (*s)
 	HUlib_addCharToTextLine(&w_title, *(s++));
 
@@ -516,7 +548,6 @@ void HU_Ticker(void)
 
     if (showMessages || message_dontfuckwithme)
     {
-//char numbuf[32];
 	// display message if necessary
 	if ((plr->message && !message_nottobefuckedwith)
 	    || (plr->message && message_dontfuckwithme))
@@ -528,9 +559,6 @@ void HU_Ticker(void)
 	    message_nottobefuckedwith = message_dontfuckwithme;
 	    message_dontfuckwithme = 0;
 	}
-//	itoa(big_framecount/get_elapsed_seconds(), numbuf, 10);
-//	    HUlib_addMessageToSText(&w_message, 0, numbuf);
-
     } // else message_on = false;
 
     // check for incoming chat characters
@@ -559,7 +587,7 @@ void HU_Ticker(void)
 			    HUlib_addMessageToSText(&w_message,
 						    player_names[i],
 						    w_inputbuffer[i].l.l);
-			    
+
 			    message_nottobefuckedwith = true;
 			    message_on = true;
 			    message_counter = HU_MSGTIMEOUT;
@@ -626,7 +654,7 @@ boolean HU_Responder(event_t *ev)
     unsigned char 	c;
     int			i;
     int			numplayers;
-    
+
     static char		destination_keys[MAXPLAYERS] =
     {
 	HUSTR_KEYGREEN,
@@ -634,7 +662,7 @@ boolean HU_Responder(event_t *ev)
 	HUSTR_KEYBROWN,
 	HUSTR_KEYRED
     };
-    
+
     static int		num_nobrainers = 0;
 
     numplayers = 0;

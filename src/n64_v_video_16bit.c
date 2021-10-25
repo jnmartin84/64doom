@@ -41,12 +41,18 @@ extern void *__safe_buffer[];
 extern display_context_t _dc;
 extern uint32_t ytab[];
 
+#if SCREENWIDTH == 320
+#define ytab(y) (((y)<<8)+((y)<<6))
+#elif SCREENWIDTH == 640
+#define ytab(y) (((y)<<9)+((y)<<7))
+#endif
+
 #define n64_cfb_set_pixel( _dc, x, y, color ) \
-	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1)) = (color)
+	*(uint16_t *)((uintptr_t)__safe_buffer[(_dc) - 1] + (( (x)+(ytab(y)) )<<1)) = (color)
 
 #define n64_cfb_get_pixel( buffer, x, y ) \
-	*(uint16_t *)(__safe_buffer[(_dc) - 1] + (( (x)+(ytab[y]) )<<1))
-	
+	*(uint16_t *)((uintptr_t)__safe_buffer[(_dc) - 1] + (( (x)+(ytab(y)) )<<1))
+
 extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 // Each screen is [SCREENWIDTH*SCREENHEIGHT];
@@ -148,14 +154,14 @@ int	usegamma;
 //
 void V_MarkRect(int x, int y, int width, int height)
 {
-    M_AddToBox (dirtybox, x, y); 
-    M_AddToBox (dirtybox, x+width-1, y+height-1); 
-} 
- 
+//    M_AddToBox (dirtybox, x, y);
+ //   M_AddToBox (dirtybox, x+width-1, y+height-1);
+}
+
 
 //
-// V_CopyRect 
-// 
+// V_CopyRect
+//
 void
 V_CopyRect
 ( int		srcx,
@@ -165,131 +171,141 @@ V_CopyRect
   int		height,
   int		destx,
   int		desty,
-  int		destscrn ) 
-{ 
+  int		destscrn)
+{
     byte*	src;
-    byte*	dest; 
-	 
-//    V_MarkRect (destx, desty, width, height); 
-	if(destscrn == 0)
-	{
-		src = screens[srcscrn]+SCREENWIDTH*srcy+srcx; 
+    byte*	dest;
 
-		uint32_t h_o = height;
-		uint32_t i;
-		
-		while (height--)
-		{
-			for (i = 0; i < width; i++)
-			{
+//    V_MarkRect (destx, desty, width, height);
+    if (destscrn == 0)
+    {
+        src = screens[0]+SCREENWIDTH*srcy+srcx;
+
+        uint32_t h_o = height;
+        uint32_t i;
+	while (height--)
+        {
+            for (i = 0; i < width; i++)
+            {
 #define dx ((destx+i))
-#define dy ((desty + (h_o - height)))				
-				n64_cfb_set_pixel(_dc, dx, dy, palarray[src[(srcx+i) + ((srcy + (h_o - height))*width)]]);
-			}
-		}	
-	}
-	else
-	{
-		src = screens[srcscrn]+SCREENWIDTH*srcy+srcx; 
-		dest = screens[destscrn]+SCREENWIDTH*desty+destx; 
+#define dy ((desty + (h_o - height)))
+                n64_cfb_set_pixel(_dc, dx, dy, palarray[src[(srcx+i) + ((srcy + (h_o - height))*width)]]);
+            }
+        }
+    }
+    else
+    {
+        src = screens[srcscrn]+SCREENWIDTH*srcy+srcx;
+        dest = screens[destscrn]+SCREENWIDTH*desty+destx;
 
-		for ( ; height>0 ; height--) 
-		{ 
-		__n64_memcpy_ASM (dest, src, width); 
-		src += SCREENWIDTH; 
-		dest += SCREENWIDTH; 
-		} 
-	}
-} 
- 
+        for ( ; height>0 ; height--)
+        {
+            __n64_memcpy_ASM (dest, src, width);
+            src += SCREENWIDTH;
+            dest += SCREENWIDTH;
+        }
+    }
+}
+
+
 //
 // V_DrawPatch
-// Masks a column based masked pic to the screen. 
+// Masks a column based masked pic to the screen.
 //
 void
 V_DrawPatch
 ( int		x,
   int		y,
   int		scrn,
-  patch_t*	patch ) 
-{ 
+  patch_t*	patch )
+{
 
     int		count;
-    int		col; 
-    column_t*	column; 
+    int		col;
+    column_t*	column;
     byte*	desttop;
     byte*	dest;
-    byte*	source; 
-    int		w; 
-	uint32_t *dest32; 
-    y -= SHORT(patch->topoffset); 
-    x -= SHORT(patch->leftoffset); 
- 
+    byte*	source;
+    int		w;
+#if SCREENWIDTH == 320
+    uint16_t *dest16;
+#endif
+#if SCREENWIDTH == 640
+	uint32_t *dest32;
+#endif
+    y -= SHORT(patch->topoffset);
+    x -= SHORT(patch->leftoffset);
+
 //    if (!scrn)
-//	V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height)); 
-		uint32_t y_o = y;
+//	V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height));
+    uint32_t y_o = y;
 
-    col = 0; 
-    desttop = screens[scrn]+y*SCREENWIDTH+x; 
-    w = SHORT(patch->width); 
-	
-	if(scrn == 0)
-	{
-		for ( ; col<w ; x++, col++)
-		{ 
-			column = (column_t *)((byte *)patch + LONG(patch->columnofs[col])); 
+    col = 0;
+    desttop = screens[scrn]+y*SCREENWIDTH+x;
+    w = SHORT(patch->width);
 
-			// step through the posts in a column 
-			while (column->topdelta != 0xff ) 
-			{
-				y += column->topdelta;
-				source = (byte *)column + 3; 
-				count = column->length;		
-				
-				while (count--)
-				{
-					byte source_spot = *source++;
-					uint32_t mapped_spot = palarray[source_spot];
-					dest32 = (uint32_t *)(__safe_buffer[_dc-1] + (( (x<<1)+(ytab[y<<1]) )<<1));
-					*dest32 = mapped_spot;
-					dest32+=(SCREENWIDTH>>1);
-					*dest32 = mapped_spot;
-					y++;
-				} 
-				
-				y = y_o;
-				
-				column = (column_t *)(  (byte *)column + column->length + 4 ); 
-			} 
-		}
-	}
-	else
-	{
-		for ( ; col<w ; x++, col++, desttop++)
-		{ 
-			column = (column_t *)((byte *)patch + LONG(patch->columnofs[col])); 
-		 
-			// step through the posts in a column 
-			while (column->topdelta != 0xff ) 
-			{ 
-				source = (byte *)column + 3; 
-				dest = desttop + column->topdelta*SCREENWIDTH; 
-				count = column->length; 
-					 
-				while (count--) 
-				{ 
-					*dest = *source++; 
-					dest += SCREENWIDTH; 
-				} 
+    if (scrn == 0)
+    {
+        for ( ; col<w ; x++, col++)
+        {
+            column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
 
-				column = (column_t *)(  (byte *)column + column->length + 4 ); 
-			} 
-		}	
-	}
-} 
- 
+            // step through the posts in a column
+            while (column->topdelta != 0xff )
+            {
+                y += column->topdelta;
+                source = (byte *)column + 3;
+                count = column->length;
+                while (count--)
+                {
+#if SCREENWIDTH == 320
+                    uint16_t mapped_spot = palarray[*source++];
+                    dest16 = (uint16_t *)((uintptr_t)__safe_buffer[(_dc) - 1] +(ytab(SCREENWIDTH>>3))+ (( (x)+(ytab(y)) )<<1));
+                    *dest16 = mapped_spot;
+#endif
+#if SCREENWIDTH == 640
+                    uint32_t mapped_spot = palarray[*source++];
+                    dest32 = (uint32_t *)((uintptr_t)__safe_buffer[_dc-1] +(ytab(SCREENWIDTH>>3))+ ((x<<1)+(ytab(y<<1)) ) <<1));
+                    *dest32 = mapped_spot;
+                    dest32+=(SCREENWIDTH>>1);
+                    *dest32 = mapped_spot;
+#endif
+                    y++;
+                }
+
+                y = y_o;
+                column = (column_t *)(  (byte *)column + column->length + 4 );
+            }
+        }
+    }
+    else
+    {
+        for ( ; col<w ; x++, col++, desttop++)
+        {
+            column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
+
+            // step through the posts in a column
+            while (column->topdelta != 0xff )
+            {
+                source = (byte *)column + 3;
+                dest = desttop + ytab(column->topdelta);//*SCREENWIDTH;
+                count = column->length;
+
+                while (count--)
+                {
+                    *dest = *source++;
+                    dest += SCREENWIDTH;
+                }
+
+                column = (column_t *)(  (byte *)column + column->length + 4 );
+            }
+        }
+    }
+}
+
+
 //
-// V_DrawPatchFlipped 
+// V_DrawPatchFlipped
 // Masks a column based masked pic to the screen.
 // Flips horizontally, e.g. to mirror face.
 //
@@ -298,102 +314,111 @@ V_DrawPatchFlipped
 ( int		x,
   int		y,
   int		scrn,
-  patch_t*	patch ) 
-{ 
-
+  patch_t*	patch )
+{
     int		count;
-    int		col; 
-    column_t*	column; 
+    int		col;
+    column_t*	column;
     byte*	desttop;
     byte*	dest;
-    byte*	source; 
-    int		w; 
-	uint32_t *dest32; 
-	 
-    y -= SHORT(patch->topoffset); 
-    x -= SHORT(patch->leftoffset); 
- 
-	uint32_t y_o = y;
- 
+    byte*	source;
+    int		w;
+#if SCREENWIDTH == 320
+    uint16_t *dest16;
+#endif
+#if SCREENWIDTH == 640
+    uint32_t *dest32;
+#endif
+
+    y -= SHORT(patch->topoffset);
+    x -= SHORT(patch->leftoffset);
+
+    uint32_t y_o = y;
+
 // if (!scrn)
-//	V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height)); 
+//	V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height));
 
-    col = 0; 
-    desttop = screens[scrn]+y*SCREENWIDTH+x; 
-	 
-    w = SHORT(patch->width); 
+    col = 0;
+    desttop = screens[scrn]+y*SCREENWIDTH+x;
 
-	if(scrn == 0)
-	{
-		for ( ; col<w ; x++, col++)
-		{ 
-			column = (column_t *)((byte *)patch + LONG(patch->columnofs[w-1-col])); 
+    w = SHORT(patch->width);
 
-			// step through the posts in a column 
-			while (column->topdelta != 0xff ) 
-			{
-				y+=column->topdelta;
+    if (scrn == 0)
+    {
+        for ( ; col<w ; x++, col++)
+        {
+            column = (column_t *)((byte *)patch + LONG(patch->columnofs[w-1-col]));
 
-				source = (byte *)column + 3; 
-				count = column->length;		
-				
-				while (count--)
-				{
-					uint32_t mapped_spot = palarray[*source++];
-					dest32 = (uint32_t *)(__safe_buffer[_dc-1] + (( (x<<1)+(ytab[y<<1]) )<<1));
-					*dest32 = mapped_spot;
-					dest32+=(SCREENWIDTH>>1);
-					*dest32 = mapped_spot;
-					y++;
-				} 
+            // step through the posts in a column
+            while (column->topdelta != 0xff )
+            {
+                y+=column->topdelta;
 
-				y = y_o;
-				
-				column = (column_t *)(  (byte *)column + column->length + 4 ); 
-			} 
-		}
-	}
-	else
-	{
-		for ( ; col<w ; x++, col++, desttop++) 
-		{ 
-			column = (column_t *)((byte *)patch + LONG(patch->columnofs[w-1-col])); 
-		 
-			// step through the posts in a column 
-			while (column->topdelta != 0xff ) 
-			{ 
-				source = (byte *)column + 3; 
-				dest = desttop + column->topdelta*SCREENWIDTH; 
-				count = column->length; 
-					 
-				while (count--) 
-				{ 
-					*dest = *source++; 
-					dest += SCREENWIDTH; 
-				} 
+                source = (byte *)column + 3;
 
-				column = (column_t *)(  (byte *)column + column->length + 4 ); 
-			} 
-		}
-	}
-} 
- 
+                count = column->length;
+
+                while (count--)
+                {
+#if SCREENWIDTH == 320
+                    uint16_t mapped_spot = palarray[*source++];
+                    dest16 = (uint16_t *)((uintptr_t)__safe_buffer[(_dc) - 1]+(ytab(SCREENWIDTH>>3)) + (( (x)+(ytab(y)) )<<1));
+                    *dest16 = mapped_spot;
+#endif
+#if SCREENWIDTH == 640
+                    uint32_t mapped_spot = palarray[*source++];
+                    dest32 = (uint32_t *)((uintptr_t)__safe_buffer[_dc-1]+(ytab(SCREENWIDTH>>3)) + (( (x<<1)+((ytab(y<<1))) )<<1));
+                    *dest32 = mapped_spot;
+                    dest32+=(SCREENWIDTH>>1);
+                    *dest32 = mapped_spot;
+#endif
+                    y++;
+                }
+
+                y = y_o;
+                column = (column_t *)(  (byte *)column + column->length + 4 );
+            }
+        }
+    }
+    else
+    {
+        for ( ; col<w ; x++, col++, desttop++)
+        {
+            column = (column_t *)((byte *)patch + LONG(patch->columnofs[w-1-col]));
+
+            // step through the posts in a column
+            while (column->topdelta != 0xff )
+            {
+                source = (byte *)column + 3;
+                dest = desttop + ytab(column->topdelta);//*SCREENWIDTH;
+                count = column->length;
+                while (count--)
+                {
+                    *dest = *source++;
+                    dest += SCREENWIDTH;
+                }
+
+                column = (column_t *)(  (byte *)column + column->length + 4 );
+            }
+        }
+    }
+}
+
 
 
 //
 // V_DrawPatchDirect
-// Draws directly to the screen on the pc. 
+// Draws directly to the screen on the pc.
 //
 void
 V_DrawPatchDirect
 ( int		x,
   int		y,
   int		scrn,
-  patch_t*	patch ) 
+  patch_t*	patch )
 {
-    V_DrawPatch (x, y, scrn, patch); 
-} 
- 
+    V_DrawPatch (x, y, scrn, patch);
+}
 
 
 //
@@ -407,44 +432,9 @@ V_DrawBlock
   int		scrn,
   int		width,
   int		height,
-  byte*		src ) 
-{ 
-    byte*	dest; 
-	uint32_t *dest32;	 
-
-//    V_MarkRect (x, y, width, height); 
- 
-	if (scrn == 0)
-	{
-		uint32_t h_o = height;
-		uint32_t i;
-		
-		while (height--)
-		{
-			for (i = 0; i < width; i++)
-			{	
-				uint32_t spot = palarray[src[i + ((h_o - height)*width)]];
-					dest32 = (uint32_t *)(__safe_buffer[_dc-1] + (( ((x+i)<<1)+(ytab[((y+(h_o - height))<<1)]) )<<1));
-					*dest32 = spot;
-					dest32+=(SCREENWIDTH>>1);
-					*dest32 = spot;
-				}
-		}
-		
-	}
-	else
-	{
-		dest = screens[scrn] + y*SCREENWIDTH+x; 
-
-		while (height--) 
-		{ 
-			__n64_memcpy_ASM (dest, src, width); 
-			src += width; 
-			dest += SCREENWIDTH; 
-		}
-	}
-} 
- 
+  byte*		src )
+{
+}
 
 
 //
@@ -458,21 +448,19 @@ V_GetBlock
   int		scrn,
   int		width,
   int		height,
-  byte*		dest ) 
-{ 
-    byte*	src; 
- 
-    src = screens[scrn] + y*SCREENWIDTH+x; 
+  byte*		dest )
+{
+    byte*	src;
 
-    while (height--) 
-    { 
-	__n64_memcpy_ASM (dest, src, width); 
-	src += SCREENWIDTH; 
-	dest += width; 
-    } 
-} 
+    src = screens[scrn] + y*SCREENWIDTH+x;
 
-
+    while (height--)
+    {
+	__n64_memcpy_ASM (dest, src, width);
+	src += SCREENWIDTH;
+	dest += width;
+    }
+}
 
 
 //
@@ -484,11 +472,10 @@ void V_Init (void)
     byte*	base;
 
     // stick these in low dos memory on PCs
-
-    base = I_AllocLow(SCREENWIDTH*SCREENHEIGHT);//*2);
+    base = I_AllocLow(SCREENWIDTH*SCREENHEIGHT);
 
     for (i=0 ; i<3 ; i++)
     {
-	screens[i] = base; // trust me on this
+	screens[i] = base; // trust me on this, we render to n64 cfb
     }
 }

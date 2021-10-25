@@ -46,8 +46,9 @@ static int GODDED;
 extern int PROFILE_MEMORY;
 extern int usegamma;
 
-const int max_map = 34;
-int current_map = 1;
+int current_map;
+int current_episode;
+GameMode_t current_mode;
 
 static int pad_weapon = 1;
 static char weapons[8] = { '1', '2', '3', '3', '4', '5', '6', '7' };
@@ -60,9 +61,11 @@ int center_x = 0;
 int center_y = 0;
 int shift = 0;
 
-void pressed_key(struct controller_data pressed_data);
-void held_key(struct controller_data pressed_data);
-void released_key(struct controller_data pressed_data);
+void pressed_key(struct controller_data pressed_data, int player);
+void held_key(struct controller_data pressed_data, int player);
+void released_key(struct controller_data pressed_data, int player);
+
+int current_player_for_input = 0;
 
 //
 // I_GetEvent
@@ -77,10 +80,11 @@ void I_GetEvent(void)
     struct controller_data keys_pressed = get_keys_down();
     struct controller_data keys_held = get_keys_held();
     struct controller_data keys_released = get_keys_up();
-
-    pressed_key(keys_pressed);
-    held_key(keys_held);
-    released_key(keys_released);
+    // one of these days...
+    current_player_for_input = 0;
+    pressed_key(keys_pressed,0);
+    held_key(keys_held,0);
+    released_key(keys_released,0);
 }
 
 //
@@ -97,9 +101,9 @@ void I_StartTic(void)
 // held_key
 // this function maps analog stick position into mouse movement event
 //
-void held_key(struct controller_data pressed_data)
+void held_key(struct controller_data pressed_data, int player)
 {
-    struct SI_condat pressed = pressed_data.c[0];
+    struct SI_condat pressed = pressed_data.c[player];
     short mouse_x;
     short mouse_y;
 
@@ -125,6 +129,7 @@ void held_key(struct controller_data pressed_data)
     }
 }
 
+int shift_times;
 
 //
 // pressed_key
@@ -133,20 +138,11 @@ void held_key(struct controller_data pressed_data)
 // also handles out-of-band input operations like toggling GOD MODE, debug display,
 // adjusting gamma correction
 //
-void pressed_key(struct controller_data pressed_data)
+void pressed_key(struct controller_data pressed_data, int player)
 {
     event_t doom_input_event;
+    struct SI_condat pressed = pressed_data.c[player];
 
-    struct SI_condat pressed = pressed_data.c[0];
-
-    // press 'Y' -- to test "QUIT" menu option
-    if (pressed.left && pressed.right)
-    {
-        doom_input_event.data1 = 'y';
-        doom_input_event.type = ev_keydown;
-        D_PostEvent(&doom_input_event);
-    }	
-	
     // CHEAT WARP TO NEXT LEVEL
     if (pressed.L && pressed.Z)
     {
@@ -158,19 +154,6 @@ void pressed_key(struct controller_data pressed_data)
         count += 1;
     }
 
-    // ITERATE TO NEXT GAMMA CORRECTION LEVEL
-    if (pressed.R && pressed.Z)
-    {
-        usegamma += 1;
-
-        if (usegamma > 4)
-        {
-            usegamma = 0;
-        }
-
-        I_ForcePaletteUpdate();
-    }
-
     // TOGGLE GOD MODE
     if (pressed.L && pressed.R)
     {
@@ -179,15 +162,17 @@ void pressed_key(struct controller_data pressed_data)
             n64_do_cheat(1); // IDDQD
             n64_do_cheat(3); // IDKFA
             n64_do_cheat(10); // IDBEHOLDA
-            n64_do_cheat(5); // IDDT			
-		}
+            n64_do_cheat(5); // IDDT
+        }
 
         GODDED = 1 - GODDED;
     }
 
+    // RUN ON/OFf
     if (pressed.Z)
     {
         shift = 1 - shift;
+        shift_times = 0;
     }
 
     if (shift)
@@ -195,12 +180,17 @@ void pressed_key(struct controller_data pressed_data)
         doom_input_event.data1 = KEY_RSHIFT;
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
+        shift_times++;
     }
-    else // if (!shift)
+    else
     {
-        doom_input_event.data1 = KEY_RSHIFT;
-        doom_input_event.type = ev_keyup;
-        D_PostEvent(&doom_input_event);
+        if (shift_times == 0)
+        {
+            doom_input_event.data1 = KEY_RSHIFT;
+            doom_input_event.type = ev_keyup;
+            D_PostEvent(&doom_input_event);
+        }
+        shift_times++;
     }
 
     if (pressed.A)
@@ -303,22 +293,15 @@ void pressed_key(struct controller_data pressed_data)
 // handle released buttons that are mapped to keyboard event operations such as
 // moving, shooting, opening doors, etc
 //
-void released_key(struct controller_data pressed_data)
+void released_key(struct controller_data pressed_data, int player)
 {
     event_t doom_input_event;
 
-    struct SI_condat pressed = pressed_data.c[0];
+    struct SI_condat pressed = pressed_data.c[player];
 
     last_x = pressed.x - center_x;
     last_y = pressed.y - center_y;
 
-    if (pressed.left && pressed.right)
-    {
-        doom_input_event.data1 = 'y';
-        doom_input_event.type = ev_keyup;
-        D_PostEvent(&doom_input_event);
-    }
-		
     if (pressed.A)
     {
         doom_input_event.data1 = KEY_RCTRL;
@@ -399,6 +382,7 @@ void released_key(struct controller_data pressed_data)
     }
 }
 
+char __attribute__((aligned(8))) clevstr[256];
 
 void n64_do_cheat(int cheat)
 {
@@ -470,21 +454,60 @@ void n64_do_cheat(int cheat)
         }
         case 13: // change level
         {
-            if (current_map < max_map)
+#if 0
+            if ((current_mode == (GameMode_t)commercial) || (current_mode == (GameMode_t)pack_tnt) || (current_mode == (GameMode_t)pack_plut))
             {
-                current_map += 1;
-            }
-            else
-            {
-                current_map = 1;
-            }
+                if (current_mode == (GameMode_t)commercial)
+                {
+                    if(current_map < 34) {
+                        current_map++;
+                    }
+                    else
+                    {
+                        current_map = 1;
+                    }
+                }
+                else
+                {
+                    if (current_map < 32)
+                    {
+                        current_map++;
+                    }
+                    else
+                    {
+                        current_map = 1;
+                    }
+                }
 
-            char __attribute__((aligned(8))) clevstr[256];
-            sprintf(clevstr, "idclev%02d", current_map);
-            str = clevstr;
+                if(current_map < 10)
+                    sprintf(clevstr, "idclev%02d", current_map);
+                else
+                    sprintf(clevstr, "idclev%d", current_map);
+
+                str = clevstr;
+            }
+#endif
+#if 0
+            else
+#endif
+#if 1
+            {
+                //current_map = gamemap;
+                if (current_map < 9)
+                {
+                    current_map++;
+                }
+                else
+                {
+                    current_map = 1;
+                }
+
+                sprintf(clevstr, "idclev%1d%1d", current_episode, current_map);
+                str = clevstr;
+            }
+#endif
             break;
         }
-
         default:
         {
             return;

@@ -746,10 +746,10 @@ EV_SlidingDoor
 	door->type = sdt_openAndClose;
 	door->status = sd_opening;
 	door->whichDoorIndex = P_FindSlidingDoorType(line);
-
+#ifdef RANGECHECK
 	if (door->whichDoorIndex < 0)
 	    I_Error("EV_SlidingDoor: Can't use texture for sliding door!");
-			
+#endif			
 	door->frontsector = sec;
 	door->backsector = line->backsector;
 	door->thinker.function = T_SlidingDoor;

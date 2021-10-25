@@ -9,7 +9,7 @@ OFILES_LD += $(CURDIR)/build/console.o
 OFILES_LD += $(CURDIR)/build/controller.o
 OFILES_LD += $(CURDIR)/build/mempak.o
 OFILES_LD += $(CURDIR)/build/graphics.o
-OFILES_LD += $(CURDIR)/build/rdp.o
+OFILES_LD += $(CURDIR)/build/new_rdp.o
 OFILES_LD += $(CURDIR)/build/rsp.o
 OFILES_LD += $(CURDIR)/build/dma.o
 OFILES_LD += $(CURDIR)/build/timer.o
@@ -56,9 +56,9 @@ $(CURDIR)/build/console.o: $(CURDIR)/src/console.c
 $(CURDIR)/build/graphics.o: $(CURDIR)/src/graphics.c
 	mkdir -p $(CURDIR)/build
 	$(CC) $(CFLAGS) -c -o $(CURDIR)/build/graphics.o $(CURDIR)/src/graphics.c
-$(CURDIR)/build/rdp.o: $(CURDIR)/src/rdp.c
+$(CURDIR)/build/new_rdp.o: $(CURDIR)/src/new_rdp.c
 	mkdir -p $(CURDIR)/build
-	$(CC) $(CFLAGS) -c -o $(CURDIR)/build/rdp.o $(CURDIR)/src/rdp.c
+	$(CC) $(CFLAGS) -c -o $(CURDIR)/build/new_rdp.o $(CURDIR)/src/new_rdp.c
 $(CURDIR)/build/rsp.o: $(CURDIR)/src/rsp.c
 	mkdir -p $(CURDIR)/build
 	$(CC) $(CFLAGS) -c -o $(CURDIR)/build/rsp.o $(CURDIR)/src/rsp.c

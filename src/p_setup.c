@@ -550,9 +550,10 @@ void P_GroupLines (void)
 		M_AddToBox (bbox, li->v2->x, li->v2->y);
 	    }
 	}
+#ifdef RANGECHECK
 	if (linebuffer - sector->lines != sector->linecount)
 	    I_Error ("P_GroupLines: miscounted");
-			
+#endif			
 	// set the degenmobj_t to the middle of the bounding box
 	sector->soundorg.x = (bbox[BOXRIGHT]+bbox[BOXLEFT])/2;
 	sector->soundorg.y = (bbox[BOXTOP]+bbox[BOXBOTTOM])/2;
@@ -576,7 +577,9 @@ void P_GroupLines (void)
     }
 }
 
-
+extern int current_map;
+extern int current_episode;
+extern GameMode_t current_mode;
 //
 // P_SetupLevel
 //
@@ -612,7 +615,9 @@ P_SetupLevel
 
     // if working with a devlopment map, reload it
     W_Reload ();			
-
+//current_mode = gamemode;
+current_map = map;
+current_episode = episode;
     // find map name
     if ( gamemode == commercial)
     {

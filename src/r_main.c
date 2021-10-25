@@ -117,21 +117,82 @@ int			extralight;
 
 
 
-void (*colfunc) (void);
-void (*skycolfunc) (void);
-void (*basecolfunc) (void);
-void (*fuzzcolfunc) (void);
-void (*transcolfunc) (void);
-void (*spanfunc) (void);
+void (*colfunc) (
+//int yl, int yh, int x
+void
+);
+void (*skycolfunc) (
+//int yl, int yh, int x
+void
+);
+void (*basecolfunc) (
+//int yl, int yh, int x
+void
+);
+void (*fuzzcolfunc) (
+//int yl, int yh, int x
+void
+);
+void (*transcolfunc) (
+//int yl, int yh, int x
+void
+);
+void (*spanfunc) (void
+//int x1, int x2, int y
+);
 
-extern void R_DrawColumn_TrueColor (void);
-extern void R_DrawSpan_TrueColor (void);
-extern void R_DrawFuzzColumn_TrueColor (void);
-extern void R_DrawTranslatedColumn_TrueColor (void);
-extern void R_DrawColumnLow_TrueColor (void);
-extern void R_DrawSpanLow_TrueColor (void);
-extern void R_DrawFuzzColumnLow_TrueColor (void);
-extern void R_DrawTranslatedColumnLow_TrueColor (void);
+extern void R_DrawColumn_TrueColor (
+//int yl, int yh, int x
+void
+);
+extern void R_DrawSpan_TrueColor (void
+//int x1, int x2, int y
+);
+extern void R_DrawFuzzColumn_TrueColor (
+//int yl, int yh, int x
+void
+);
+extern void R_DrawSkyColumn_TrueColor (
+//int yl, int yh, int x
+void
+);
+extern void R_DrawTranslatedColumn_TrueColor (
+//int yl, int yh, int x
+void
+);
+extern void R_DrawColumnLow_TrueColor (
+//int yl, int yh, int x
+void
+);
+extern void R_DrawSpanLow_TrueColor (void
+//int x1, int x2, int y
+);
+extern void R_DrawFuzzColumnLow_TrueColor (
+//int yl, int yh, int x
+void
+);
+extern void R_DrawSkyColumnLow_TrueColor (
+//int yl, int yh, int x
+void
+);
+extern void R_DrawTranslatedColumnLow_TrueColor (
+//int yl, int yh, int x
+void
+);
+
+static inline int SlopeDiv(uint32_t num, uint32_t den)
+{
+    uint32_t ans;
+
+    if (den < 512)
+    {
+        return SLOPERANGE;
+    }
+
+    ans = (num<<3) / (den>>8);
+
+    return ((ans <= SLOPERANGE) ? ans : SLOPERANGE);
+}
 
 //
 // R_AddPointToBox
@@ -690,29 +751,40 @@ void R_ExecuteSetViewSize (void)
     }
     else
     {
-	scaledviewwidth = setblocks*64;
+/*	scaledviewwidth = setblocks*64;
+	viewheight = (setblocks*336/10)&~7;*/
+#if SCREENWIDTH == 320
+    scaledviewwidth = setblocks<<5; //*32;
+	viewheight = (setblocks*168 /10)&~7;
+#endif
+#if SCREENWIDTH == 640
+    scaledviewwidth = setblocks<<6; //*64;
 	viewheight = (setblocks*336/10)&~7;
+#endif
+
     }
     
     detailshift = setdetail;
     viewwidth = scaledviewwidth>>detailshift;
 	
-    centery = ((viewheight+10)/2);
-    centerx = viewwidth/2;
+    centery = viewheight>>1; // ((viewheight/*+10*/)/2);
+    centerx = viewwidth>>1; // /2;
     centerxfrac = centerx<<FRACBITS;
     centeryfrac = centery<<FRACBITS;
     projection = centerxfrac;
 
     if (!detailshift)
     {
-	colfunc = basecolfunc = R_DrawColumn_TrueColor;
+	colfunc = skycolfunc = basecolfunc = R_DrawColumn_TrueColor;
+	//skycolfunc = R_DrawSkyColumn_TrueColor;
 	fuzzcolfunc = R_DrawFuzzColumn_TrueColor;
 	transcolfunc = R_DrawTranslatedColumn_TrueColor;
 	spanfunc = R_DrawSpan_TrueColor;
     }
     else
     {
-	colfunc = basecolfunc = R_DrawColumnLow_TrueColor;
+	colfunc = skycolfunc = basecolfunc = R_DrawColumnLow_TrueColor;
+	//skycolfunc = R_DrawSkyColumnLow_TrueColor;
 	fuzzcolfunc = R_DrawFuzzColumnLow_TrueColor;
 	transcolfunc = R_DrawTranslatedColumnLow_TrueColor;
 	spanfunc = R_DrawSpanLow_TrueColor;
@@ -723,8 +795,16 @@ void R_ExecuteSetViewSize (void)
     R_InitTextureMapping ();
     
     // psprite scales
+    //pspritescale = FRACUNIT*viewwidth/(SCREENWIDTH/2);
+    //pspriteiscale = FRACUNIT*(SCREENWIDTH/2)/viewwidth;
+#if SCREENWIDTH == 640
     pspritescale = FRACUNIT*viewwidth/(SCREENWIDTH/2);
     pspriteiscale = FRACUNIT*(SCREENWIDTH/2)/viewwidth;
+#endif
+#if SCREENWIDTH == 320
+    pspritescale = FRACUNIT*viewwidth/(SCREENWIDTH);
+    pspriteiscale = FRACUNIT*(SCREENWIDTH)/viewwidth;
+#endif
     
     // thing clipping
     for (i=0 ; i<viewwidth ; i++)

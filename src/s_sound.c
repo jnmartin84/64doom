@@ -156,9 +156,7 @@ void S_Init
 ( int		sfxVolume,
   int		musicVolume )
 {
-  int		i;
-
-//    fprintf( stderr, "S_Init: default sfx volume %d\n", sfxVolume);
+    int		i;
 
     // Whatever these did with DMX, these are rather dummies now.
     I_SetChannels();
@@ -274,7 +272,7 @@ S_StartSoundAtVolume
   /*fprintf( stderr,
   	   "S_StartSoundAtVolume: playing sound %d (%s)\n",
   	   sfx_id, S_sfx[sfx_id].name );*/
-  
+#ifdef RANGECHECK  
   // check for bogus sound #
   if (sfx_id < 1 || sfx_id > NUMSFX)
   {
@@ -282,7 +280,7 @@ S_StartSoundAtVolume
     sprintf(ermac, "S_StartSoundAtVolume: Bad sfx #: %d", sfx_id);
     I_Error(ermac);
   }
-  
+#endif  
   sfx = &S_sfx[sfx_id];
   
   // Initialize sound parameters
@@ -626,13 +624,14 @@ void S_UpdateSounds(void* listener_p)
 
 void S_SetMusicVolume(int volume)
 {
+#ifdef RANGECHECK	
     if (volume < 0 || volume > 127)
     {
 	char error[256];
 	/*I_Error*/sprintf(error,"S_SetMusicVolume: Attempt to set music volume at %d",volume);
 	I_Error(error);
     }
-
+#endif
     I_SetMusicVolume(127);
     I_SetMusicVolume(volume);
     snd_MusicVolume = volume;
@@ -642,12 +641,14 @@ void S_SetMusicVolume(int volume)
 
 void S_SetSfxVolume(int volume)
 {
+#ifdef RANGECHECK	
     if (volume < 0 || volume > 127)
     {
 	char ermac[256];
 	sprintf(ermac, "S_SetSfxVolume: Attempt to set sfx volume at %d", volume);
 	I_Error(ermac);
     }
+#endif	
     snd_SfxVolume = volume;
 }
 
@@ -666,7 +667,7 @@ S_ChangeMusic
 {
     musicinfo_t*	music;
     char		namebuf[9];
-
+#ifdef RANGECHECK
     if ( (musicnum <= mus_None)
 	 || (musicnum >= NUMMUSIC) )
     {
@@ -679,6 +680,10 @@ S_ChangeMusic
     {
 	music = &S_music[musicnum];
     }
+#endif
+#ifndef RANGECHECK
+	music = &S_music[musicnum];
+#endif
 
     if (mus_playing == music)
     {

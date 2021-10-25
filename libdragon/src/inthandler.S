@@ -9,6 +9,7 @@
 #include "regs.S"
 
 inthandler:
+	.align 8
 	.global inthandler
 
 	/*Save $2 before using*/
@@ -278,9 +279,15 @@ inthandler:
 	swc0 $29, 252($4)
 	swc0 $30, 256($4)
 	//swc0 $31, 260($4)*/
-	jal register_dump
-	nop
 
+	jal register_dump
+//l:
+//        j l
+	nop	
+	
+	j	endint
+	nop
+	
 justaninterrupt:
 	/* check for "pre-NMI" (reset) */
 	andi $30,k1,0x1000
@@ -290,9 +297,9 @@ justaninterrupt:
 	/* handle reset */
 	jal __onResetException
 	nop
-
-	j endint
+	j	endint
 	nop
+
 notprenmi:
 
 	/* check for count=compare */
@@ -307,11 +314,13 @@ notprenmi:
 
 	j endint
 	nop
+
 notcount:
 
 	/* pass anything else along to handler */
 	jal __MI_handler
 	nop
+
 
 endint:
 	/* restore GPRs */

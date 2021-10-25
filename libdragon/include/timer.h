@@ -24,8 +24,11 @@ typedef struct timer_link
     int ovfl;
     /** @brief Timer flags.  See #TF_ONE_SHOT and #TF_CONTINUOUS */
     int flags;
-    /** @brief Callback function to call when timer fires */
-    void (*callback)(int ovfl);
+    int param1;
+    int param2;
+    int param3;
+/** @brief Callback function to call when timer fires */
+    void (*callback)(int ovfl,int p1, int p2, int p3);
     /** @brief Link to next timer */
     struct timer_link *next;
 } timer_link_t;
@@ -82,9 +85,9 @@ extern "C" {
 /* initialize timer subsystem */
 void timer_init(void);
 /* create a new timer and add to list */
-timer_link_t *new_timer(int ticks, int flags, void (*callback)(int ovfl));
+timer_link_t *new_timer(int ticks, int flags, int param1, int param2, int param3, void (*callback)(int ovfl, int param1, int param2, int param3));
 /* start a timer not currently in the list */
-void start_timer(timer_link_t *timer, int ticks, int flags, void (*callback)(int ovfl));
+void start_timer(timer_link_t *timer, int ticks, int flags, int param1, int param2, int param3, void (*callback)(int ovfl, int param1, int param2, int param3));
 /* remove a timer from the list */
 void stop_timer(timer_link_t *timer);
 /* remove a timer from the list and delete it */

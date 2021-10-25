@@ -515,6 +515,7 @@ void R_Subsector (int num)
     count = sub->numlines;
     line = &segs[sub->firstline];
 
+
     if (frontsector->floorheight < viewz)
     {
 	floorplane = R_FindPlane (frontsector->floorheight,

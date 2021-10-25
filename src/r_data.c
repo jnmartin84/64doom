@@ -191,9 +191,9 @@ R_DrawColumnInCache
     int		count;
     int		position;
     byte*	source;
-//    byte*	dest;
-//
-//    dest = (byte *)cache + 3;
+    byte*	dest;
+
+    dest = (byte *)cache + 3;
 
     while (patch->topdelta != 0xff)
     {
@@ -348,6 +348,7 @@ void R_GenerateLookup (int texnum)
 
     for (x=0 ; x<texture->width ; x++)
     {
+#ifdef RANGECHECK		
 	if (!patchcount[x])
 	{
 	    char error[256];
@@ -355,6 +356,7 @@ void R_GenerateLookup (int texnum)
             I_Error(error);
 	    return;
 	}
+#endif	
 	// I_Error ("R_GenerateLookup: column without a patch");
 	if (patchcount[x] > 1)
 	{
@@ -362,19 +364,35 @@ void R_GenerateLookup (int texnum)
 	    collump[x] = -1;
 	    colofs[x] = texturecompositesize[texnum];
 
+#ifdef RANGECHECK
 	    if (texturecompositesize[texnum] > 0x10000-texture->height)
 	    {
                 char error[256];
 		sprintf(error, "R_GenerateLookup: texture %i is >64k", texnum);
                 I_Error(error);
 	    }
-
+#endif
 	    texturecompositesize[texnum] += texture->height;
 	}
     }
 }
 
+byte*
+R_GetSky
+( int tex )
+{
+    int		lump;
 
+    lump = texturecolumnlump[tex][0];
+
+    if (lump > 0)
+	return (byte *)W_CacheLumpNum(lump,PU_CACHE);
+
+    if (!texturecomposite[tex])
+	R_GenerateComposite (tex);
+
+    return texturecomposite[tex];
+}
 
 
 //
@@ -466,7 +484,6 @@ void R_InitTextures (void)
     // The data is contained in one or two lumps,
     //  TEXTURE1 for shareware, plus TEXTURE2 for commercial.
     maptex = maptex1 = W_CacheLumpName ("TEXTURE1", PU_STATIC);
-//    printf("maptex: %08X\n", maptex);
     numtextures1 = LONG(*maptex);
     maxoff = W_LumpLength (W_GetNumForName ("TEXTURE1"));
     directory = maptex+1;
@@ -474,7 +491,6 @@ void R_InitTextures (void)
     if (W_CheckNumForName ("TEXTURE2") != -1)
     {
 	maptex2 = W_CacheLumpName ("TEXTURE2", PU_STATIC);
-//    printf("maptex2: %08X\n", maptex2);
 	numtextures2 = LONG(*maptex2);
 	maxoff2 = W_LumpLength (W_GetNumForName ("TEXTURE2"));
     }
@@ -496,22 +512,6 @@ void R_InitTextures (void)
 
     totalwidth = 0;
 
-    //	Really complex printing shit...
-/*    temp1 = W_GetNumForName ("S_START");  // P_???????
-    temp2 = W_GetNumForName ("S_END") - 1;
-    temp3 = ((temp2-temp1+63)/64) + ((numtextures+63)/64);
-    printf("[");
-    for (i = 0; i < temp3; i++)
-    {
-	printf(" ");
-    }
-    printf("         ]");
-    for (i = 0; i < temp3; i++)
-    {
-	printf("\x8");
-    }
-    printf("\x8\x8\x8\x8\x8\x8\x8\x8\x8\x8");
-*/
     for (i=0 ; i<numtextures ; i++, directory++)
     {
 	if (!(i&63))
@@ -526,11 +526,13 @@ void R_InitTextures (void)
 	}
 
 	offset = LONG(*directory);
+#ifdef RANGECHECK
 
 	if (offset > maxoff)
 	{
 	    I_Error("R_InitTextures: bad texture directory");
 	}
+#endif	
 
 	mtexture = (maptexture_t *) ( (byte *)maptex + offset);
 
@@ -547,14 +549,6 @@ void R_InitTextures (void)
 
 	__n64_memcpy_ASM(texture->name, mtexture->name, 8/*sizeof(texture_t->name)*/);
 
-/*	for(int i=0;i<8;i++) {
-            texture->name[i] = mtexture->name[i];
-        }*/
-//	__n64_memcpy_ASM(mtexture->name, texture->name, 8);
-
-//        printf("%s\n", mtexture->name);
-//        printf("%s\n", texture->name);
-
 	mpatch = &mtexture->patches[0];
 	patch = &texture->patches[0];
 
@@ -563,12 +557,14 @@ void R_InitTextures (void)
 	    patch->originx = SHORT(mpatch->originx);
 	    patch->originy = SHORT(mpatch->originy);
 	    patch->patch = patchlookup[SHORT(mpatch->patch)];
-	    if (patch->patch == -1)
+#ifdef RANGECHECK	 
+	 if (patch->patch == -1)
 	    {
                 char error[256];
 		sprintf(error, "R_InitTextures: Missing patch in texture %s", texture->name);
                 I_Error(error);
 	    }
+#endif		
 	}
 	texturecolumnlump[i] = Z_Malloc (texture->width*2, PU_STATIC,0);
 	texturecolumnofs[i] = Z_Malloc (texture->width*2, PU_STATIC,0);
@@ -600,13 +596,6 @@ void R_InitTextures (void)
     {
 	texturetranslation[i] = i;
     }
-
-/*    for(i=0; i<numtextures;i++) {
-        for(int c=0;c<8;c++) {
-            printf("%c", textures[i]->name[c]);
-        }
-        printf("%c", ',');
-    }*/
 }
 
 
@@ -707,7 +696,7 @@ int R_FlatNumForName (char* name)
     char	namet[9];
 
     i = W_CheckNumForName (name);
-
+#ifdef RANGECHECK
     if (i == -1)
     {
 	namet[8] = 0;
@@ -717,6 +706,7 @@ int R_FlatNumForName (char* name)
 	sprintf(ermac, "R_FlatNumForName: %s not found", namet);
 	I_Error(ermac);
     }
+#endif	
     return i - firstflat;
 }
 
@@ -761,13 +751,14 @@ int	R_TextureNumForName (char* name)
     int		i;
 
     i = R_CheckTextureNumForName (name);
-
+#ifdef RANGECHECK
     if (i==-1)
     {
         char error[256];
 	sprintf(error, "R_TextureNumForName: %s not found", name);
 	I_Error(error);
     }
+#endif	
     return i;
 }
 
