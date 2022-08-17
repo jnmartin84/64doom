@@ -1,7 +1,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +11,7 @@
 static int title[TITLE_SIZE];
 
 // memory allocated for reading/writing/copying file data
-void *buffer;
+unsigned char *buffer;
 
 int main(int argc, char **argv)
 {
@@ -40,36 +39,62 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 	
-char *padsizestr = argv[2];
-// always assume M
-padsizestr[strlen(padsizestr)-1] = '\0';
-size_t padsize = atoi(padsizestr)*1024*1024;
-buffer = malloc(padsize);
-memset(buffer, 0, padsize);
+	char *padsizestr = argv[2];
+	// printf("PAD SIZE: %s\n", padsizestr);
+	// always assume M
+	padsizestr[strlen(padsizestr)-1] = '\0';
+	size_t padsize = atoi(padsizestr)*1024*1024;
+	// printf("REAL PAD SIZE: %d\n", padsize);
+	buffer = malloc(padsize);
+	if (!buffer)
+	{
+		printf("ERROR: Could not allocate buffer!\n");
+		exit(-1);
+	}
+	memset(buffer, 0, padsize);
 	
-//	printf("%08X\n", padsize);
+	//	printf("%08X\n", padsize);
 	
 	char *HEADERNAME = argv[4];
 	char *OUTNAME = argv[6];
-	int outfile_fd = open(OUTNAME, O_CREAT | O_RDWR);
+	printf("open output file: %s\n", OUTNAME);
+	FILE *outfile_fd = fopen(OUTNAME, "wb");
+	if (!outfile_fd)
+	{
+		printf("ERROR: Could not create output file!\n");
+		exit(-1);
+	}
 
 	char *BINNAME = argv[9];
-	int bin_fd = open(BINNAME, O_RDONLY);
-	int binsize = lseek(bin_fd, 0, SEEK_END);
-	lseek(bin_fd, 0, SEEK_SET);
+	printf("open .bin file: %s\n", BINNAME);
+	FILE *bin_fd = fopen(BINNAME, "rb");
+	if (!bin_fd)
+	{
+		printf("ERROR: Could not open .bin file!\n");
+		exit(-1);
+	}
+	fseek(bin_fd, 0, SEEK_END);
+	int binsize = ftell(bin_fd);
+	fseek(bin_fd, 0, SEEK_SET);
 
-	int header_fd = open(HEADERNAME, O_RDONLY);
+	printf("open header file: %s\n", HEADERNAME);
+	FILE *header_fd = fopen(HEADERNAME, "rb");
+	if (!header_fd)
+	{
+		printf("ERROR: Could not open header file!\n");
+		exit(-1);
+	}
 	int headersize = 4096;
 	memset(title, 0x20, TITLE_SIZE);
 	memcpy(title, DEF_TITLE, (strlen(DEF_TITLE) > TITLE_SIZE) ? TITLE_SIZE : strlen(DEF_TITLE));
 
-	read(header_fd, buffer, headersize);
+	fread(buffer, headersize, 1, header_fd);
 	memcpy(buffer + TITLE_LOC, title, TITLE_SIZE);
-	write(outfile_fd, buffer, headersize);
+	fwrite(buffer, headersize, 1, outfile_fd);
 	memset(buffer, 0, padsize);
 
-	read(bin_fd, buffer, binsize);
-	write(outfile_fd, buffer, binsize);
+	fread(buffer, binsize, 1, bin_fd);
+	fwrite(buffer, binsize, 1, outfile_fd);
 	memset(buffer, 0, padsize);
 
 	for(int i=10;i<argc;i+=3) {
@@ -84,7 +109,7 @@ memset(buffer, 0, padsize);
 		char *filestr = argv[i+2];
 //		printf("%s %d %08X %s\n", offstr, off, off, filestr);
 
-		int bhsize = lseek(outfile_fd, 0, SEEK_CUR);
+		int bhsize = ftell(outfile_fd);
 		if(off < bhsize) {
 			printf("attempt to seek backwards into output file for write\n");
 			printf("double-check command line argument for seek offset and try again\n");
@@ -94,130 +119,30 @@ memset(buffer, 0, padsize);
 		int moff = off - bhsize;
 //		printf("last write at %08X, padding %d to %08X\n", bhsize, off - bhsize, off);
 	
-		write(outfile_fd, buffer, moff);
-		printf("write now at %08X\n", lseek(outfile_fd, 0, SEEK_CUR));
-		int fd = open(filestr, O_RDONLY);
-		int size = lseek(fd, 0, SEEK_END);
-		printf("read %d from %s\n",size,filestr);
-		lseek(fd, 0, SEEK_SET);
-		read(fd, buffer, size);
-		close(fd);
-		write(outfile_fd, buffer, size);
+		fwrite(buffer, moff, 1, outfile_fd);
+		printf("write now at %08X\n", ftell(outfile_fd));
+		printf("open file: %s\n", filestr);
+		FILE *fd = fopen(filestr, "rb");
+		if (!fd)
+		{
+			printf("ERROR: Could not open file!\n");
+			exit(-1);
+		}
+		fseek(fd, 0, SEEK_END);
+		int size = ftell(fd);
+		fseek(fd, 0, SEEK_SET);
+		printf("read %d from %s\n", size, filestr);
+		fread(buffer, 1, size, fd);
+		fclose(fd);
+		fwrite(buffer, 1, size, outfile_fd);
 		memset(buffer, 0, padsize);
 	}
 
-	int wimbhsize = lseek(outfile_fd, 0, SEEK_CUR);
+	int wimbhsize = ftell(outfile_fd);
 	int eoff = (padsize)-wimbhsize;
 	printf("last write at %08X, padding %d to %08X\n", wimbhsize, padsize - wimbhsize, padsize);
-	write(outfile_fd, buffer, eoff);
-	fsync(outfile_fd);
-	close(outfile_fd);
-	
-#if 0
-	//char *MIDIFILE;// = argv[2];
-	//char *IDFILE;// = argv[3];
-	//char *WADFILE;// = argv[4];
+	fwrite(buffer, 1, eoff, outfile_fd);
+	fclose(outfile_fd);
 
-	int header_fd = open(HEADERNAME, O_RDONLY);
-	int headersize = 4096;
-
-	int midi_fd = open(MIDIFILE, O_RDONLY);
-	int midisize = lseek(midi_fd, 0, SEEK_END);
-	lseek(midi_fd, 0, SEEK_SET);
-
-	int id_fd = open(IDFILE, O_RDONLY);
-	int idsize = lseek(id_fd, 0, SEEK_END);
-	lseek(id_fd, 0, SEEK_SET);
-
-	int wad_fd = open(WADFILE, O_RDONLY);
-	int wadsize = lseek(wad_fd, 0, SEEK_END);
-	lseek(wad_fd,  0, SEEK_SET);
-	
-	int bin_fd = open("doom.bin", O_RDONLY);
-	int binsize = lseek(bin_fd, 0, SEEK_END);
-	lseek(bin_fd, 0, SEEK_SET);
-	
-	int outfile_fd = open("doom.z64", O_CREAT | O_RDWR);
-	
-	memset(title, 0x20, TITLE_SIZE);
-	memcpy(title, DEF_TITLE, (strlen(DEF_TITLE) > TITLE_SIZE) ? TITLE_SIZE : strlen(DEF_TITLE));
-	
-/*    for(int i=0;i<headersize;i++) {
-		uint8_t nextbyte;
-		read(header_fd, &nextbyte,1);
-		write(outfile_fd, &nextbyte,1);
-	}*/
-	read(header_fd, buffer, headersize);
-	memcpy(buffer + TITLE_LOC, title, TITLE_SIZE);
-	write(outfile_fd, buffer, headersize);
-	memset(buffer, 0, 1048576*32);
-	
-/*	for(int i=0;i<binsize;i++) {
-		uint8_t nextbyte;
-		read(bin_fd, &nextbyte,1);
-		write(outfile_fd, &nextbyte,1);
-	}*/
-	read(bin_fd, buffer, binsize);
-	write(outfile_fd, buffer, binsize);
-	memset(buffer, 0, 1048576*32);
-	
-	int bhsize = lseek(outfile_fd, 0, SEEK_CUR);
-	int moff = MIDISEEK - bhsize;
-/*	for(int i=0;i<moff;i++) {
-		uint8_t nextbyte = 0;
-		write(outfile_fd, &nextbyte, 1);
-	}*/
-	write(outfile_fd, buffer, moff);
-/*	for(int i=0;i<midisize;i++) {
-		uint8_t nextbyte;
-		read(midi_fd, &nextbyte, 1);
-		write(outfile_fd, &nextbyte, 1);
-	}*/
-	read(midi_fd, buffer, midisize);
-	write(outfile_fd, buffer, midisize);
-	memset(buffer, 0, 1048576*32);
-	
-	int mbhsize = lseek(outfile_fd, 0, SEEK_CUR);
-	int ioff = IDSEEK - mbhsize;
-/*	for(int i=0;i<ioff;i++) {
-		uint8_t nextbyte = 0;
-		write(outfile_fd, &nextbyte, 1);
-	}*/
-	write(outfile_fd, buffer, ioff);	
-/*	for(int i=0;i<idsize;i++) {
-		uint8_t nextbyte;
-		read(id_fd, &nextbyte, 1);
-		write(outfile_fd, &nextbyte, 1);
-	}*/
-	read(id_fd, buffer, idsize);
-	write(outfile_fd, buffer, idsize);
-	memset(buffer, 0, 1048576*32);
-	
-	int imbhsize = lseek(outfile_fd, 0, SEEK_CUR);
-	int woff = WADSEEK - imbhsize;
-/*	for(int i=0;i<woff;i++) {
-		uint8_t nextbyte = 0;
-		write(outfile_fd, &nextbyte, 1);
-	}*/
-	write(outfile_fd, buffer, woff);	
-/*	for(int i=0;i<wadsize;i++) {
-		uint8_t nextbyte;
-		read(wad_fd, &nextbyte, 1);
-		write(outfile_fd, &nextbyte, 1);
-	}*/
-	read(wad_fd, buffer, wadsize);
-	write(outfile_fd, buffer, wadsize);
-	memset(buffer, 0, 1048576*32);
-	
-	int wimbhsize = lseek(outfile_fd, 0, SEEK_CUR);
-	int eoff = (32*1048576)-wimbhsize;
-/*	for(int i=0;i<eoff;i++) {
-		uint8_t nextbyte = 0;
-		write(outfile_fd, &nextbyte, 1);
-	}*/
-	write(outfile_fd, buffer, eoff);
-	fsync(outfile_fd);
-	close(outfile_fd);
-	#endif
 	return 0;
 }
