@@ -39,9 +39,6 @@
 #endif
 #include "i_net.h"
 
-extern void *__n64_memset_ASM(void *p, int v, size_t n);
-extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
-
 
 int get_counter = 0;
 int get_flag = 0;
@@ -115,28 +112,24 @@ void PacketSend (void)
     int		c;
 
     // byte swap
-    send_sw.checksum = htonl(
-	netbuffer->checksum
-	)
-	;
+    send_sw.checksum = htonl(netbuffer->checksum);
     send_sw.player = netbuffer->player;
     send_sw.retransmitfrom = netbuffer->retransmitfrom;
     send_sw.starttic = netbuffer->starttic;
     send_sw.numtics = netbuffer->numtics;
     for (c=0 ; c< netbuffer->numtics ; c++)
     {
-	send_sw.cmds[c].forwardmove = netbuffer->cmds[c].forwardmove;
-	send_sw.cmds[c].sidemove = netbuffer->cmds[c].sidemove;
-	send_sw.cmds[c].angleturn = htons(netbuffer->cmds[c].angleturn);
-	send_sw.cmds[c].consistancy = htons(netbuffer->cmds[c].consistancy);
-	send_sw.cmds[c].chatchar = netbuffer->cmds[c].chatchar;
-	send_sw.cmds[c].buttons = netbuffer->cmds[c].buttons;
+		send_sw.cmds[c].forwardmove = netbuffer->cmds[c].forwardmove;
+		send_sw.cmds[c].sidemove = netbuffer->cmds[c].sidemove;
+		send_sw.cmds[c].angleturn = htons(netbuffer->cmds[c].angleturn);
+		send_sw.cmds[c].consistancy = htons(netbuffer->cmds[c].consistancy);
+		send_sw.cmds[c].chatchar = netbuffer->cmds[c].chatchar;
+		send_sw.cmds[c].buttons = netbuffer->cmds[c].buttons;
     }
-
 #endif	
 }
 
-static int received_any = 0;
+//static int received_any = 0;
 
 //
 // PacketGet
@@ -157,12 +150,12 @@ void PacketGet (void)
 	
     for (c=0 ; c< netbuffer->numtics ; c++)
     {
-	netbuffer->cmds[c].forwardmove = recv_sw.cmds[c].forwardmove;
-	netbuffer->cmds[c].sidemove = recv_sw.cmds[c].sidemove;
-	netbuffer->cmds[c].angleturn = /*ntohs*/(recv_sw.cmds[c].angleturn);
-	netbuffer->cmds[c].consistancy = /*ntohs*/(recv_sw.cmds[c].consistancy);
-	netbuffer->cmds[c].chatchar = recv_sw.cmds[c].chatchar;
-	netbuffer->cmds[c].buttons = recv_sw.cmds[c].buttons;
+		netbuffer->cmds[c].forwardmove = recv_sw.cmds[c].forwardmove;
+		netbuffer->cmds[c].sidemove = recv_sw.cmds[c].sidemove;
+		netbuffer->cmds[c].angleturn = /*ntohs*/(recv_sw.cmds[c].angleturn);
+		netbuffer->cmds[c].consistancy = /*ntohs*/(recv_sw.cmds[c].consistancy);
+		netbuffer->cmds[c].chatchar = recv_sw.cmds[c].chatchar;
+		netbuffer->cmds[c].buttons = recv_sw.cmds[c].buttons;
     }	
 #endif
 }
@@ -183,7 +176,7 @@ void I_InitNetwork (void)
 */
 	
     doomcom = malloc (sizeof (*doomcom) );
-    __n64_memset_ZERO_ASM (doomcom, 0, sizeof(*doomcom) );
+    D_memset (doomcom, 0, sizeof(*doomcom) );
     
     // set up for network
 /*    i = M_CheckParm ("-dup");
@@ -202,7 +195,7 @@ void I_InitNetwork (void)
 	doomcom-> extratics = 1;
     else*/
 	doomcom-> extratics = 0;
-consoleplayer = displayplayer  = doomcom->consoleplayer = 0;//myargv[i+1][0]-'1';
+	consoleplayer = displayplayer  = doomcom->consoleplayer = 0;//myargv[i+1][0]-'1';
 		
 /*    p = M_CheckParm ("-port");
     if (p && p<myargc-1)
@@ -216,19 +209,19 @@ consoleplayer = displayplayer  = doomcom->consoleplayer = 0;//myargv[i+1][0]-'1'
 //    i = M_CheckParm ("-net");
     if (1) //(!i)
     {
-	// single player game
-	netgame = false;
-	doomcom->id = DOOMCOM_ID;
-	doomcom->numplayers = doomcom->numnodes = 1;
-	doomcom->deathmatch = false;
-	doomcom->consoleplayer = 0;
-	return;
+		// single player game
+		netgame = false;
+		doomcom->id = DOOMCOM_ID;
+		doomcom->numplayers = doomcom->numnodes = 1;
+		doomcom->deathmatch = false;
+		doomcom->consoleplayer = 0;
+		return;
     }
     else
     {
-    netsend = PacketSend;
-    netget = PacketGet;
-    netgame = true;
+		netsend = PacketSend;
+		netget = PacketGet;
+		netgame = true;
     }
 
   // parse player number and host list
@@ -244,17 +237,15 @@ void I_NetCmd (void)
 {
     if (doomcom->command == CMD_SEND)
     {
-	netsend ();
+		    netsend ();
     }
     else if (doomcom->command == CMD_GET)
     {
-	netget ();
+		    netget ();
     }
     else
     {
-	char ermac[256];
-	sprintf(ermac, "I_NetCmd: Bad net cmd: %i\n", doomcom->command);
-	I_Error(ermac);
+        I_Error("I_NetCmd: Bad net cmd: %i\n", doomcom->command);
     }
 }
 

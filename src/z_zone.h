@@ -27,8 +27,6 @@
 #ifndef __Z_ZONE__
 #define __Z_ZONE__
 
-#include <stdio.h>
-
 //
 // ZONE MEMORY
 // PU - purge tags.
@@ -48,7 +46,6 @@ void*	Z_Malloc (int size, int tag, void *ptr);
 void    Z_Free (void *ptr);
 void    Z_FreeTags (int lowtag, int hightag);
 void    Z_DumpHeap (int lowtag, int hightag);
-void    Z_FileDumpHeap (FILE *f);
 void    Z_CheckHeap (void);
 void    Z_ChangeTag (void *ptr, int tag);//, char *file, int line);
 int     Z_FreeMemory (void);
@@ -63,18 +60,6 @@ typedef struct memblock_s
     struct memblock_s*	prev;
     char		asd[8]; //padding
 } memblock_t;
-
-typedef struct
-{
-    // total bytes malloced, including header
-    int		size;
-
-    // start / end cap for linked list
-    memblock_t	blocklist;
-
-    memblock_t*	rover;
-
-} memzone_t;
 
 #endif
 

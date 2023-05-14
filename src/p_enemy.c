@@ -404,7 +404,7 @@ void P_NewChaseDir (mobj_t*	actor)
 
     // try other directions
     if (P_Random() > 200
-	||  abs(deltay)>abs(deltax))
+	||  D_abs(deltay)>D_abs(deltax))
     {
 	tdir=d[1];
 	d[1]=d[2];
@@ -501,11 +501,11 @@ P_LookForPlayers
     int		c;
     int		stop;
     player_t*	player;
-    sector_t*	sector;
+//    sector_t*	sector;
     angle_t	an;
     fixed_t	dist;
 		
-    sector = actor->subsector->sector;
+//    sector = actor->subsector->sector;
 	
     c = 0;
     stop = (actor->lastlook-1)&3;
@@ -1140,8 +1140,8 @@ boolean PIT_VileCheck (mobj_t*	thing)
     
     maxdist = thing->info->radius + mobjinfo[MT_VILE].radius;
 	
-    if ( abs(thing->x - viletryx) > maxdist
-	 || abs(thing->y - viletryy) > maxdist )
+    if ( D_abs(thing->x - viletryx) > maxdist
+	 || D_abs(thing->y - viletryy) > maxdist )
 	return true;		// not actually touching
 		
     corpsehit = thing;

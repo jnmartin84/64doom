@@ -6,10 +6,6 @@
 #include "hash.h"
 #include <string.h>
 
-#define n64_free(x) free((x))
-#define n64_malloc(x) malloc((x))
-
-
 /*
 
 hashtable_init()
@@ -44,7 +40,7 @@ int hashtable_init(hashtable_t *ht, int slots, int (* comp_keys )(void *, void *
     ht->slots = slots;
     ht->hash = hash;
     ht->hash_params = hash_params;
-    ht->list_arr = ( list_t * )n64_malloc( slots*sizeof(list_t) );
+    ht->list_arr = ( list_t * )malloc( slots*sizeof(list_t) );
 
     if (!( ht->list_arr))
     {
@@ -87,8 +83,8 @@ void hashtable_destroy(hashtable_t *ht)
         list_cleanup( ht->list_arr + i ); // Free each list
     }
 
-    n64_free( ht->list_arr ); // Free the array of list headers
-    n64_free( ht->element_list ); // Null check is done by free()
+    free( ht->list_arr ); // Free the array of list headers
+    free( ht->element_list ); // Null check is done by free()
 
     //free( ht->hash_params ); // do only if dynamically allocated
 
@@ -196,10 +192,10 @@ void **get_elements_in_hashtable(hashtable_t *ht, int *num_elements, void *(* ge
 
     if (ht->element_list)
     {
-        n64_free( ht->element_list );
+        free( ht->element_list );
     }
 
-    ht->element_list = (void **)n64_malloc( (ht->num_elements)*sizeof(void *) );
+    ht->element_list = (void **)malloc( (ht->num_elements)*sizeof(void *) );
 
     if (!(ht->element_list))
     {

@@ -70,13 +70,13 @@ HUlib_addCharToTextLine
 {
 
     if (t->len == HU_MAXLINELENGTH)
-	return false;
+		return false;
     else
     {
-	t->l[t->len++] = ch;
-	t->l[t->len] = 0;
-	t->needsupdate = 4;
-	return true;
+		t->l[t->len++] = ch;
+		t->l[t->len] = 0;
+		t->needsupdate = 4;
+		return true;
     }
 
 }
@@ -84,12 +84,13 @@ HUlib_addCharToTextLine
 boolean HUlib_delCharFromTextLine(hu_textline_t* t)
 {
 
-    if (!t->len) return false;
+    if (!t->len)
+		return false;
     else
     {
-	t->l[--t->len] = 0;
-	t->needsupdate = 4;
-	return true;
+		t->l[--t->len] = 0;
+		t->needsupdate = 4;
+		return true;
     }
 
 }
@@ -109,30 +110,27 @@ HUlib_drawTextLine
     x = l->x;
     for (i=0;i<l->len;i++)
     {
-	c = toupper(l->l[i]);
-	if (c != ' '
-	    && c >= l->sc
-	    && c <= '_')
-	{
-	    w = SHORT(l->f[c - l->sc]->width);
-	    if (x+w > SCREENWIDTH)
-		break;
-	    V_DrawPatchDirect(x, l->y, FG, l->f[c - l->sc]);
-	    x += w;
-	}
-	else
-	{
-	    x += 4;
-	    if (x >= SCREENWIDTH)
-		break;
-	}
+		c = toupper(l->l[i]);
+		if (c != ' ' && c >= l->sc && c <= '_')
+		{
+			w = SHORT(l->f[c - l->sc]->width);
+			if (x+w > SCREENWIDTH)
+			break;
+			V_DrawPatchDirect(x, l->y, FG, l->f[c - l->sc]);
+			x += w;
+		}
+		else
+		{
+			x += 4;
+			if (x >= SCREENWIDTH)
+			break;
+		}
     }
 
     // draw the cursor if requested
-    if (drawcursor
-	&& x + SHORT(l->f['_' - l->sc]->width) <= SCREENWIDTH)
+    if (drawcursor && x + SHORT(l->f['_' - l->sc]->width) <= SCREENWIDTH)
     {
-	V_DrawPatchDirect(x, l->y, FG, l->f['_' - l->sc]);
+		V_DrawPatchDirect(x, l->y, FG, l->f['_' - l->sc]);
     }
 }
 
@@ -149,28 +147,23 @@ void HUlib_eraseTextLine(hu_textline_t* l)
     if (!automapactive &&
 	viewwindowx && l->needsupdate)
     {
-	lh = SHORT(l->f[0]->height) + 1;
+		lh = SHORT(l->f[0]->height) + 1;
 
-#if SCREENWIDTH == 320
-	for (y=l->y,yoffset=y*SCREENWIDTH ; y<l->y+(lh) ; y++,yoffset+=SCREENWIDTH)
-#endif
-#if SCREENWIDTH == 640
-	for (y=l->y,yoffset=y*SCREENWIDTH ; y<l->y+(lh*2) ; y++,yoffset+=SCREENWIDTH)
-#endif
-	{
-		
-	    if (y < viewwindowy || y >= viewwindowy + viewheight)
-		R_VideoErase(yoffset, SCREENWIDTH); // erase entire line
-	    else
-	    {
-		R_VideoErase(yoffset, viewwindowx); // erase left border
-		R_VideoErase(yoffset + viewwindowx + viewwidth, viewwindowx);
-		// erase right border
-	    }
-	}
+		for (y=l->y,yoffset=y*SCREENWIDTH ; y<l->y+(lh) ; y++,yoffset+=SCREENWIDTH)
+		{
+			if (y < viewwindowy || y >= viewwindowy + viewheight)
+				R_VideoErase(yoffset, SCREENWIDTH); // erase entire line
+			else
+			{
+				R_VideoErase(yoffset, viewwindowx); // erase left border
+				R_VideoErase(yoffset + viewwindowx + viewwidth, viewwindowx);
+				// erase right border
+			}
+		}
     }
 
-    if (l->needsupdate) l->needsupdate--;
+    if (l->needsupdate)
+		l->needsupdate--;
 }
 
 void
@@ -191,9 +184,7 @@ HUlib_initSText
     s->laston = true;
     s->cl = 0;
     for (i=0;i<h;i++)
-	HUlib_initTextLine(&s->l[i],
-			   x, y - i*(SHORT(font[0]->height)+1),
-			   font, startchar);
+	HUlib_initTextLine(&s->l[i], x, y - i*(SHORT(font[0]->height)+1), font, startchar);
 
 }
 
@@ -220,12 +211,12 @@ HUlib_addMessageToSText
   char*		msg )
 {
     HUlib_addLineToSText(s);
-    if (prefix)
-	while (*prefix)
-	    HUlib_addCharToTextLine(&s->l[s->cl], *(prefix++));
-
+    if (prefix) {
+		while (*prefix)
+			HUlib_addCharToTextLine(&s->l[s->cl], *(prefix++));
+	}
     while (*msg)
-	HUlib_addCharToTextLine(&s->l[s->cl], *(msg++));
+		HUlib_addCharToTextLine(&s->l[s->cl], *(msg++));
 }
 
 void HUlib_drawSText(hu_stext_t* s)
@@ -234,19 +225,19 @@ void HUlib_drawSText(hu_stext_t* s)
     hu_textline_t *l;
 
     if (!*s->on)
-	return; // if not on, don't draw
+		return; // if not on, don't draw
 
     // draw everything
     for (i=0 ; i<s->h ; i++)
     {
-	idx = s->cl - i;
-	if (idx < 0)
-	    idx += s->h; // handle queue of lines
-	
-	l = &s->l[idx];
+		idx = s->cl - i;
+		if (idx < 0)
+			idx += s->h; // handle queue of lines
+		
+		l = &s->l[idx];
 
-	// need a decision made here on whether to skip the draw
-	HUlib_drawTextLine(l, false); // no cursor, please
+		// need a decision made here on whether to skip the draw
+		HUlib_drawTextLine(l, false); // no cursor, please
     }
 
 }
@@ -258,9 +249,10 @@ void HUlib_eraseSText(hu_stext_t* s)
 
     for (i=0 ; i<s->h ; i++)
     {
-	if (s->laston && !*s->on)
-	    s->l[i].needsupdate = 4;
-	HUlib_eraseTextLine(&s->l[i]);
+		if (s->laston && !*s->on)
+			s->l[i].needsupdate = 4;
+		
+		HUlib_eraseTextLine(&s->l[i]);
     }
     s->laston = *s->on;
 
@@ -308,7 +300,8 @@ HUlib_addPrefixToIText
   char*		str )
 {
     while (*str)
-	HUlib_addCharToTextLine(&it->l, *(str++));
+		HUlib_addCharToTextLine(&it->l, *(str++));
+
     it->lm = it->l.len;
 }
 
@@ -319,36 +312,35 @@ HUlib_keyInIText
 ( hu_itext_t*	it,
   unsigned char ch )
 {
-
     if (ch >= ' ' && ch <= '_') 
-  	HUlib_addCharToTextLine(&it->l, (char) ch);
+		HUlib_addCharToTextLine(&it->l, (char) ch);
     else 
-	if (ch == KEY_BACKSPACE) 
-	    HUlib_delCharFromIText(it);
-	else 
-	    if (ch != KEY_ENTER) 
-		return false; // did not eat key
+		if (ch == KEY_BACKSPACE) 
+			HUlib_delCharFromIText(it);
+		else 
+			if (ch != KEY_ENTER) 
+				return false; // did not eat key
 
     return true; // ate the key
-
 }
 
 void HUlib_drawIText(hu_itext_t* it)
 {
-
     hu_textline_t *l = &it->l;
 
     if (!*it->on)
-	return;
-    HUlib_drawTextLine(l, true); // draw the line w/ cursor
+		return;
 
+    HUlib_drawTextLine(l, true); // draw the line w/ cursor
 }
 
 void HUlib_eraseIText(hu_itext_t* it)
 {
     if (it->laston && !*it->on)
-	it->l.needsupdate = 4;
+		it->l.needsupdate = 4;
+
     HUlib_eraseTextLine(&it->l);
+
     it->laston = *it->on;
 }
 

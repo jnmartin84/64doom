@@ -45,9 +45,6 @@ int			skyflatnum;
 int			skytexture;
 int			skytexturemid;
 
-sprite_t *sky_sprite;// = malloc(sizeof(sprite_t) + (256*128));
-sprite_t *sky_sprite2;// = malloc(sizeof(sprite_t) + (256*128));
-
 //
 // R_InitSkyMap
 // Called whenever the view size changes.
@@ -56,22 +53,5 @@ void R_InitSkyMap (void)
 {
   // skyflatnum = R_FlatNumForName ( SKYFLATNAME );
     skytexturemid = 100*FRACUNIT;
-#if 0
-	sky_sprite = malloc(sizeof(sprite_t) + (32*32));	
-	sky_sprite->width = 32;
-	sky_sprite->height = 32;
-	sky_sprite->bitdepth = 1;
-	sky_sprite->vslices = 1;
-	sky_sprite->hslices = 1;
-	__n64_memset_ASM(sky_sprite->data, 0, 32*32);
-
-	sky_sprite2 = malloc(sizeof(sprite_t) + (32*32));	
-	sky_sprite2->width = 32;
-	sky_sprite2->height = 32;
-	sky_sprite2->bitdepth = 1;
-	sky_sprite2->vslices = 1;
-	sky_sprite2->hslices = 1;
-	__n64_memset_ASM(sky_sprite2->data, 0, 32*32);
-#endif
 }
 

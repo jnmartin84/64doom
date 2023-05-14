@@ -37,9 +37,6 @@
 
 #include "doomstat.h"
 
-extern void *__n64_memset_ASM(void *p, int v, size_t n);
-extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
-extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
 
 void G_PlayerReborn (int player);
 void P_SpawnMapThing (mapthing_t*	mthing);
@@ -488,7 +485,7 @@ P_SpawnMobj
     mobjinfo_t*	info;
 	
     mobj = Z_Malloc (sizeof(*mobj), PU_LEVEL, NULL);
-    __n64_memset_ZERO_ASM (mobj, 0, sizeof (*mobj));
+    D_memset (mobj, 0, sizeof (*mobj));
     info = &mobjinfo[type];
 
     mobj->type = type;
@@ -719,7 +716,7 @@ void P_SpawnMapThing (mapthing_t* mthing)
 	if (deathmatch_p < &deathmatchstarts[10])
 	{
 //	    n64_memcpy (deathmatch_p, mthing, sizeof(*mthing));
-	    __n64_memcpy_ASM (deathmatch_p, mthing, sizeof(*mthing));
+	    D_memcpy (deathmatch_p, mthing, sizeof(*mthing));
 	    deathmatch_p++;
 	}
 	return;
@@ -756,12 +753,8 @@ void P_SpawnMapThing (mapthing_t* mthing)
 	    break;
 #ifdef RANGECHECK	
     if (i==NUMMOBJTYPES)
-        {
-          char er[256];
-	sprintf (er,"P_SpawnMapThing: Unknown type %i at (%i, %i)",
-		 mthing->type,
-		 mthing->x, mthing->y);
-           I_Error(er);
+    {
+        I_Error("P_SpawnMapThing: Unknown type %i at (%i, %i)", mthing->type, mthing->x, mthing->y);
 	}	
 #endif	
     // don't spawn keycards and players in deathmatch

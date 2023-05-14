@@ -22,7 +22,6 @@ typedef struct HASHTABLE
 }
 hashtable_t;
 
-
 int hashtable_init( hashtable_t *ht, int slots,
 int (* comp_str_keys )(void *, void *),
 unsigned long int (* hash)( void *element, void *params ),

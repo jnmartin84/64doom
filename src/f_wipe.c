@@ -33,23 +33,21 @@
 #include "f_wipe.h"
 
 
-extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
-
-
 //
 //                       SCREEN WIPE PACKAGE
 //
 
 // when zero, stop the wipe
-static boolean	go = 0;
+//static boolean	go = 0;
 
-static byte*	wipe_scr_start;
-static byte*	wipe_scr_end;
-static byte*	wipe_scr;
+//static byte*	wipe_scr_start;
+//static byte*	wipe_scr_end;
+//static byte*	wipe_scr;
 
 
 void wipe_shittyColMajorXform(short* array, int width, int height)
 {
+#if 0
     int    x;
     int    y;
     short* dest;
@@ -64,21 +62,25 @@ void wipe_shittyColMajorXform(short* array, int width, int height)
         }
     }
 
-    __n64_memcpy_ASM(array, dest, (width*height)*2);
+    memcpy(array, dest, (width*height)*2);
 
     Z_Free(dest);
+#endif
 }
 
 
 int wipe_initColorXForm(int width, int height, int ticks)
 {
-    __n64_memcpy_ASM(wipe_scr, wipe_scr_start, width*height);
+#if 0
+    memcpy(wipe_scr, wipe_scr_start, width*height);
+#endif
     return 0;
 }
 
 
 int wipe_doColorXForm(int width, int height, int ticks)
 {
+#if 0
     boolean changed;
     byte*   w;
     byte*   e;
@@ -127,8 +129,9 @@ int wipe_doColorXForm(int width, int height, int ticks)
         w++;
         e++;
     }
-
     return !changed;
+#endif
+    return 0;
 }
 
 
@@ -138,16 +141,17 @@ int wipe_exitColorXForm(int width, int height, int ticks)
 }
 
 
-static int* y;
+//static int* y;
 
 
 int wipe_initMelt(int width, int height, int ticks)
 {
+#if 0
     int i;
     int r;
 
     // copy start screen to main screen
-    __n64_memcpy_ASM(wipe_scr, wipe_scr_start, width*height);
+    memcpy(wipe_scr, wipe_scr_start, width*height);
 
     // makes this wipe faster (in theory)
     // to have stuff in column-major format
@@ -171,101 +175,109 @@ int wipe_initMelt(int width, int height, int ticks)
             y[i] = -15;
         }
     }
-
+#endif
     return 0;
 }
 
 
 int wipe_doMelt(int width, int height, int ticks)
 {
+#if 0
     int     i;
     int     j;
     int     dy;
     int     idx;
+    boolean done = true;
 
     short*  s;
     short*  d;
-    boolean done = true;
 
     width /= 2;
 
     while (ticks--)
     {
-	for (i=0;i<width;i++)
-	{
-	    if (y[i]<0)
-	    {
-		y[i]++;
-                done = false;
-	    }
-	    else if (y[i] < height)
-	    {
-		dy = (y[i] < 16) ? y[i]+1 : 8;
-
-		if (y[i]+dy >= height)
-                {
-                    dy = height - y[i];
-                }
-
-		s = &((short *)wipe_scr_end)[i*height+y[i]];
-		d = &((short *)wipe_scr)[y[i]*width+i];
-
-		idx = 0;
-
-		for (j=dy;j;j--)
+		for (i=0;i<width;i++)
 		{
-		    d[idx] = *(s++);
-		    idx += width;
+			if (y[i]<0)
+			{
+				y[i]++;
+				done = false;
+			}
+			else if (y[i] < height)
+			{
+				dy = (y[i] < 16) ? y[i]+1 : 8;
+
+				if (y[i]+dy >= height)
+				{
+					dy = height - y[i];
+				}
+
+				s = &((short *)wipe_scr_end)[i*height+y[i]];
+				d = &((short *)wipe_scr)[y[i]*width+i];
+
+				idx = 0;
+
+				for (j=dy;j;j--)
+				{
+					d[idx] = *(s++);
+					idx += width;
+				}
+
+				y[i] += dy;
+
+				s = &((short *)wipe_scr_start)[i*height];
+				d = &((short *)wipe_scr)[y[i]*width+i];
+
+				idx = 0;
+
+				for (j=height-y[i];j;j--)
+				{
+					d[idx] = *(s++);
+					idx += width;
+				}
+
+				done = false;
+			}
 		}
-
-		y[i] += dy;
-
-		s = &((short *)wipe_scr_start)[i*height];
-		d = &((short *)wipe_scr)[y[i]*width+i];
-
-		idx = 0;
-
-		for (j=height-y[i];j;j--)
-		{
-		    d[idx] = *(s++);
-		    idx += width;
-		}
-
-		done = false;
-	    }
-	}
     }
-
-    return done;
+#endif
+    return 1;
 }
 
 
 int wipe_exitMelt(int width, int height, int ticks)
 {
+#if 0
     Z_Free(y);
+#endif
     return 0;
 }
 
 
 int wipe_StartScreen(int x, int y, int width, int height)
 {
+#if 0
     wipe_scr_start = screens[2];
     I_ReadScreen(wipe_scr_start);
-    return 0;
+#endif
+   return 0;
 }
 
 
 int wipe_EndScreen(int x, int y, int width, int height)
 {
+#if 0
     wipe_scr_end = screens[3];
     I_ReadScreen(wipe_scr_end);
     V_DrawBlock(x, y, 0, width, height, wipe_scr_start); // restore start scr.
+#endif
     return 0;
 }
 
 
 int wipe_ScreenWipe(int wipeno, int x, int y, int width, int height, int ticks)
 {
+#if 0
     int rc;
     static int (*wipes[])(int, int, int) =
     {
@@ -278,9 +290,9 @@ int wipe_ScreenWipe(int wipeno, int x, int y, int width, int height, int ticks)
     // initial stuff
     if (!go)
     {
-	go = 1;
-	wipe_scr = screens[0];
-	(*wipes[wipeno*3])(width, height, ticks);
+		go = 1;
+		wipe_scr = screens[0];
+		(*wipes[wipeno*3])(width, height, ticks);
     }
 
     // do a piece of wipe-in
@@ -290,9 +302,11 @@ int wipe_ScreenWipe(int wipeno, int x, int y, int width, int height, int ticks)
     // final stuff
     if (rc)
     {
-	go = 0;
-	(*wipes[wipeno*3+2])(width, height, ticks);
+		go = 0;
+		(*wipes[wipeno*3+2])(width, height, ticks);
     }
 
     return !go;
+#endif
+    return 0;
 }

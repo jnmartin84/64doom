@@ -42,24 +42,18 @@
 #endif
 #include "i_system.h"
 
-extern display_context_t _dc;
-extern void unlockVideo(display_context_t _dc);
-extern display_context_t lockVideo(int i);
-extern void DebugOutput_String(const char *str, int good_or_bad);
-extern void DebugOutput_String_On_Line(const char *str, int lineNumber, int good);
+extern surface_t* _dc;
+extern void unlockVideo(surface_t* _dc);
+extern surface_t* lockVideo(int i);
+
 extern void DebugOutput_String_For_IError(const char *str, int lineNumber, int good);
-extern void *__n64_memset_ASM(void *p, int v, size_t n);
-extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
-#define USE_TIMER 0
+volatile uint64_t timekeeping;
 
-#if USE_TIMER
-static volatile uint64_t timekeeping;
-#endif
-
-int	kb_used = (4096+1024);
-int	based_zone = 0;
-
+// give 5 MB to zone
+// anything more and music starts to fail to allocate samples
+const int kb_used = 4096+512+512;
+int based_zone = 0;
 
 void I_Tactile(int on, int off, int total)
 {
@@ -68,7 +62,7 @@ void I_Tactile(int on, int off, int total)
 }
 
 
-ticcmd_t	emptycmd;
+ticcmd_t emptycmd;
 inline ticcmd_t* I_BaseTiccmd(void)
 {
     return &emptycmd;
@@ -92,7 +86,9 @@ byte* I_ZoneBase(int* size)
 
     *size = kb_used*1024;
 
-    return (byte *)n64_malloc(*size);
+    byte *ptr = (byte *)malloc(*size);
+
+    return ptr;
 }
 
 
@@ -102,19 +98,13 @@ byte* I_ZoneBase(int* size)
 //
 unsigned long I_GetTime(void)
 {
-#if USE_TIMER
-    return timekeeping>>1;
-#else
-    return (get_ticks_ms() * TICRATE) / 1000L;
-#endif
+    return timekeeping>>2;
 }
 
 
-#if USE_TIMER
-void tickercb(int o, int a, int b, int c) {
-	timekeeping++;
+void tickercb(int ovfl) {
+    timekeeping++;
 }
-#endif
 
 
 //
@@ -125,11 +115,11 @@ void I_Init(void)
     I_InitSound();
     I_InitMusic();
 
-#if USE_TIMER
     timer_init();
     timekeeping = 0;
-    new_timer(669643, TF_CONTINUOUS, 0, 0, 0, tickercb);
-#endif
+    new_timer(669643/2, TF_CONTINUOUS, tickercb);
+
+    I_InitGraphics();
 }
 
 int return_from_D_DoomMain = 0;
@@ -139,6 +129,7 @@ int return_from_D_DoomMain = 0;
 //
 void I_Quit(void)
 {
+    timer_close();
     D_QuitNetGame();
     I_ShutdownSound();
     I_ShutdownMusic();
@@ -147,21 +138,10 @@ void I_Quit(void)
     return_from_D_DoomMain = 1;
 }
 
-
-void n64_sleep_millis(int count)
-{
-    unsigned long start = get_ticks_ms();
-
-    while ((get_ticks_ms() - start) < count)
-    {
-        ;
-    }
-}
-
-
 void I_WaitVBL(int count)
 {
-//    n64_sleep_millis(count / TICRATE);
+    volatile uint32_t start = I_GetTime();
+    while(((volatile uint32_t)I_GetTime() - start) < ((uint32_t)count)) {}
 }
 
 
@@ -179,8 +159,8 @@ byte* I_AllocLow(int length)
 {
     byte* mem;
 
-    mem = (byte *)n64_malloc(length);
-    __n64_memset_ZERO_ASM(mem,0,length);
+    mem = (byte *)malloc(length);
+
     return mem;
 }
 
@@ -190,51 +170,33 @@ byte* I_AllocLow(int length)
 //
 extern boolean demorecording;
 
-// for IError
-char errstr[256];
-
-
-void I_Error(char *error)
-{
-    unlockVideo(_dc);
-    _dc = lockVideo(1);
-    DebugOutput_String_For_IError(error, 0, 0);
-    unlockVideo(_dc);
-    _dc = lockVideo(1);
-    DebugOutput_String_For_IError(error, 0, 0);
-    unlockVideo(_dc);
-    _dc = lockVideo(1);
-    DebugOutput_String_For_IError(error, 0, 0);
-    unlockVideo(_dc);
-    _dc = lockVideo(1);
-    DebugOutput_String_For_IError(error, 0, 0);
-    unlockVideo(_dc);
-    _dc = lockVideo(1);
-    DebugOutput_String_For_IError(error, 0, 0);
-    unlockVideo(_dc);
-    _dc = lockVideo(1);
-    DebugOutput_String_For_IError(error, 0, 0);
-    unlockVideo(_dc);
-
+void I_Error(const char *fmt, ...)
+{   
+    char errstr[256];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(errstr, sizeof(errstr), fmt, args);
+    // in case we haven't reached I_InitGraphics yet
+    printf("I_Error: %s\n", errstr);
+    DebugOutput_String_For_IError(errstr, 0, 0);
+    
     D_QuitNetGame();
-    I_ShutdownGraphics();
+//    I_ShutdownGraphics();
 
-#if 1
     while (1)
     {}
-#elif 0
-    exit(-1);
-#endif
 }
 
-void I_Warn(char *error)
+void I_Warn(char *fmt, ...)
 {
-    DebugOutput_String_For_IError(error, 0, 1);
-    unlockVideo(_dc);
-    _dc = lockVideo(1);
-    DebugOutput_String_For_IError(error, 0, 1);
-    unlockVideo(_dc);
-
+    char errstr[256];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(errstr, sizeof(errstr), fmt, args);
+    // in case we haven't reached I_InitGraphics yet
+    printf("I_Warn: %s\n", errstr);
+    DebugOutput_String_For_IError(errstr, 0, 1);
+    
     while (1)
     {}
 }

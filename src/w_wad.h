@@ -55,43 +55,11 @@ typedef struct
 //
 typedef struct
 {
-    char	name[8];
+    char	name[9];
     int		handle;
     int		position;
     int		size;
 } lumpinfo_t;
-
-
-/*typedef struct lumpinfo_s
-{
-    char	name[8];
-//    wad_file_t *wad_file;
-    int handle;
-    int	position;
-    int	size;
-    void *cache;
-
-    // Used for hash table lookups
-
-    lumpinfo_t *next;
-} lumpinfo_t;*/
-
-/*typedef struct lumpinfo_s lumpinfo_t;
-
-struct lumpinfo_s
-{
-    char	name[8];
-//    wad_file_t *wad_file;
-    int handle;
-    int	position;
-    int	size;
-    void *cache;
-
-    // Used for hash table lookups
-
-    lumpinfo_t *next;
-};*/
-
 
 
 extern	void**		lumpcache;

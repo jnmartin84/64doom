@@ -41,14 +41,21 @@
 
 typedef int fixed_t;
 
+inline static int D_abs(fixed_t x)
+{
+  register fixed_t _t = (x),_s;
+  _s = _t >> (8*sizeof _t-1);
+  return (_t^_s)-_s;
+}
+
 static inline fixed_t __attribute__((always_inline)) FixedMul(fixed_t a, fixed_t b)
 {
-    return (fixed_t)(((uint64_t)((uint64_t)a*(uint64_t)b))>>16);
+    return ((uint64_t)a * (uint64_t)b)>>16;
 }
 
 static inline fixed_t __attribute__((always_inline)) FixedDiv(fixed_t a, fixed_t b)
 {
-    long long c;
+    register long long c;
     c = ((long long)a<<16) / ((long long)b);
     return (fixed_t) c;
 }

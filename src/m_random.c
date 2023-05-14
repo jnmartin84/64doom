@@ -29,8 +29,12 @@ unsigned char rndtable[256] = {
     120, 163, 236, 249
 };
 
-int	rndindex = 0;
-int	prndindex = 0;
+static int	rndindex = 0;
+static int	prndindex = 0;
+
+int M_GetRndindex(void) {
+    return rndindex;	
+}
 
 // Which one is deterministic?
 int P_Random (void)

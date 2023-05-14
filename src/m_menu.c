@@ -61,15 +61,6 @@ extern int dobg;
 
 #include "m_menu.h"
 
-extern void *__n64_memset_ASM(void *p, int v, size_t n);
-extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
-extern void *__safe_buffer[];
-extern display_context_t _dc;
-
-
-extern byte *screens[];
-
-
 extern patch_t*		hu_font[HU_FONTSIZE];
 extern boolean		message_dontfuckwithme;
 
@@ -82,9 +73,6 @@ int			mouseSensitivity;       // has default
 
 // Show messages has default, 0 = off, 1 = on
 int			showMessages;
-
-// Anti-aliasing, has default, 0 = off, 1 = on
-int aaSetting = 1;
 
 // Blocky mode, has default, 0 = high, 1 = normal
 int			detailLevel;
@@ -226,12 +214,7 @@ void M_DrawSound(void);
 void M_DrawLoad(void);
 void M_DrawSave(void);
 void M_DrawVideoSettings(void);
-#if SCREENWIDTH == 640
-void M_AntiAliasing(int choice);
-#endif
-#if SCREENWIDTH == 320
 void M_AdjustGamma(int choice);
-#endif
 
 void M_DrawSaveLoadBorder(int x,int y);
 void M_SetupNextMenu(menu_t *menudef);
@@ -390,13 +373,8 @@ enum
     detail,
     scrnsize,
     vid_empty0,
-#if SCREENWIDTH == 320
     gamma,
 	vid_empty1,
-#endif
-#if SCREENWIDTH == 640
-    aa,
-#endif
     vid_end
 } videoset_e;
 
@@ -405,13 +383,8 @@ menuitem_t VideoSettingsMenu[]=
 	{1,"X_RESOLU",	M_ChangeDetail,'g'},
     {2,"M_SCRNSZ",	M_SizeDisplay,'s'},
     {-1,"",0},
-#if SCREENWIDTH == 320
 	{2,"X_GAMMA",	M_AdjustGamma,'a'},
     {-1,"",0},
-#endif
-#if SCREENWIDTH == 640
-	{1,"X_AA",	M_AntiAliasing,'a'},
-#endif
 };
 menu_t  VideoSettingsDef =
 {
@@ -565,8 +538,8 @@ extern char *get_GAMEID();
 //
 void M_ReadSaveStrings(void)
 {
-    int             handle;
-    int             count;
+//    int             handle;
+//    int             count;
     int             i;
 //    char    name[256];
 
@@ -578,10 +551,10 @@ void M_ReadSaveStrings(void)
 	    sprintf(name,SAVEGAMENAME"%d.dsg",i);
 
 	handle = open (name, O_RDONLY | 0, 0666);*/
-        handle = -1;
+  //      handle = -1;
 //	if (handle == -1)
 //	{
-	    strcpy(&savegamestrings[i][0],EMPTYSTRING);
+	    strcpy(&savegamestrings[i][0],"");//EMPTYSTRING);
 //	    LoadMenu[i].status = 0;
 //	    continue;
 //	}
@@ -600,7 +573,7 @@ void M_ReadSaveStrings(void)
             length += 1;
         }
 
-	count = length;//read (handle, &savegamestrings[i], SAVESTRINGSIZE);
+	//count = length;//read (handle, &savegamestrings[i], SAVESTRINGSIZE);
 //char                    savegamestrings[10][SAVESTRINGSIZE]
         if(length > SAVESTRINGSIZE) length = SAVESTRINGSIZE;
 
@@ -754,7 +727,7 @@ void M_SaveGame (int choice)
 //
 //      M_QuickSave
 //
-char    tempstring[80];
+char    tempstring[128];
 
 void M_QuickSaveResponse(int ch)
 {
@@ -1027,29 +1000,10 @@ void M_Episode(int choice)
 //
 // M_Options
 //
-char    aaNames[2][9]       = {"X_AAOFF","X_AAON"};
 char    detailNames[2][9]	= {"M_GDHIGH","M_GDLOW"};
 char    resolutionNames[2][9] = {"X_RZHIGH","X_RZLOW"};
 char	msgNames[2][9]		= {"M_MSGOFF","M_MSGON"};
 
-#if SCREENWIDTH == 640
-void M_AntiAliasing(int choice) {
-    aaSetting = 1 - aaSetting;
-
-    if (aaSetting)
-    {
-        display_close();
-	display_init(RESOLUTION_640x480, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
-    }
-    else
-    {
-        display_close();
-	display_init(RESOLUTION_640x480, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_OFF);
-    }
-}
-#endif
-
-#if SCREENWIDTH == 320
 void M_AdjustGamma(int choice)
 {
     switch (choice)
@@ -1066,16 +1020,10 @@ void M_AdjustGamma(int choice)
 
     I_SetPalette (W_CacheLumpName ("PLAYPAL",PU_CACHE));
 }
-#endif
 
 void M_DrawVideoSettings(void)
 {
     V_DrawPatchDirect (70,15,0,W_CacheLumpName("X_VIDTTL",PU_CACHE));
-
-#if SCREENWIDTH == 640
-    V_DrawPatchDirect (VideoSettingsDef.x + 162,VideoSettingsDef.y+LINEHEIGHT*(aa),0,
-                       W_CacheLumpName(aaNames[aaSetting],PU_CACHE));
-#endif
 
     V_DrawPatchDirect (VideoSettingsDef.x + 140,VideoSettingsDef.y+LINEHEIGHT*(detail),0,
                        W_CacheLumpName(resolutionNames[detailLevel],PU_CACHE));
@@ -1083,10 +1031,8 @@ void M_DrawVideoSettings(void)
     M_DrawThermo(VideoSettingsDef.x,VideoSettingsDef.y+LINEHEIGHT*(scrnsize+1),
                  9,screenSize);
 
-#if SCREENWIDTH == 320
     M_DrawThermo(VideoSettingsDef.x,VideoSettingsDef.y+LINEHEIGHT*(gamma+1),
                  5,usegamma);
-#endif
 }
 
 
@@ -1228,7 +1174,7 @@ void M_QuitResponse(int ch)
 	    S_StartSound(NULL,quitsounds2[(gametic>>2)&7]);
 	else
 	    S_StartSound(NULL,quitsounds[(gametic>>2)&7]);
-	I_WaitVBL(105);
+	//I_WaitVBL(105);
     }
     I_Quit ();
 }
@@ -1283,11 +1229,8 @@ void M_ChangeDetail(int choice)
 	}
 
 	M_SizeDisplay(0);
+	M_SizeDisplay(0);
 
-#if SCREENWIDTH == 640
-	M_SizeDisplay(0);
-	M_SizeDisplay(0);
-#endif
     }
     else
     {
@@ -1295,6 +1238,7 @@ void M_ChangeDetail(int choice)
 	{
             M_SizeDisplay(1);
 	}
+	M_SizeDisplay(0);
 	M_SizeDisplay(0);
     }
 
@@ -1306,13 +1250,6 @@ void M_ChangeDetail(int choice)
         players[consoleplayer].message = DETAILLO;
 
     R_SetViewSize (screenblocks, detailLevel);
-#if SCREENWIDTH == 320
-    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[0]) + (2 * 20 * 320), 0, 320*2*200);
-    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[1]) + (2 * 20 * 320), 0, 320*2*200);
-#elif SCREENWIDTH == 640
-    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[0] + (40*640*2)), 0, 640*2*400);
-    __n64_memset_ZERO_ASM((uint16_t *)(__safe_buffer[1] + (40*640*2)), 0, 640*2*400);
-#endif
 }
 
 
@@ -1932,7 +1869,7 @@ void M_Drawer (void)
 	    for (i = 0;i < strlen(messageString+start);i++)
 		if (*(messageString+start+i) == '\n')
 		{
-		    __n64_memset_ZERO_ASM(string,0,40);
+		    D_memset(string,0,40);
 		    strncpy(string,messageString+start,i);
 		    start += i+1;
 		    break;
@@ -1975,7 +1912,6 @@ void M_Drawer (void)
     // DRAW SKULL
     V_DrawPatchDirect(x + SKULLXOFF,currentMenu->y - 5 + itemOn*LINEHEIGHT, 0,
 		      W_CacheLumpName(skullName[whichSkull],PU_CACHE));
-
 }
 
 

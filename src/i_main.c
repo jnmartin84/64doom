@@ -18,7 +18,7 @@
 // $Log:$
 //
 // DESCRIPTION:
-//	Main program, simply calls D_DoomMain high level loop.
+//    Main program, simply calls D_DoomMain high level loop.
 //
 //-----------------------------------------------------------------------------
 #include <limits.h>
@@ -33,16 +33,7 @@
 #include "d_main.h"
 #include "g_game.h"
 
-extern void *__n64_memset_ZERO_ASM(void *ptr, int value, size_t num);
-extern void *__n64_memset_ASM(void *ptr, int value, size_t num);
-
 extern void DoomIsOver();
-
-extern void register_dump(exception_t *exception);
-extern void I_InitGraphics(void);
-extern void I_FinishUpdate(void);
-
-#define SCREENW SCREENWIDTH
 
 void check_and_init_mempak(void)
 {
@@ -92,7 +83,7 @@ void check_and_init_mempak(void)
             }
             else
             {
-                // this will just printing details of each entry on the controller pak
+                // this will print the details of each entry on the controller pak
 #if 0
                 for(int j = 0; j < 16; j++)
                 {
@@ -125,21 +116,16 @@ void check_and_init_mempak(void)
 
 
 extern int center_x, center_y;
-extern void DoNothing (void);
-
 
 int main(int argc, char **argv)
 {
-    int j;
-
-    register_exception_handler(register_dump);
-
-    init_interrupts();
-    display_init(RESOLUTION_320x240, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);//_OFF
-
     console_init();
     console_set_render_mode(RENDER_AUTOMATIC);
-
+    if (dfs_init( DFS_DEFAULT_LOCATION ) != DFS_ESUCCESS)
+    {
+        printf("Could not initialize filesystem!\n");
+        while(1);
+    }
     controller_init();
 
     // center joystick...
@@ -153,7 +139,8 @@ int main(int argc, char **argv)
     printf("github.com/jnmartin84/64doom/\n");
     printf("built %s %s\n", __DATE__, __TIME__);
 
-    int available_memory_size = *(int *)(0x80000318);
+    int available_memory_size = get_memory_size();
+    //printf("Available memory: %d bytes\n", *(int *)(0x80000318));
 
     if(available_memory_size != 0x800000)
     {
@@ -162,20 +149,16 @@ int main(int argc, char **argv)
         printf("It is required to run 64Doom.\n");
         printf("Please turn off the Nintendo 64,\ninstall Expansion Pak,\nand try again.\n");
         printf("***********************************\n");
-        //return -1;
+        while(1) {}
     }
 
-    printf("Expansion Pak found.\n");
-    printf("Available memory: %d bytes\n", *(int *)(0x80000318));
+    //printf("Expansion Pak found.\n");
 
     printf("Checking for Mempak:\n");
     check_and_init_mempak();
 
-    display_close();
-    I_InitGraphics();
     D_DoomMain();
     DoomIsOver();
-    timer_close();
 
     return 0;
 }

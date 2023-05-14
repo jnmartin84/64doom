@@ -32,12 +32,100 @@
 */
 
 #include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include "lzfx.h"
 
 #define LZFX_HSIZE (1 << (LZFX_HLOG))
-
+#if 0
 /* We need this for memset */
-extern void *__n64_memset_ASM(void *p, int v, size_t n);
+#define WORDMASK 7
+static inline void D_memset(void *dest, int val, int count) // 80001A20
+{
+	uint8_t	*p;
+	int		*lp;
+	int     v;
+
+	/* round up to nearest word */
+	p = dest;
+	while ((int)p & WORDMASK)
+	{
+		if (--count < 0)
+            return;
+		*p++ = (char)val;
+	}
+
+	/* write 8 bytes at a time */
+	lp = (int *)p;
+	v = (int)(val << 24) | (val << 16) | (val << 8) | val;
+	while (count >= 8)
+	{
+		lp[0] = lp[1] = v;
+		lp += 2;
+		count -= 8;
+	}
+
+	/* finish up */
+	p = (uint8_t *)lp;
+	while (count--)
+		*p++ = (char)val;
+}
+static inline void D_memcpy(void *dest, const void *src, int count) // 80001ACC
+{
+	uint8_t	*d, *s;
+	int		*ld, *ls;
+	int     stopcnt;
+
+	ld = (int *)dest;
+	ls = (int *)src;
+
+	if ((((int)ld | (int)ls | count) & 7))
+    {
+        d = (uint8_t *)dest;
+        s = (uint8_t *)src;
+        while (count--)
+            *d++ = *s++;
+    }
+    else
+    {
+        if (count == 0)
+            return;
+
+        if(-(count & 31))
+        {
+            stopcnt = -(count & 31) + count;
+            while (stopcnt != count)
+            {
+                ld[0] = ls[0];
+                ld[1] = ls[1];
+                ld += 2;
+                ls += 2;
+                count -= 8;
+            }
+
+            if (count == 0)
+                return;
+        }
+
+        while (count)
+        {
+            ld[0] = ls[0];
+            ld[1] = ls[1];
+            ld[2] = ls[2];
+            ld[3] = ls[3];
+            ld[4] = ls[4];
+            ld[5] = ls[5];
+            ld[6] = ls[6];
+            ld[7] = ls[7];
+            ld += 8;
+            ls += 8;
+            count -= 32;
+        }
+    }
+}
+#endif
+
+#define D_memset memset
 
 # define fx_expect_false(expr)  (expr)
 # define fx_expect_true(expr)   (expr)
@@ -113,7 +201,7 @@ int lzfx_compress(const void *const ibuf, const unsigned int ilen,
         return lzfx_getsize(ibuf, ilen, olen);
     }
 
-    __n64_memset_ASM(htab, 0, sizeof(htab));
+    D_memset(htab, 0, sizeof(htab));
 
     /*  Start a literal run.  Whenever we do this the output pointer is
         advanced because the current byte will hold the encoded length. */

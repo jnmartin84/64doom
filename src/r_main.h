@@ -68,7 +68,9 @@ extern int		loopcount;
 // Lighting constants.
 // Now why not 32 levels here?
 #define LIGHTLEVELS	        16
+//16
 #define LIGHTSEGSHIFT	         4
+//4
 
 #define MAXLIGHTSCALE		48
 #define LIGHTSCALESHIFT		12
@@ -99,29 +101,30 @@ extern	int		detailshift;
 // Used to select shadow mode etc.
 //
 extern void		(*colfunc) (
-//int yl, int yh, int x
+int yl, int yh, int x
 );
 extern void		(*skycolfunc) (
-//int yl, int yh, int x
+int yl, int yh, int x
 );
 extern void		(*basecolfunc) (
-//int yl, int yh, int x
+int yl, int yh, int x
 );
 extern void		(*fuzzcolfunc) (
-//int yl, int yh, int x
+int yl, int yh, int x
 );
 extern void		(*transcolfunc) (
-//int yl, int yh, int x
+int yl, int yh, int x
 );
 // No shadow effects on floors.
-extern void		(*spanfunc) (void
-//int x1, int x2, int y
+extern void		(*spanfunc) (
+//void
+int x1, int x2, int y
 );
 
 
 //
 // Utility functions.
-int
+/*int
 R_PointOnSide
 ( fixed_t	x,
   fixed_t	y,
@@ -132,7 +135,7 @@ R_PointOnSegSide
 ( fixed_t	x,
   fixed_t	y,
   seg_t*	line );
-
+*/
 angle_t
 R_PointToAngle
 ( fixed_t	x,
@@ -144,12 +147,12 @@ R_PointToAngle2
   fixed_t	y1,
   fixed_t	x2,
   fixed_t	y2 );
-
+/*
 fixed_t
 R_PointToDist
 ( fixed_t	x,
   fixed_t	y );
-
+*/
 
 fixed_t R_ScaleFromGlobalAngle (angle_t visangle);
 

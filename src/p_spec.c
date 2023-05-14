@@ -51,9 +51,6 @@
 #include "sounds.h"
 
 
-extern void *__n64_memset_ASM(void *p, int v, size_t n);
-extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
-
 
 //
 // Animating textures and planes
@@ -181,11 +178,9 @@ void P_InitPicAnims (void)
 #ifdef RANGECHECK
 	if (lastanim->numpics < 2)
 	{
-	    char ermac[256];
-	    sprintf(ermac, "P_InitPicAnims: bad cycle from %s to %s",
+	    I_Error("P_InitPicAnims: bad cycle from %s to %s",
 		     animdefs[i].startname,
 		     animdefs[i].endname);
-	    I_Error(ermac);
 	}
 #endif	
 	lastanim->speed = animdefs[i].speed;
@@ -1072,11 +1067,9 @@ void P_PlayerInSpecialSector (player_t* player)
 #ifdef RANGECHECK			
       default:
 	{
-	    char ermac[256];
-	    sprintf(ermac, "P_PlayerInSpecialSector: "
+	    I_Error("P_PlayerInSpecialSector: "
 		 "unknown special %i",
 		 sector->special);
-	    I_Error(ermac);
 	    break;
 	}
 #endif	
@@ -1162,7 +1155,7 @@ void P_UpdateSpecials (void)
 		    break;
 		}
 		S_StartSound((mobj_t *)&buttonlist[i].soundorg,sfx_swtchn);
-		__n64_memset_ZERO_ASM(&buttonlist[i],0,sizeof(button_t));
+		D_memset(&buttonlist[i],0,sizeof(button_t));
 	    }
 	}
 	
@@ -1371,7 +1364,7 @@ void P_SpawnSpecials (void)
 	activeplats[i] = NULL;
     
     for (i = 0;i < MAXBUTTONS;i++)
-	__n64_memset_ZERO_ASM(&buttonlist[i],0,sizeof(button_t));
+	D_memset(&buttonlist[i],0,sizeof(button_t));
 
     // UNUSED: no horizonal sliders.
     //	P_InitSlidingDoorFrames();

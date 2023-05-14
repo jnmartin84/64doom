@@ -29,18 +29,14 @@
 #pragma interface
 #endif
 
-
 // Endianess handling.
 // WAD files are stored little endian.
-unsigned short	SwapSHORT(unsigned short);
-unsigned long	SwapLONG(unsigned long);
-#define SHORT(x)	((short)SwapSHORT((unsigned short) (x)))
-#define LONG(x)         ((long)SwapLONG((unsigned long) (x)))
 
-
-//#define SHORT(x)  (((((uint16_t)x) >> 8)&0x00ff) | ((((uint16_t)x) << 8)&0xff00))
-
-
+#define SHORT(x)	((int16_t)(((uint16_t)(x)>>8)|((uint16_t)(x)<<8))) 
+#define LONG(x)     ((int32_t)((((uint32_t)(x)>>24)&0xff) | \
+					(((uint32_t)(x)<<8)&0xff0000) | \
+					(((uint32_t)(x)>>8)&0xff00) | \
+					(((uint32_t)(x)<<24))))
 #endif
 //-----------------------------------------------------------------------------
 //
