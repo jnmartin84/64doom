@@ -7,12 +7,7 @@
 
 #include "doomdef.h"
 
-//extern void n64_free(void *buf);
-//extern void *n64_malloc(size_t size_to_alloc);
-
-
 static int __create_node( void *element, NODEptr *new_node );
-
 
 /*
 list_init()
@@ -41,7 +36,7 @@ be stored.
 */
 static int __create_node(void *element, NODEptr *new_node)
 {
-    *new_node = (NODEptr)n64_malloc(sizeof(NODE));
+    *new_node = (NODEptr)malloc(sizeof(NODE));
 
     if ( *new_node )
     {
@@ -196,8 +191,8 @@ void list_delete(list_t *lst, void *node)
             next->prev = prev;
         }
 
-        n64_free( save->element );
-        n64_free( save );
+        free( save->element );
+        free( save );
 
         --(lst->count);
     }
@@ -219,8 +214,8 @@ void list_cleanup(list_t *lst)
     {
         next = node->next;
 
-        n64_free(node->element);
-        n64_free(node);
+        free(node->element);
+        free(node);
 
         node = next;
     }

@@ -276,9 +276,7 @@ S_StartSoundAtVolume
   // check for bogus sound #
   if (sfx_id < 1 || sfx_id > NUMSFX)
   {
-    char ermac[256];
-    sprintf(ermac, "S_StartSoundAtVolume: Bad sfx #: %d", sfx_id);
-    I_Error(ermac);
+    I_Error("S_StartSoundAtVolume: Bad sfx #: %d", sfx_id);
   }
 #endif  
   sfx = &S_sfx[sfx_id];
@@ -364,6 +362,7 @@ S_StartSoundAtVolume
   //  each time the sound is needed?
   //
   
+#if 0
   // get lumpnum if necessary
   if (sfx->lumpnum < 0)
     sfx->lumpnum = I_GetSfxLumpNum(sfx);
@@ -384,9 +383,11 @@ S_StartSoundAtVolume
   }
 #endif
   
+#endif
+
   // increase the usefulness
-  if (sfx->usefulness++ < 0)
-    sfx->usefulness = 1;
+//  if (sfx->usefulness++ < 0)
+  //  sfx->usefulness = 1;
   
   // Assigns the handle to one of the channels in the
   //  mix/output buffer.
@@ -627,12 +628,10 @@ void S_SetMusicVolume(int volume)
 #ifdef RANGECHECK	
     if (volume < 0 || volume > 127)
     {
-	char error[256];
-	/*I_Error*/sprintf(error,"S_SetMusicVolume: Attempt to set music volume at %d",volume);
-	I_Error(error);
+	I_Error("S_SetMusicVolume: Attempt to set music volume at %d",volume);
     }
 #endif
-    I_SetMusicVolume(127);
+//    I_SetMusicVolume(127);
     I_SetMusicVolume(volume);
     snd_MusicVolume = volume;
 }
@@ -644,9 +643,7 @@ void S_SetSfxVolume(int volume)
 #ifdef RANGECHECK	
     if (volume < 0 || volume > 127)
     {
-	char ermac[256];
-	sprintf(ermac, "S_SetSfxVolume: Attempt to set sfx volume at %d", volume);
-	I_Error(ermac);
+	I_Error("S_SetSfxVolume: Attempt to set sfx volume at %d", volume);
     }
 #endif	
     snd_SfxVolume = volume;
@@ -671,9 +668,7 @@ S_ChangeMusic
     if ( (musicnum <= mus_None)
 	 || (musicnum >= NUMMUSIC) )
     {
-	char ermac[256];
-	sprintf(ermac, "S_ChangeMusic: Bad music number %d", musicnum);
-	I_Error(ermac);
+	I_Error("S_ChangeMusic: Bad music number %d", musicnum);
 	return;
     }
     else
@@ -756,7 +751,7 @@ void S_StopChannel(int cnum)
 	}
 
 	// degrade usefulness of sound data
-	c->sfxinfo->usefulness--;
+	//c->sfxinfo->usefulness--;
 
 	c->sfxinfo = 0;
     }
@@ -784,8 +779,8 @@ int S_AdjustSoundParams(
 
     // calculate the distance to sound origin
     //  and clip it if necessary
-    adx = abs(listener->x - source->x);
-    ady = abs(listener->y - source->y);
+    adx = D_abs(listener->x - source->x);
+    ady = D_abs(listener->y - source->y);
 
     // From _GG1_ p.428. Appox. eucledian distance fast.
     approx_dist = adx + ady - ((adx < ady ? adx : ady)>>1);

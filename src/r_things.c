@@ -37,9 +37,8 @@
 #include "doomstat.h"
 
 
-//extern void *n64_memcpy(void *d, const void *s, size_t n);
-extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
-extern void *__n64_memset_ASM(void *p, int v, size_t n);
+extern char errstr[256];
+
 
 #define MINZ				(FRACUNIT*4)
 #define BASEYCENTER			100
@@ -87,7 +86,28 @@ int		numsprites;
 spriteframe_t	sprtemp[29];
 int		maxframe;
 char*		spritename;
+static inline const int R_PointOnSegSide(fixed_t x, fixed_t y, const seg_t *line)
+{
+    const fixed_t lx = line->v1->x;
+    const fixed_t ly = line->v1->y;
+    const fixed_t ldx = line->v2->x - lx;
+    const fixed_t ldy = line->v2->y - ly;
 
+    if (!ldx)
+        return x <= lx ? ldy > 0 : ldy < 0;
+
+    if (!ldy)
+        return y <= ly ? ldx < 0 : ldx > 0;
+
+    x -= lx;
+    y -= ly;
+
+    // Try to quickly decide by looking at sign bits.
+    if ((ldy ^ ldx ^ x ^ y) < 0)
+        return (ldy ^ x) < 0;          // (left is negative)
+
+    return FixedMul(y, ldx>>FRACBITS) >= FixedMul(ldy>>FRACBITS, x);
+}
 
 
 
@@ -106,10 +126,8 @@ R_InstallSpriteLump
 #ifdef RANGECHECK
     if (frame >= 29 || rotation > 8)
     {
-	char ermac[256];
-	sprintf(ermac,"R_InstallSpriteLump: "
+        I_Error("R_InstallSpriteLump: "
 		"Bad frame characters in lump %i", lump);
-	I_Error(ermac);
     }
 #endif
     if ((int)frame > maxframe)
@@ -121,18 +139,14 @@ R_InstallSpriteLump
 	// the lump should be used for all rotations
 	if (sprtemp[frame].rotate == false)
 	{
-            char ermac[256];
-	    sprintf(ermac,"R_InstallSpriteLump: Sprite %s frame %c has "
+	    I_Error("R_InstallSpriteLump: Sprite %s frame %c has "
 		     "multip rot=0 lump", spritename, 'A'+frame);
-            I_Error(ermac);
 	}
 
 	if (sprtemp[frame].rotate == true)
 	{
-            char ermac[256];
-	    sprintf(ermac, "R_InstallSpriteLump: Sprite %s frame %c has rotations "
+	    I_Error("R_InstallSpriteLump: Sprite %s frame %c has rotations "
 		     "and a rot=0 lump", spritename, 'A'+frame);
-	    I_Error(ermac);
 	}
 #endif
 	sprtemp[frame].rotate = false;
@@ -147,10 +161,8 @@ R_InstallSpriteLump
     // the lump is only used for one rotation
     if (sprtemp[frame].rotate == false)
     {
-	char ermac[256];
-	sprintf(ermac, "R_InstallSpriteLump: Sprite %s frame %c has rotations "
+        I_Error("R_InstallSpriteLump: Sprite %s frame %c has rotations "
 		 "and a rot=0 lump", spritename, 'A'+frame);
-	I_Error(ermac);
     }
 #endif
     sprtemp[frame].rotate = true;
@@ -160,11 +172,9 @@ R_InstallSpriteLump
 #ifdef RANGECHECK
     if (sprtemp[frame].lump[rotation] != -1)
     {
-	char ermac[256];
-	sprintf(ermac, "R_InstallSpriteLump: Sprite %s : %c : %c "
+	I_Error("R_InstallSpriteLump: Sprite %s : %c : %c "
 		 "has two lumps mapped to it",
 		 spritename, 'A'+frame, '1'+rotation);
-	I_Error(ermac);
     }
 #endif
     sprtemp[frame].lump[rotation] = lump - firstspritelump;
@@ -222,7 +232,7 @@ void R_InitSpriteDefs (char** namelist)
     for (i=0 ; i<numsprites ; i++)
     {
 	spritename = namelist[i];
-	__n64_memset_ASM (sprtemp,-1, sizeof(sprtemp));
+	D_memset (sprtemp,-1, sizeof(sprtemp));
 
 	maxframe = -1;
 	intname = *(int *)namelist[i];
@@ -267,11 +277,9 @@ void R_InitSpriteDefs (char** namelist)
 	    {
 	      case -1:
 		{
-		char ermac[256];
 		// no rotations were found for that frame at all
-		sprintf(ermac, "R_InitSpriteDefs: No patches found "
+		I_Error("R_InitSpriteDefs: No patches found "
 			 "for %s frame %c", namelist[i], frame+'A');
-		I_Error(ermac);
 		break;
 		}
 	      case 0:
@@ -284,11 +292,9 @@ void R_InitSpriteDefs (char** namelist)
 
                     if (sprtemp[frame].lump[rotation] == -1)
 		    {
-			char ermac[256];
-			sprintf(ermac,"R_InitSpriteDefs: Sprite %s frame %c "
+			I_Error("R_InitSpriteDefs: Sprite %s frame %c "
 				 "is missing rotations",
 				 namelist[i], frame+'A');
-			I_Error(ermac);
 		    }
 		break;
 	    }
@@ -298,7 +304,7 @@ void R_InitSpriteDefs (char** namelist)
 	sprites[i].numframes = maxframe;
 	sprites[i].spriteframes =
 	    Z_Malloc (maxframe * sizeof(spriteframe_t), PU_STATIC, NULL);
-	__n64_memcpy_ASM (sprites[i].spriteframes, sprtemp, maxframe*sizeof(spriteframe_t));
+	D_memcpy (sprites[i].spriteframes, sprtemp, maxframe*sizeof(spriteframe_t));
     }
 
 }
@@ -398,12 +404,12 @@ void R_DrawMaskedColumn (column_t* column)
 	{
 	    dc_source = (byte *)column + 3;
 	    dc_texturemid = basetexturemid - (column->topdelta<<FRACBITS);
-	    // dc_source = (byte *)column + 3 - column->topdelta;
+	    //dc_source = (byte *)column + 3 - column->topdelta;
 
 	    // Drawn by either R_DrawColumn
 	    //  or (SHADOW) R_DrawFuzzColumn.
 
-            colfunc (/*dc_yl, dc_yh, dc_x*/);
+            colfunc (dc_yl, dc_yh, dc_x);
 	}
         column = (column_t *)(  (byte *)column + column->length + 4);
     }
@@ -436,7 +442,7 @@ R_DrawVisSprite
     {
 	// NULL colormap = shadow draw
 	colfunc = fuzzcolfunc;
-	}
+    }
     else if (vis->mobjflags & MF_TRANSLATION)
     {
 	colfunc = transcolfunc;
@@ -444,7 +450,7 @@ R_DrawVisSprite
 	    ( (vis->mobjflags & MF_TRANSLATION) >> (MF_TRANSSHIFT-8) );
     }
 
-    dc_iscale = abs(vis->xiscale)>>detailshift;
+    dc_iscale = D_abs(vis->xiscale)>>detailshift;
     dc_texturemid = vis->texturemid;
     frac = vis->startfrac;
     spryscale = vis->scale;
@@ -509,6 +515,10 @@ void R_ProjectSprite (mobj_t* thing)
     // thing is behind view plane?
     if (tz < MINZ)
 	return;
+#define MAXZ        (FRACUNIT*1280)
+    //Too far away. Always draw Cyberdemon and Spiderdemon. They are big sprites!
+    if( (tz > MAXZ) && (thing->type != MT_CYBORG) && (thing->type != MT_SPIDER) )
+        return;
 
     xscale = FixedDiv(projection, tz);
 
@@ -517,18 +527,14 @@ void R_ProjectSprite (mobj_t* thing)
     tx = -(gyt+gxt);
 
     // too far off the side?
-    if (abs(tx)>(tz<<2))
+    if (D_abs(tx)>(tz<<2))
 	return;
 
     // decide which patch to use for sprite relative to player
 #ifdef RANGECHECK
     if ((unsigned)thing->sprite >= numsprites)
     {
-        char ermac[256];
-        sprintf(ermac, "R_ProjectSprite: invalid sprite number %i", thing->sprite);
-        I_Error(ermac);
-/*	I_Error ("R_ProjectSprite: invalid sprite number %i ",
-		 thing->sprite);*/
+        I_Error("R_ProjectSprite: invalid sprite number %i", thing->sprite);
     }
 #endif
 
@@ -537,11 +543,7 @@ void R_ProjectSprite (mobj_t* thing)
 #ifdef RANGECHECK
     if ( (thing->frame&FF_FRAMEMASK) >= sprdef->numframes )
     {
-        char ermac[256];
-        sprintf(ermac, "R_ProjectSprite: invalid sprite frame %i : %i", thing->sprite, thing->frame);
-        I_Error(ermac);
-/*	I_Error ("R_ProjectSprite: invalid sprite frame %i : %i ",
-		 thing->sprite, thing->frame);*/
+        I_Error("R_ProjectSprite: invalid sprite frame %i : %i", thing->sprite, thing->frame);
     }
 #endif
 
@@ -581,7 +583,8 @@ void R_ProjectSprite (mobj_t* thing)
     // store information in a vissprite
     vis = R_NewVisSprite ();
     vis->mobjflags = thing->flags;
-    vis->scale = xscale<<detailshift;
+    
+	vis->scale = xscale<<detailshift;
     vis->gx = thing->x;
     vis->gy = thing->y;
     vis->gz = thing->z;
@@ -590,7 +593,15 @@ void R_ProjectSprite (mobj_t* thing)
     vis->x1 = x1 < 0 ? 0 : x1;
     vis->x2 = x2 >= viewwidth ? viewwidth-1 : x2;
     iscale = FixedDiv (FRACUNIT, xscale);
+//const fixed_t iscale = FixedDiv (FRACUNIT, xscale);
+//iscale = tz >> 7;
+    //It simplifies to this.
+    //const fixed_t iscale = tz / 60;
 
+    //This is a cheap divide by 60.
+    //const fixed_t iscale = (((uint_64_t)tz * 0x8889) >> 16) >> 5;
+    //iscale = ((tz >> 6) + (tz >> 10)); // -> x/64 + x/1024 is very close to x/60. (Delta -0.4%)
+	
     if (flip)
     {
 	vis->startfrac = spritewidth[lump]-1;
@@ -691,11 +702,7 @@ void R_DrawPSprite (pspdef_t* psp)
 #ifdef RANGECHECK
     if ( (unsigned)psp->state->sprite >= numsprites)
     {
-        char ermac[256];
-        sprintf(ermac, "R_DrawPSprite: invalid sprite number %i", psp->state->sprite);
-        I_Error(ermac);
-/*	I_Error ("R_DrawPSprite: invalid sprite number %i ",
-		 psp->state->sprite);*/
+        I_Error("R_DrawPSprite: invalid sprite number %i", psp->state->sprite);
     }
 #endif
 
@@ -704,11 +711,7 @@ void R_DrawPSprite (pspdef_t* psp)
 #ifdef RANGECHECK
     if ( (psp->state->frame & FF_FRAMEMASK)  >= sprdef->numframes)
     {
-        char ermac[256];
-        sprintf(ermac, "R_DrawPSprite: invalid sprite frame %i : %i", psp->state->sprite, psp->state->frame);
-        I_Error(ermac);
-/*	I_Error ("R_DrawPSprite: invalid sprite frame %i : %i ",
-		 psp->state->sprite, psp->state->frame);*/
+        I_Error("R_DrawPSprite: invalid sprite frame %i : %i", psp->state->sprite, psp->state->frame);
     }
 #endif
 
@@ -820,9 +823,6 @@ void R_DrawPlayerSprites (void)
     }
 }
 
-
-
-
 //
 // R_SortVisSprites
 //
@@ -906,7 +906,7 @@ void R_DrawSprite (vissprite_t* spr)
     // Scan drawsegs from end to start for obscuring segs.
     // The first drawseg that has a greater scale
     //  is the clip seg.
-    for (ds=ds_p-1 ; ds >= drawsegs ; ds--)
+    for (ds=ds_p/*-1*/ ; ds-- >/*=*/ drawsegs ; /*ds--*/)
     {
 	// determine if the drawseg obscures the sprite
 	if (ds->x1 > spr->x2
@@ -1020,7 +1020,7 @@ void R_DrawMasked (void)
     }
 
     // render any remaining masked mid textures
-    for (ds=ds_p-1 ; ds >= drawsegs ; ds--)
+    for (ds=ds_p/*-1*/ ; ds-- >/*=*/ drawsegs ; /*ds--*/)
         if (ds->maskedtexturecol)
             R_RenderMaskedSegRange (ds, ds->x1, ds->x2);
 

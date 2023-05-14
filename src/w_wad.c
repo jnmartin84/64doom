@@ -17,7 +17,7 @@
 // $Log:$
 //
 // DESCRIPTION:
-//	Handles WAD file header, directory, lump I/O.
+//    Handles WAD file header, directory, lump I/O.
 //
 //-----------------------------------------------------------------------------
 
@@ -46,53 +46,8 @@
 
 #include "hash.h"
 
-#include "resoluti.h"
-#if SCREENWIDTH == 320
-#include "rzhighlo.h"
-#include "rzlowlow.h"
-#include "gamma.h"
-#endif
-#if SCREENWIDTH == 640
-#include "rzhigh.h"
-#include "rzlow.h"
-#endif
-#include "aa.h"
-#include "aaon.h"
-#include "aaoff.h"
-#include "videoset.h"
-#include "vidttl.h"
-//#include "pak296.h"
-
-extern long rom_tell(int fd);
-extern int rom_lseek(int fd, off_t offset, int whence);
-extern int rom_open(int FILE_START, int size);
-extern int rom_close(int fd);
-extern int rom_read(int fd, void *buf, size_t nbyte);
-
-extern void *__n64_memcpy_ASM(void *d, const void *s, size_t n);
-extern void *__n64_memset_ASM(void *p, int v, size_t n);
-extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
-
-
-extern uint32_t final_screen[];
-
 static hashtable_t ht;
 
-extern const int WAD_FILE;
-extern const int WAD_FILESIZE;
-
-
-//
-// GLOBALS
-//
-
-// Location of each lump on disk.
-lumpinfo_t*		lumpinfo;
-int			numlumps;
-
-void**			lumpcache;
-
-#define strcmpi	strcasecmp
 
 void wadupr(char *s)
 {
@@ -109,34 +64,49 @@ void wadupr(char *s)
     }
 }
 
+//
+// GLOBALS
+//
+
+// Location of each lump on disk.
+lumpinfo_t*    lumpinfo;
+int            numlumps;
+
+void**         lumpcache;
+
+
+#define strcmpi strcasecmp
 
 void ExtractFileBase(char* path, char* dest)
 {
-    char*	src;
-    int		length;
+    char* src;
+#ifdef RANGECHECK    
+    int length;
+#endif
 
     src = path + strlen(path) - 1;
 
     // back up until a \ or the start
     while ((src != path) && (*(src-1) != '\\') && (*(src-1) != '/'))
     {
-	src--;
+        src--;
     }
 
     // copy up to eight characters
-    __n64_memset_ZERO_ASM(dest, 0, 8);
+    D_memset(dest, 0, 8);
+#ifdef RANGECHECK
     length = 0;
+#endif
 
     while ((*src) && (*src != '.'))
     {
 #ifdef RANGECHECK
         if (++length == 9)
         {
-            sprintf(errstr, "Filename base of %s >8 chars", path);
-            I_Error(errstr);
+            I_Error("Filename base of %s >8 chars", path);
         }
 #endif
-	*dest++ = toupper((int)*src++);
+        *dest++ = toupper((int)*src++);
     }
 }
 
@@ -159,15 +129,15 @@ void ExtractFileBase(char* path, char* dest)
 // But: the reload feature is a fragile hack...
 
 
-int			reloadlump;
-char*			reloadname;
+int      reloadlump;
+char*    reloadname;
 
 
 // Hash table for fast lookups
 int comp_keys(void *el1, void *el2)
 {
-    register char *t1 = ((lumpinfo_t *)el1)->name;
-    register char *t2 = ((lumpinfo_t *)el2)->name;
+    char *t1 = ((lumpinfo_t *)el1)->name;
+    char *t2 = ((lumpinfo_t *)el2)->name;
     int i;
 
     for (i=0;i<8;i++)
@@ -184,7 +154,6 @@ unsigned long int W_LumpNameHash(char *s)
 {
     // This is the djb2 string hash function, modded to work on strings
     // that have a maximum length of 8.
-
     unsigned long int result = 5381;
     unsigned long int i;
 
@@ -203,23 +172,48 @@ unsigned long int hash(void *element, void *params)
     return W_LumpNameHash(((lumpinfo_t *)element)->name) % 256;
 }
 
+// lumps for 64Doom-specific menu graphics (created with SLADE)
+static uint8_t* GAMMA_lmp;
+static uint8_t* RZHIGH_lmp;
+static uint8_t* RZLOW_lmp;
+static uint8_t* VIDTTL_lmp;
+static uint8_t* VIDEOSET_lmp;
+static uint8_t* RESOLUTI_lmp;     
+
+#define LOAD_MENU_LUMP(name,x) \
+    {\
+    int fd = dfs_open(name); \
+    if (fd < 0) I_Error("W_Init: missing %s.\n", name); \
+    x = malloc(dfs_size(fd)); \
+    if (x == NULL) I_Error("W_Init: could not allocate memory for %s.\n", name); \
+    dfs_read(x, dfs_size(fd), 1, fd); \
+    dfs_close(fd); \
+    }
 
 void W_Init()
 {
+    reloadname = 0;
     hashtable_init(&ht, 256, comp_keys, hash, 0);
+
+    LOAD_MENU_LUMP("./menulumps/gamma.bin",GAMMA_lmp);
+    LOAD_MENU_LUMP("./menulumps/rzhigh.bin",RZHIGH_lmp);
+    LOAD_MENU_LUMP("./menulumps/rzlow.bin",RZLOW_lmp);
+    LOAD_MENU_LUMP("./menulumps/vidttl.bin",VIDTTL_lmp);
+    LOAD_MENU_LUMP("./menulumps/videoset.bin",VIDEOSET_lmp);
+    LOAD_MENU_LUMP("./menulumps/resoluti.bin",RESOLUTI_lmp);
 }
 
 
 void W_AddFile (char *filename)
 {
-    wadinfo_t		header;
-    lumpinfo_t*		lump_p;
-    unsigned		i;
-    int			handle = -1;
-    int			length;
-    int			startlump;
-    filelump_t*		fileinfo;
-    int			storehandle;
+    wadinfo_t      header;
+    lumpinfo_t*    lump_p;
+    unsigned int   i;
+    int            handle = -1;
+    int            length;
+    int            startlump;
+    filelump_t*    fileinfo;
+    int            storehandle;
 
     // open the file and add to directory
 
@@ -231,49 +225,81 @@ void W_AddFile (char *filename)
         reloadlump = numlumps;
     }
 
-    handle = rom_open(WAD_FILE, WAD_FILESIZE);
-
+    handle = dfs_open(filename);
+#ifdef RANGECHECK
+    if (-1 == handle)
+    {
+        I_Error("W_AddFile: DFS could not open file \"%s\"\n",filename);
+    }
+#endif    
     startlump = numlumps;
 
     // WAD file
-    rom_read(handle, &header, sizeof(header));
-
 #ifdef RANGECHECK
+    size_t size_r =    
+#endif    
+    dfs_read( &header, sizeof(header), 1, handle);
+#ifdef RANGECHECK
+    if (sizeof(header) != size_r)
+    {
+        I_Error("W_AddFile: DFS failed to read WAD header after opening.\n");
+    }    
+#endif
+
+#ifdef RANGECHECK        
     if (strncmp(header.identification,"IWAD",4))
     {
         // Homebrew levels?
         if (strncmp(header.identification,"PWAD",4))
         {
-            sprintf(errstr,"W_AddFile: %s != IWAD/PWAD in %s\n", header.identification, filename);
-            I_Error(errstr);
+            I_Error("W_AddFile: %s != IWAD/PWAD in %s\n", header.identification, filename);
         }
-
         // ???modifiedgame = true;
     }
 #endif
+
     header.numlumps = LONG(header.numlumps);
     header.infotableofs = LONG(header.infotableofs);
     length = header.numlumps*sizeof(filelump_t);
     fileinfo = alloca(length);
-    rom_lseek(handle, header.infotableofs, SEEK_SET);
-    rom_read(handle, fileinfo, length);
-    numlumps += header.numlumps;
-
-/*
-206    // Fill in lumpinfo
-207    lumpinfo = realloc (lumpinfo, numlumps*sizeof(lumpinfo_t));
-208
-209    if (!lumpinfo)
-210	I_Error ("Couldn't realloc lumpinfo");
-*/
-    lumpinfo = (lumpinfo_t *)n64_realloc(lumpinfo, numlumps*sizeof(lumpinfo_t));
 #ifdef RANGECHECK
-    if (!lumpinfo)
+    if (0 == fileinfo)
     {
-        sprintf(errstr,"W_AddFile: Couldn't n64_realloc lumpinfo");
-        I_Error(errstr);
+        I_Error("W_AddFile: unable to allocate memory for fileinfo read.\n");
     }
 #endif
+
+#ifdef RANGECHECK
+    int sr = 
+#endif
+    dfs_seek(handle, header.infotableofs, SEEK_SET);
+#ifdef RANGECHECK
+    if (DFS_ESUCCESS != sr)
+	{
+        I_Error("W_AddFile: Error while seeking to infotableofs.\n");		
+	}
+#endif
+
+#ifdef RANGECHECK
+    size_r = 
+#endif
+    dfs_read(fileinfo, length, 1, handle);
+#ifdef RANGECHECK
+    if (length != size_r)
+    {
+        I_Error("W_AddFile: Error while reading fileinfo.\n");
+    }
+#endif
+
+    numlumps += header.numlumps;
+
+    lumpinfo = (lumpinfo_t *)realloc(lumpinfo, numlumps*sizeof(lumpinfo_t));
+//#ifdef RANGECHECK
+    if (!lumpinfo)
+    {
+        I_Error("W_AddFile: Couldn't realloc lumpinfo");
+    }
+//#endif    
 
     lump_p = &lumpinfo[startlump];
 
@@ -285,6 +311,7 @@ void W_AddFile (char *filename)
         lump_p->handle = storehandle;
         lump_p->position = LONG(fileinfo->filepos);
         lump_p->size = LONG(fileinfo->size);
+
         strncpy(lump_p->name, fileinfo->name, 8);
 
         hashtable_insert(&ht, (void*)lump_p, -1);
@@ -292,7 +319,7 @@ void W_AddFile (char *filename)
 
     if (reloadname)
     {
-        rom_close(handle);
+        dfs_close(handle);
     }
 }
 
@@ -304,36 +331,38 @@ void W_AddFile (char *filename)
 //
 void W_Reload (void)
 {
-    wadinfo_t		header;
-    int			lumpcount;
-    lumpinfo_t*		lump_p;
-    unsigned		i;
-    int			handle;
-    int			length;
-    filelump_t*		fileinfo;
+    wadinfo_t        header;
+    int            lumpcount;
+    lumpinfo_t*        lump_p;
+    unsigned        i;
+    int            handle;
+    int            length;
+    filelump_t*        fileinfo;
 
     if (!reloadname)
     {
         return;
     }
-#ifdef RANGECHECK
-    if ( (handle = rom_open(WAD_FILE, WAD_FILESIZE)) == -1 )
-    {
-        sprintf(errstr, "W_Reload: couldn't open %d,%d", WAD_FILE, WAD_FILESIZE);
-        I_Error(errstr);
-    }
-#endif
-    rom_lseek(handle, 0, SEEK_SET);
 
-    rom_read(handle, &header, sizeof(header));
+    if ( (handle = dfs_open(reloadname)) == -1 )
+    {
+        I_Error("W_Reload: couldn't open %s", reloadname);
+    }
+
+#ifdef RANGECHECK
+    int sr = 
+#endif
+    dfs_seek(handle, 0, SEEK_SET);
+
+    dfs_read(&header, sizeof(header), 1, handle);
 
     lumpcount = LONG(header.numlumps);
     header.infotableofs = LONG(header.infotableofs);
     length = lumpcount*sizeof(filelump_t);
     fileinfo = alloca(length);
 
-    rom_lseek(handle, header.infotableofs, SEEK_SET);
-    rom_read(handle, fileinfo, length);
+    dfs_seek(handle, header.infotableofs, SEEK_SET);
+    dfs_read(fileinfo, length, 1, handle);
 
     // Fill in lumpinfo
     lump_p = &lumpinfo[reloadlump];
@@ -366,14 +395,15 @@ void W_Reload (void)
 //
 void W_InitMultipleFiles (char** filenames)
 {
-    int		size;
+    int        size;
 
     W_Init();
 
     // open all the files, load headers, and count lumps
     numlumps = 0;
     // will be realloced as lumps are added
-    lumpinfo = (lumpinfo_t *)n64_malloc(1);
+    lumpinfo = (lumpinfo_t *)malloc(1);
+
     for ( ; *filenames ; filenames++)
     {
         printf("W_InitMultipleFiles: adding %s\n", *filenames);
@@ -383,22 +413,20 @@ void W_InitMultipleFiles (char** filenames)
 #ifdef RANGECHECK
     if (!numlumps)
     {
-        sprintf(errstr,"W_InitMultipleFiles: no files found");
-        I_Error(errstr);
+        I_Error("W_InitMultipleFiles: no files found");
     }
 #endif
     // set up caching
     size = numlumps * sizeof(*lumpcache);
-    lumpcache = (void **)n64_malloc (size);
+    lumpcache = (void **)malloc (size);
 
 #ifdef RANGECHECK
     if (!lumpcache)
     {
-        sprintf(errstr,"W_InitMultipleFiles: Couldn't allocate lumpcache");
-        I_Error(errstr);
+        I_Error("W_InitMultipleFiles: Couldn't allocate lumpcache");
     }
 #endif
-    __n64_memset_ZERO_ASM(lumpcache, 0, size);
+    D_memset(lumpcache, 0, size);
 }
 
 
@@ -408,7 +436,7 @@ void W_InitMultipleFiles (char** filenames)
 //
 void W_InitFile(char* filename)
 {
-    char*	names[2];
+    char*    names[2];
 
     names[0] = filename;
     names[1] = NULL;
@@ -432,6 +460,12 @@ int W_NumLumps(void)
 int W_CheckNumForName(char* name)
 {
     lumpinfo_t *testlump = (lumpinfo_t *)alloca(sizeof(lumpinfo_t));
+#ifdef RANGECHECK
+    if (0 == testlump)
+    {
+        I_Error("W_CheckNumForName: Could not allocate memory for hashtable check.\n");
+    }        
+#endif
     strncpy(testlump->name, name, 8);
     wadupr(testlump->name);
 
@@ -449,23 +483,14 @@ int W_CheckNumForName(char* name)
 
 //
 // W_GetNumForName
-// Calls W_CheckNumForName, but bombs out if not found.
+// Calls W_CheckNumForName.
+// It is ok to return -1.
 //
 int W_GetNumForName(char* name)
 {
-    int	i;
+    int    i;
 
     i = W_CheckNumForName (name);
-
-    // why did we comment this out, might have been for lookups
-    // when using the static data lumps for video menus?
-#if 0
-    if (i == -1)
-    {
-        sprintf(errstr,"W_GetNumForName: %s not found!", name);
-        I_Error(errstr);
-    }
-#endif
 
     return i;
 }
@@ -477,11 +502,10 @@ int W_GetNumForName(char* name)
 //
 int W_LumpLength(int lump)
 {
-#ifdef RANGECHECK
+#ifdef RANGECHECK    
     if (lump >= numlumps)
     {
-        sprintf(errstr, "W_LumpLength: %i >= numlumps", lump);
-        I_Error(errstr);
+        I_Error("W_LumpLength: %i >= numlumps", lump);
     }
 #endif
     return lumpinfo[lump].size;
@@ -495,49 +519,51 @@ int W_LumpLength(int lump)
 //
 void W_ReadLump(int lump, void* dest)
 {
-    int		c;
-    lumpinfo_t*	l;
-    int		handle;
+#ifdef RANGECHECK
+    int        c;
+#endif
+    lumpinfo_t*    l;
+    int        handle;
 
 #ifdef RANGECHECK
     if (lump >= numlumps)
     {
-        sprintf(errstr, "W_ReadLump: %i >= numlumps", lump);
-        I_Error(errstr);
+        I_Error("W_ReadLump: %i >= numlumps", lump);
     }
 #endif
     l = lumpinfo+lump;
-#ifdef RANGECHECK
+
     if (l->handle == -1)
     {
         // reloadable file, so use open / read / close
-        if ( (handle = rom_open(WAD_FILE, WAD_FILESIZE)) == -1 )
+        if ((handle = dfs_open(reloadname)) == -1 )
         {
-            sprintf(errstr, "W_ReadLump: couldn't open %d,%d", WAD_FILE, WAD_FILESIZE);
-            I_Error(errstr);
+            I_Error("W_ReadLump: couldn't open %s", reloadname);
         }
     }
     else
     {
-#endif
         handle = l->handle;
+    }
+    // ??? I_BeginRead ();
+
+    //?
+    dfs_seek(handle, l->position, SEEK_SET);
+
 #ifdef RANGECHECK
+    c =
+#endif
+    dfs_read( dest, l->size, 1, handle);
+
+#ifdef RANGECHECK
+    if (l->size != c)
+    {
+        I_Error("W_ReadLump: only read %i of %i on lump %i", c, l->size, lump);
     }
 #endif
-
-    rom_lseek(handle, l->position, SEEK_SET);
-    c = rom_read(handle, dest, l->size);
-
-#ifdef RANGECHECK
-    if (c < l->size)
+    if(l->handle == -1)
     {
-        sprintf(errstr, "W_ReadLump: only read %i of %i on lump %i", c, l->size, lump);
-        I_Error(errstr);
-    }
-#endif
-    if (l->handle == -1)
-    {
-        rom_close(handle);
+        dfs_close(handle);
     }
 }
 
@@ -547,23 +573,24 @@ void W_ReadLump(int lump, void* dest)
 //
 void* W_CacheLumpNum(int lump, int tag)
 {
-    byte*	ptr;
 #ifdef RANGECHECK
+    byte*    ptr;
     if ((unsigned)lump >= numlumps)
     {
-        sprintf(errstr, "W_CacheLumpNum: %i >= numlumps", lump);
-        I_Error(errstr);
+        I_Error("W_CacheLumpNum: %i >= numlumps", lump);
     }
-#endif
+#endif    
     if (!lumpcache[lump])
     {
         // read the lump in
-        ptr = Z_Malloc(W_LumpLength(lump), tag, &lumpcache[lump]);
+#ifdef RANGECHECK
+        ptr = 
+#endif        
+        Z_Malloc(W_LumpLength(lump), tag, &lumpcache[lump]);
 #ifdef RANGECHECK
         if (ptr == NULL || ptr != lumpcache[lump])
         {
-            sprintf(errstr, "W_CacheLumpNum: !=cache allocation error on lump %i\n", lump);
-            I_Error(errstr);
+            I_Error("W_CacheLumpNum: !=cache allocation error on lump %i\n", lump);
         }
 #endif
         W_ReadLump(lump, lumpcache[lump]);
@@ -576,48 +603,31 @@ void* W_CacheLumpNum(int lump, int tag)
     return lumpcache[lump];
 }
 
-
 //
 // W_CacheLumpName
 //
 void* W_CacheLumpName(char* name, int tag)
 {
-    // this was why we got rid of the check in that code...
     int numforname = W_GetNumForName(name);
 
-    // it moved here
-    if (numforname >= 0)
+    if(numforname >= 0)
     {
         return W_CacheLumpNum(numforname, tag);
     }
+    // sorry about these, I wasn't using DFS when I first added these
     else
     {
-#if SCREENWIDTH == 320
         if (0 == strncmp(name,"X_G",3))
         {
             return (void *)GAMMA_lmp;
         }
-        else
-#endif
-        if (0 == strncmp(name,"X_RZH",5))
+        else if (0 == strncmp(name,"X_RZH",5))
         {
             return (void *)RZHIGH_lmp;
         }
         else if (0 == strncmp(name,"X_RZL",5))
         {
             return (void *)RZLOW_lmp;
-        }
-        else if (0 == strncmp(name,"X_AAON",6))
-        {
-            return (void *)AAON_lmp;
-        }
-        else if (0 == strncmp(name,"X_AAOF",6))
-        {
-            return (void *)AAOFF_lmp;
-        }
-        else if (0 == strncmp(name,"X_AA",4))
-        {
-            return (void *)AA_lmp;
         }
         else if (0 == strncmp(name, "X_VIDT", 6))
         {
@@ -627,9 +637,13 @@ void* W_CacheLumpName(char* name, int tag)
         {
             return (void *)VIDEOSET_lmp;
         }
-        else //if (0 == strncmp(name, "X_RESOLU",8))
+        else if (0 == strncmp(name, "X_RESOLU",8))
         {
             return (void *)RESOLUTI_lmp;
-	}
+        }
+        else
+        {
+            return (void*)(0xDEADBEEF);
+        }
     }
 }

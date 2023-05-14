@@ -40,12 +40,6 @@
 #include "doomdef.h"
 #include "tables.h"
 
-#if SCREENWIDTH == 640
-uint32_t /*__attribute__((aligned(4)))*/ ytab[480];//[240];
-#endif
-#if SCREENWIDTH == 320
-uint32_t ytab[240];
-#endif
 
 int __attribute__((aligned(64))) finetangent[4096] =
 {
@@ -563,9 +557,12 @@ int __attribute__((aligned(64))) finetangent[4096] =
     11392683,13145455,15535599,18988036,24413316,34178904,56965752,170910304
 };
 
+int* finetan2 = 0;
+
 
 int __attribute__((aligned(64))) finesine[10240] =
 {
+	
     25,75,125,175,226,276,326,376,
     427,477,527,578,628,678,728,779,
     829,879,929,980,1030,1080,1130,1181,
@@ -1848,6 +1845,9 @@ int __attribute__((aligned(64))) finesine[10240] =
     65534,65535,65535,65535,65535,65535,65535,65535
 };
 
+
+int* finesine2 = 0;
+angle_t* tantoangle2 = 0;
 
 angle_t __attribute__((aligned(64))) tantoangle[2049] =
 {

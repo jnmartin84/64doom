@@ -43,9 +43,6 @@
 // in AM_map.c
 extern boolean		automapactive;
 
-extern char errstr[256];
-
-
 //
 // Hack display negative frags.
 //  Loads and store the stminus lump.
@@ -125,14 +122,13 @@ void STlib_drawNum(st_number_t* n, boolean refresh)
 
     if (c > y)
     {
-        sprintf(errstr,"STlib_drawNum: n->y - ST_Y < 0; %d - %d < 0", y, ST_Y);
-        I_Error(errstr);
+        I_Error("STlib_drawNum: n->y - ST_Y < 0; %d - %d < 0", y, ST_Y);
     }
 #endif
 
     // changes from not using 8bpp framebuffers, no background to copy from
 #if 0
-    V_CopyRect(x, y - ST_Y, BG, w*numdigits, h, x, y, FG);
+    V_CopyRect(x, y - ST_Y, 0, w*numdigits, h, x, y, 5);
 #endif
 
     // if non-number, do not draw it
@@ -246,13 +242,12 @@ STlib_updateMultIcon
 #ifdef RANGECHECK
             if (y - ST_Y < 0)
             {
-                sprintf(errstr,"STlib_updateMultIcon: y - ST_Y < 0");
-                I_Error(errstr);
+                I_Error("STlib_updateMultIcon: y - ST_Y < 0");
             }
 #endif
             // changes from not using 8bpp framebuffers, no background to copy from
 #if 0
-            V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
+            V_CopyRect(x, y-ST_Y, 0, w, h, x, y, 5);
 #endif
         }
 
@@ -298,8 +293,7 @@ void STlib_updateBinIcon(st_binicon_t* bi, boolean refresh)
 #ifdef RANGECHECK
         if (y - ST_Y < 0)
         {
-            sprintf(errstr,"STlib_updateBinIcon: y - ST_Y < 0");
-            I_Error(errstr);
+            I_Error("STlib_updateBinIcon: y - ST_Y < 0");
         }
 #endif
 

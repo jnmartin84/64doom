@@ -50,6 +50,59 @@ drawseg_t	drawsegs[MAXDRAWSEGS];
 drawseg_t*	ds_p;
 
 
+static inline const int
+R_PointOnSide
+( fixed_t	x,
+  fixed_t	y,
+  node_t*	node )
+{
+    fixed_t	dx;
+    fixed_t	dy;
+    fixed_t	left;
+    fixed_t	right;
+//if(setup_level_debug)
+//DebugOutput_String("R_PointOnSide");	
+    if (!node->dx)
+    {
+	if (x <= node->x)
+	    return node->dy > 0;
+	
+	return node->dy < 0;
+    }
+    if (!node->dy)
+    {
+	if (y <= node->y)
+	    return node->dx < 0;
+	
+	return node->dx > 0;
+    }
+	
+    dx = (x - node->x);
+    dy = (y - node->y);
+	
+    // Try to quickly decide by looking at sign bits.
+    if ( (node->dy ^ node->dx ^ dx ^ dy)&0x80000000 )
+    {
+	if  ( (node->dy ^ dx) & 0x80000000 )
+	{
+	    // (left is negative)
+	    return 1;
+	}
+	return 0;
+    }
+
+    left = FixedMul ( node->dy>>FRACBITS , dx );
+    right = FixedMul ( dy , node->dx>>FRACBITS );
+	
+    if (right < left)
+    {
+	// front side
+	return 0;
+    }
+    // back side
+    return 1;			
+}
+
 void
 R_StoreWallRange
 ( int	start,
@@ -358,7 +411,7 @@ void R_AddLine (seg_t*	line)
 // Returns true
 //  if some part of the bbox might be visible.
 //
-int	checkcoord[12][4] =
+static const int	checkcoord[12][4] =
 {
     {3,0,2,1},
     {3,0,2,0},
@@ -374,7 +427,7 @@ int	checkcoord[12][4] =
 };
 
 
-boolean R_CheckBBox (fixed_t*	bspcoord)
+static inline const boolean R_CheckBBox (fixed_t*	bspcoord)
 {
     int			boxx;
     int			boxy;
@@ -499,13 +552,7 @@ void R_Subsector (int num)
 #ifdef RANGECHECK
     if (num>=numsubsectors)
     {
-        char ermac[256];
-        sprintf(ermac, "R_Subsector: ss %i with numss = %i", num, numsubsectors);
-        I_Error(ermac);
-
-/*	I_Error ("R_Subsector: ss %i with numss = %i",
-		 num,
-		 numsubsectors);*/
+        I_Error("R_Subsector: ss %i with numss = %i", num, numsubsectors);
     }
 #endif
 
@@ -545,39 +592,88 @@ void R_Subsector (int num)
 }
 
 
-
+static boolean R_RenderBspSubsector(int bspnum)
+{
+	if(bspnum & NF_SUBSECTOR)
+	{
+	    if(bspnum == -1)
+			R_Subsector(0);
+		else
+			R_Subsector(bspnum & (~NF_SUBSECTOR));
+		
+		return true;
+	}
+    return false;	
+}
 
 //
 // RenderBSPNode
 // Renders all subsectors below a given node,
 //  traversing subtree recursively.
 // Just call with BSP root.
+
+
+// from GBADoom r_hotpath.iwram.c
+//Non recursive version.
+//constant stack space used and easier to
+//performance profile.
+#define MAX_BSP_DEPTH 128
+static int bspstack[MAX_BSP_DEPTH];
+
 void R_RenderBSPNode (int bspnum)
 {
-    node_t*	bsp;
-    int		side;
+    int sp = 0;
+    const
+    node_t* bsp;
+    int side = 0;
 
-    // Found a subsector?
-    if (bspnum & NF_SUBSECTOR)
+
+    while (true)
     {
-	if (bspnum == -1)			
-	    R_Subsector (0);
-	else
-	    R_Subsector (bspnum&(~NF_SUBSECTOR));
-	return;
+        while (!R_RenderBspSubsector(bspnum))
+        {
+            if (sp == MAX_BSP_DEPTH)
+                break;
+
+            bsp = &nodes[bspnum];
+            side = R_PointOnSide(viewx,viewy,bsp);
+
+            bspstack[sp++] = bspnum;
+            bspstack[sp++] = side;
+
+            bspnum = bsp->children[side];
+        }
+        if(sp == 0)
+        {
+            //back at root node and not visible. All done!
+            return;
+        }
+
+        //Back sides.
+        side = bspstack[--sp];
+        bspnum = bspstack[--sp];
+        bsp = &nodes[bspnum];
+
+        // Possibly divide back space.
+        //Walk back up the tree until we find
+        //a node that has a visible backspace.
+        while(!R_CheckBBox (bsp->bbox[side^1]))
+        {
+            if(sp == 0)
+            {
+                //back at root node and not visible. All done!
+                return;
+            }
+
+            //Back side next.
+            side = bspstack[--sp];
+            bspnum = bspstack[--sp];
+
+            bsp = &nodes[bspnum];
+        }
+
+        bspnum = bsp->children[side^1];
     }
-		
-    bsp = &nodes[bspnum];
-    
-    // Decide which side the view point is on.
-    side = R_PointOnSide (viewx, viewy, bsp);
-
-    // Recursively divide front space.
-    R_RenderBSPNode (bsp->children[side]); 
-
-    // Possibly divide back space.
-    if (R_CheckBBox (bsp->bbox[side^1]))	
-	R_RenderBSPNode (bsp->children[side^1]);
 }
 
 

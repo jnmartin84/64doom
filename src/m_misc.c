@@ -57,8 +57,6 @@
 
 #include "m_misc.h"
 
-extern void *__n64_memset_ASM(void *p, int v, size_t n);
-extern void *__n64_memset_ZERO_ASM(void *p, int v, size_t n);
 
 //
 // M_DrawText
@@ -142,7 +140,6 @@ M_ReadFile
 ( char const*	name,
   byte**	buffer )
 {
-    char ermac[256];
     int	handle, count, length;
     struct stat	fileinfo;
     byte		*buf;
@@ -150,14 +147,12 @@ M_ReadFile
     handle = open(name, O_RDONLY | O_BINARY, 0666);
     if (handle == -1)
     {
-	sprintf(ermac, "M_ReadFile: Couldn't read file %s", name);
-	I_Error(ermac);
+        I_Error("M_ReadFile: Couldn't read file %s", name);
     }
 
     if (fstat (handle,&fileinfo) == -1)
     {
-	sprintf(ermac, "M_ReadFile: Couldn't read file %s", name);
-	I_Error(ermac);
+        I_Error("M_ReadFile: Couldn't read file %s", name);
     }
 
     length = fileinfo.st_size;
@@ -167,8 +162,7 @@ M_ReadFile
 	
     if (count < length)
     {
-	sprintf(ermac, "M_ReadFile: Couldn't read file %s", name);
-	I_Error(ermac);
+        I_Error("M_ReadFile: Couldn't read file %s", name);
     }
 		
     *buffer = buf;
@@ -235,8 +229,8 @@ typedef struct
 default_t	defaults[] =
 {
     {"mouse_sensitivity",&mouseSensitivity, 5},
-    {"sfx_volume",&snd_SfxVolume, 15 - 3},
-    {"music_volume",&snd_MusicVolume, 15 - 7},
+    {"sfx_volume",&snd_SfxVolume, 12},//4},//0},//15 - 3},
+    {"music_volume",&snd_MusicVolume, 9},//11},//15},// - 7},
     {"show_messages",&showMessages, 1},
     
 
@@ -277,12 +271,10 @@ default_t	defaults[] =
     {"joyb_use",&joybuse,3},
     {"joyb_speed",&joybspeed,2},
 
-    {"screenblocks",&screenblocks, 10},
+    {"screenblocks",&screenblocks, 9},
     {"detaillevel",&detailLevel, 0},
 
     {"snd_channels",&numChannels, 8},
-
-
 
     {"usegamma",&usegamma, 0},
 /*
@@ -384,7 +376,7 @@ void M_LoadDefaults (void)
 		    // get a string default
 		    isstring = true;
 		    len = strlen(strparm);
-		    newstring = (char *) n64_malloc(len);
+		    newstring = (char *) malloc(len);
 		    strparm[len-1] = 0;
 		    strcpy(newstring, strparm+1);
 		}
@@ -453,6 +445,7 @@ WritePCXfile
   int		height,
   byte*		palette )
 {
+#if 0
     int		i;
     int		length;
     pcx_t*	pcx;
@@ -470,11 +463,11 @@ WritePCXfile
     pcx->ymax = SHORT(height-1);
     pcx->hres = SHORT(width);
     pcx->vres = SHORT(height);
-    __n64_memset_ZERO_ASM (pcx->palette,0,sizeof(pcx->palette));
+    memset (pcx->palette,0,sizeof(pcx->palette));
     pcx->color_planes = 1;		// chunky image
     pcx->bytes_per_line = SHORT(width);
     pcx->palette_type = SHORT(2);	// not a grey scale
-    __n64_memset_ZERO_ASM (pcx->filler,0,sizeof(pcx->filler));
+    memset (pcx->filler,0,sizeof(pcx->filler));
 
 
     // pack the image
@@ -501,6 +494,7 @@ WritePCXfile
     M_WriteFile (filename, pcx, length);
 
     Z_Free (pcx);
+#endif
 }
 
 

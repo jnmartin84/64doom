@@ -77,9 +77,7 @@ boolean P_GiveAmmo(player_t* player, ammotype_t ammo, int num)
 #ifdef RANGECHECK
     if (ammo < 0 || ammo > NUMAMMO)
     {
-	char ermac[256];
-        sprintf(ermac, "P_GiveAmmo: bad type %i", ammo);
-	I_Error(ermac);
+        I_Error("P_GiveAmmo: bad type %i", ammo);
     }
 #endif
     if (player->ammo[ammo] == player->maxammo[ammo])

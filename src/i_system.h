@@ -91,8 +91,7 @@ byte* I_AllocLow(int length);
 void I_Tactile(int on, int off, int total);
 
 
-void I_Error(char *error);
-
+void I_Error(const char *fmt, ...);
 
 #endif
 //-----------------------------------------------------------------------------

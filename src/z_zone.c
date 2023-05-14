@@ -1,3 +1,5 @@
+#if 1
+
 // Emacs style mode select   -*- C++ -*- 
 //-----------------------------------------------------------------------------
 //
@@ -24,8 +26,6 @@
 #include "i_system.h"
 #include "doomdef.h"
 
-extern char errstr[256];
-
 //
 // ZONE MEMORY ALLOCATION
 //
@@ -38,7 +38,23 @@ extern char errstr[256];
 //
 #define ZONEID	0x1d4a11
 
+typedef struct
+{
+    // total bytes malloced, including header
+    int32_t		size;
+    int32_t     pad0;
 
+    // start / end cap for linked list
+    memblock_t	blocklist;
+
+    memblock_t*	rover;
+    int32_t pad1;
+
+    int32_t pad2;
+	int32_t pad3;
+
+//    char pad[24];
+} memzone_t;
 memzone_t*	mainzone;
 
 
@@ -74,7 +90,7 @@ void Z_Init (void)
     memblock_t*	block;
     int		size;
 
-    mainzone = (memzone_t *)I_ZoneBase (&size);
+    mainzone = (memzone_t *)((uintptr_t)I_ZoneBase (&size));
     mainzone->size = size;
 
     // set the entire zone to one free block
@@ -104,13 +120,12 @@ void Z_Free (void* ptr)
 
 #ifdef RANGECHECK
     if (block->id != ZONEID) {
-        sprintf(errstr, "Z_Free: freed a pointer without ZONEID");
-        I_Error(errstr);
+        I_Error("Z_Free: freed a pointer without ZONEID");
     }
 #endif
     // for MIPS use on Nintendo 64, real addresses
     // will always be 0x80000000 or higher
-    if (block->user > (void **)0x7FFFFFFF)
+    if ((uint32_t)block->user > (uint32_t)0x7FFFFFFF)
     {
 	// smaller values are not pointers
 	// Note: OS-dependend?
@@ -168,7 +183,9 @@ Z_Malloc
   void*		user )
 {
     int		extra;
+#ifdef RANGECHECK
     memblock_t*	start;
+#endif
     memblock_t* rover;
     memblock_t* newblock;
     memblock_t*	base;
@@ -191,7 +208,9 @@ Z_Malloc
 	base = base->prev;
 
     rover = base;
+#ifdef RANGECHECK
     start = base->prev;
+#endif
 
     do
     {
@@ -199,8 +218,7 @@ Z_Malloc
         if (rover == start)
         {
             // scanned all the way around the list
-            sprintf(errstr, "Z_Malloc: failed on allocation of %d bytes", size);
-            I_Error(errstr);
+            I_Error("Z_Malloc: failed on allocation of %d bytes", size);
         }
 #endif
         if (rover->user)
@@ -258,8 +276,7 @@ Z_Malloc
 #ifdef RANGECHECK
         if (tag >= PU_PURGELEVEL)
         {
-            sprintf(errstr, "Z_Malloc: an owner is required for purgable blocks");
-            I_Error(errstr);
+            I_Error("Z_Malloc: an owner is required for purgable blocks");
         }
 #endif
         // mark as in use, but unowned
@@ -321,18 +338,15 @@ void Z_CheckHeap (void)
 #ifdef RANGECHECK
         if ( (byte *)block + block->size != (byte *)block->next)
         {
-            sprintf(errstr, "Z_CheckHeap: block size does not touch the next block\n");
-            I_Error(errstr);
+            I_Error("Z_CheckHeap: block size does not touch the next block\n");
         }
         if ( block->next->prev != block)
         {
-            sprintf(errstr, "Z_CheckHeap: next block doesn't have proper back link\n");
-            I_Error(errstr);
+            I_Error("Z_CheckHeap: next block doesn't have proper back link\n");
         }
         if (!block->user && !block->next->user)
         {
-            sprintf(errstr, "Z_CheckHeap: two consecutive free blocks\n");
-            I_Error(errstr);
+            I_Error("Z_CheckHeap: two consecutive free blocks\n");
         }
 #endif
     }
@@ -355,13 +369,11 @@ Z_ChangeTag
 #ifdef RANGECHECK
     if (block->id != ZONEID)
     {
-        sprintf(errstr, "Z_ChangeTag: freed a pointer without ZONEID");
-        I_Error(errstr);
+        I_Error("Z_ChangeTag: freed a pointer without ZONEID");
     }
     if (tag >= PU_PURGELEVEL && (unsigned)block->user < 0x100)
     {
-        sprintf(errstr, "Z_ChangeTag: an owner is required for purgable blocks");
-        I_Error(errstr);
+        I_Error("Z_ChangeTag: an owner is required for purgable blocks");
     }
 #endif
     block->tag = tag;
@@ -386,3 +398,4 @@ int Z_FreeMemory (void)
     }
     return free;
 }
+#endif

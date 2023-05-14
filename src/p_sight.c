@@ -48,12 +48,13 @@ int		sightcounts[2];
 // P_DivlineSide
 // Returns side 0 (front), 1 (back), or 2 (on).
 //
-int
+static int
 P_DivlineSide
 ( fixed_t	x,
   fixed_t	y,
   divline_t*	node )
 {
+#if 0
     fixed_t	dx;
     fixed_t	dy;
     fixed_t	left;
@@ -93,6 +94,14 @@ P_DivlineSide
     if (left == right)
 	return 2;
     return 1;		// back side
+#endif
+  fixed_t left, right;
+  return
+    !node->dx ? x == node->x ? 2 : x <= node->x ? node->dy > 0 : node->dy < 0 :
+    !node->dy ? (y) == node->y ? 2 : y <= node->y ? node->dx < 0 : node->dx > 0 :
+    (right = ((y - node->y) >> FRACBITS) * (node->dx >> FRACBITS)) <
+    (left  = ((x - node->x) >> FRACBITS) * (node->dy >> FRACBITS)) ? 0 :
+    right == left ? 2 : 1;
 }
 
 
@@ -129,7 +138,7 @@ P_InterceptVector2
 // Returns true
 //  if strace crosses the given subsector successfully.
 //
-boolean P_CrossSubsector (int num)
+static boolean P_CrossSubsector (int num)
 {
     seg_t*		seg;
     line_t*		line;
@@ -146,16 +155,11 @@ boolean P_CrossSubsector (int num)
     vertex_t*		v2;
     fixed_t		frac;
     fixed_t		slope;
-	
+
 #ifdef RANGECHECK
     if (num>=numsubsectors)
     {
-        char ermac[256];
-        sprintf(ermac, "P_CrossSubsector: ss %i with numss = %i", num, numsubsectors);
-        I_Error(ermac);
-/*	I_Error ("P_CrossSubsector: ss %i with numss = %i",
-		 num,
-		 numsubsectors);*/
+        I_Error("P_CrossSubsector: ss %i with numss = %i", num, numsubsectors);
     }
 #endif
 
@@ -268,7 +272,9 @@ boolean P_CrossBSPNode (int bspnum)
 	else
 	    return P_CrossSubsector (bspnum&(~NF_SUBSECTOR));
     }
-		
+	
+//while(1) {
+	
     bsp = &nodes[bspnum];
     
     // decide which side the start point is on
