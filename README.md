@@ -36,11 +36,11 @@ Export two environment variables:
 
 And run make.
 
-Example for building DOOM2 from repo directory:
+Example for building DOOM2 from repo directory, with IWAD files located in your home directory under `IWADS`:
 
 `cd src`
 
-`env IWAD_DIRECTORY="~/IWAD" IWAD_FILENAME="DOOM2.WAD" make`
+`env IWAD_DIRECTORY="~/IWADS" IWAD_FILENAME="DOOM2.WAD" make`
 
 If you want to build for a different game version, be sure to run make clean first. Environment variables must be set for make clean as well.
 
