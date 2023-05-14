@@ -32,7 +32,7 @@ Export two environment variables:
 
 `IWAD_DIRECTORY` -- the path of the directory that contains your IWAD file
 
-`IWAD_FILENAME` -- the actual IWAD filename (one of DOOM1.WAD, DOOM.WAD, DOOMU.WAD, DOOM2.WAD, PLUTONIA.WAD, TNT.WAD)
+`IWAD_FILENAME` -- the actual IWAD filename (one of `DOOM1.WAD`, `DOOM.WAD`, `DOOMU.WAD`, `DOOM2.WAD`, `PLUTONIA.WAD`, `TNT.WAD`)
 
 And run make.
 
