@@ -21,10 +21,9 @@ Updated 2023/05/14
   LICENSE_generic-hashtable.TXT, README_generic-hashtable.TXT required attribution for Hashtable implementation used
   GPLV3.TXT is a copy of the GPL V3 License as required
 
-
-----------------
-- how to build -
-----------------
+--------------
+-how to build-
+--------------
 Setup libdragon: https://github.com/DragonMinded/libdragon/wiki/Installing-libdragon
 
 Get a copy of a supported version of Doom (Doom shareware, retail, Ultimate Doom, Doom II, Plutonia, TNT).
@@ -41,7 +40,6 @@ env IWAD_DIRECTORY="~/IWAD" IWAD_FILENAME="DOOM2.WAD" make
 
 If you want to build for a different game version, be sure to run make clean first. Environment variables must be set for make clean as well.
 env IWAD_DIRECTORY="." IWAD_FILENAME="." make clean
-
 
 ----------
 -CONTROLS-
