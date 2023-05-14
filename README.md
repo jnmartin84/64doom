@@ -10,16 +10,21 @@ Updated 2023/05/14
 -git repository contents-
 -------------------------
 
-"README.md" is this file
+`README.md` is this file
 
-"src" directory contains all 64Doom C source, header files, menu graphics and Makefile used to build 64Doom
+`src` directory contains all 64Doom C source, header files, menu graphics and Makefile used to build 64Doom
 
-"doc" directory contains many text files including
-  ORIGINAL_README.TXT is the original README.TXT from the 1990s DOOM open source release
-  DOOMLIC.TXT is the DOOM open source license documentation
-  CREDITS.TXT which provides attribution for various components and code contributors
-  LICENSE_generic-hashtable.TXT, README_generic-hashtable.TXT required attribution for Hashtable implementation used
-  GPLV3.TXT is a copy of the GPL V3 License as required
+`doc` directory contains many text files including
+
+  `ORIGINAL_README.TXT` is the original `README.TXT` from the 1990s DOOM open source release
+  
+  `DOOMLIC.TXT` is the DOOM open source license documentation
+  
+  `CREDITS.TXT` which provides attribution for various components and code contributors
+  
+  `LICENSE_generic-hashtable.TXT`, `README_generic-hashtable.TXT` required attribution for Hashtable implementation used
+  
+  `GPLV3.TXT` is a copy of the GPL V3 License as required
 
 --------------
 -how to build-
