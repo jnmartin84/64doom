@@ -16,15 +16,15 @@ Updated 2023/05/14
 
 `doc` directory contains many text files including
 
-  `ORIGINAL_README.TXT` is the original `README.TXT` from the 1990s DOOM open source release
+`  ORIGINAL_README.TXT` is the original `README.TXT` from the 1990s DOOM open source release
   
-  `DOOMLIC.TXT` is the DOOM open source license documentation
+`  DOOMLIC.TXT` is the DOOM open source license documentation
   
-  `CREDITS.TXT` which provides attribution for various components and code contributors
+`  CREDITS.TXT` which provides attribution for various components and code contributors
   
-  `LICENSE_generic-hashtable.TXT`, `README_generic-hashtable.TXT` required attribution for Hashtable implementation used
+`  LICENSE_generic-hashtable.TXT`, `README_generic-hashtable.TXT` required attribution for Hashtable implementation used
   
-  `GPLV3.TXT` is a copy of the GPL V3 License as required
+`  GPLV3.TXT` is a copy of the GPL V3 License as required
 
 --------------
 -how to build-
