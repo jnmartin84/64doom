@@ -51,19 +51,34 @@ If you want to build for a different game version, be sure to run make clean fir
 ----------
 
 D-PAD UP / ANALOG STICK UP :: move forward
+
 D-PAD DOWN / ANALOG STICK DOWN :: move backward
+
 D-PAD LEFT / ANALOG STICK LEFT :: turn left
+
 D-PAD RIGHT / ANALOG STICK RIGHT :: turn right
+
 L TRIGGER :: strafe left
+
 R TRIGGER :: strafe right
+
 C LEFT :: switch to previous weapon
+
 C RIGHT :: switch to next weapon
+
 C UP :: toggle auto-map
+
 C DOWN :: ENTER key
+
 Z :: toggle run on/off
+
 A :: shoot
+
 B :: use (open doors, flip switches)
+
 START :: ESCAPE key
+
 L + R :: enable/disable debug output and GOD MODE
+
 
 Enjoy.
