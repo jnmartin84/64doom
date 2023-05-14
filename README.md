@@ -29,17 +29,22 @@ Setup libdragon: https://github.com/DragonMinded/libdragon/wiki/Installing-libdr
 Get a copy of a supported version of Doom (Doom shareware, retail, Ultimate Doom, Doom II, Plutonia, TNT).
 
 Export two environment variables:
-IWAD_DIRECTORY -- the path of the directory that contains your IWAD file
-IWAD_FILENAME -- the actual IWAD filename (one of DOOM1.WAD, DOOM.WAD, DOOMU.WAD, DOOM2.WAD, PLUTONIA.WAD, TNT.WAD)
+
+`IWAD_DIRECTORY` -- the path of the directory that contains your IWAD file
+
+`IWAD_FILENAME` -- the actual IWAD filename (one of DOOM1.WAD, DOOM.WAD, DOOMU.WAD, DOOM2.WAD, PLUTONIA.WAD, TNT.WAD)
 
 And run make.
 
 Example for building DOOM2 from repo directory:
-cd src
-env IWAD_DIRECTORY="~/IWAD" IWAD_FILENAME="DOOM2.WAD" make
+
+`cd src`
+
+`env IWAD_DIRECTORY="~/IWAD" IWAD_FILENAME="DOOM2.WAD" make`
 
 If you want to build for a different game version, be sure to run make clean first. Environment variables must be set for make clean as well.
-env IWAD_DIRECTORY="." IWAD_FILENAME="." make clean
+
+`env IWAD_DIRECTORY="." IWAD_FILENAME="." make clean`
 
 ----------
 -CONTROLS-
