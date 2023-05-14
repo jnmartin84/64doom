@@ -1,8 +1,8 @@
 ifeq ($(IWAD_DIRECTORY),)
   $(error IWAD_DIRECTORY is not set)
 endif
-ifeq ($(IWAD_FILENAME),)
-  $(error IWAD_FILENAME is not set)
+ifeq ($(IWAD_PREFIX),)
+  $(error IWAD_PREFIX is not set)
 endif
 
 ROOTDIR			= $(N64_INST)
@@ -15,7 +15,7 @@ N64TOOL = $(ROOTDIR)/bin/n64tool
 HEADERNAME = header
 LIBS = -ldragon -lc -lm -ldragonsys
 LINK_FLAGS = -G4 -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64.ld
-PROG_NAME = doom
+PROG_NAME = $(IWAD_PREFIX)
 OPTFLAG = -O3
 
 CFLAGS = -Wall -g -mabi=o64 -mno-shared -mno-abicalls -mno-branch-likely -mno-llsc -mno-check-zero-division -mfix4300 -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -G4 $(OPTFLAG) -I$(ROOTDIR)/mips64-elf/include 
@@ -99,15 +99,19 @@ OBJS=						\
 		$(O)/sounds.o			\
 		$(O)/i_main.o
 
-$(PROG_NAME).z64: $(PROG_NAME).elf rom.dfs
+$(PROG_NAME).z64: $(PROG_NAME).elf
 	$(OBJCOPY) $(PROG_NAME).elf $(PROG_NAME).bin -O binary
 	rm -f $(PROG_NAME).z64
+	rm -f rom.dfs
+	cp $(IWAD_DIRECTORY)/$(IWAD_PREFIX).WAD filesystem
+	echo $(IWAD_PREFIX).WAD > filesystem/identifier
+	$(MKDFSPATH) rom.dfs ./filesystem/
 	$(N64TOOL) \
 		-h $(HEADERPATH)/$(HEADERNAME)			\
 		-o $(PROG_NAME).z64	\
 		-t DOOM	$(PROG_NAME).bin	\
 		-s 1M rom.dfs
-	chmod ugo=rw doom.z64
+	chmod ugo=rw $(PROG_NAME).z64
 	$(CHKSUM64PATH) $(PROG_NAME).z64
 
 $(PROG_NAME).elf : $(OBJS)
@@ -128,11 +132,6 @@ clean:
 
 $(O)/%.o:	%.c
 	$(CC) $(CFLAGS) -c $< -o $@
-
-rom.dfs:
-	cp $(IWAD_DIRECTORY)/$(IWAD_FILENAME) filesystem
-	echo $(IWAD_FILENAME) > filesystem/identifier
-	$(MKDFSPATH) rom.dfs ./filesystem/
 
 #############################################################
 #

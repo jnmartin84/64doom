@@ -37,19 +37,23 @@ Export two environment variables:
 
 `IWAD_DIRECTORY` -- the path of the directory that contains your IWAD file
 
-`IWAD_FILENAME` -- the actual IWAD filename (one of `DOOM1.WAD`, `DOOM.WAD`, `DOOMU.WAD`, `DOOM2.WAD`, `PLUTONIA.WAD`, `TNT.WAD`)
+`IWAD_PREFIX` -- the actual IWAD filename prefix (one of `DOOM1`, `DOOM`, `DOOMU`, `DOOM2`, `PLUTONIA`, `TNT`)
 
 And run make.
+
+Result is $(IWAD_PREFIX).z64 ready to copy to dev cart or run in emulator.
 
 Example for building DOOM2 from repo directory, with IWAD files located in your home directory under `IWADS`:
 
 `cd src`
 
-`env IWAD_DIRECTORY="~/IWADS" IWAD_FILENAME="DOOM2.WAD" make`
+`env IWAD_DIRECTORY="~/IWADS" IWAD_PREFIX="DOOM2" make`
+
+resulting in `DOOM2.z64`
 
 If you want to build for a different game version, be sure to run make clean first. Environment variables must be set for make clean as well.
 
-`env IWAD_DIRECTORY="." IWAD_FILENAME="." make clean`
+`env IWAD_DIRECTORY="." IWAD_PREFIX="." make clean`
 
 ----------
 -CONTROLS-
