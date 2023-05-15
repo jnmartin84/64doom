@@ -36,7 +36,6 @@
 
 #include "v_video.h"
 
-extern uint16_t *buf16;
 extern uint32_t palarray[256];
 extern surface_t *_dc;
 
@@ -206,7 +205,7 @@ V_DrawPatch
 		uint16_t*	desttop;
 		uint16_t*	dest;
 
-		desttop = 	(uint16_t*)((uintptr_t)buf16 + (uintptr_t)((((y+20)*SCREENWIDTH)+x)*2));
+		desttop = 	(uint16_t*)((uintptr_t)_dc->buffer + (uintptr_t)((((y+20)*SCREENWIDTH)+x)*2));
 
 		for ( ; col<w ; x++, col++, desttop++)
 		{ 

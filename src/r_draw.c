@@ -41,18 +41,11 @@
 
 #define ytab(y) (((y)<<8)+((y)<<6))
 
-#define TOPOFS 20
-
 extern void I_SetPalette(byte* palette);
-
 
 extern uint32_t palarray[256];
 extern surface_t *_dc;
-// stores W_CacheLumpName ("PLAYPAL",PU_CACHE);
-//byte *p;
-//uint32_t oldpal[256];
 
-uint16_t *buf16;
 // ?
 #define MAXWIDTH            1120
 #define MAXHEIGHT            832
@@ -377,7 +370,7 @@ void R_DrawColumn (int cyl,int cyh,int cx)
     // Framebuffer destination address.
     // Use ylookup LUT to avoid multiply with ScreenWidth.
     // Use columnofs LUT for subwindows?
-    dest = buf16 + ylookup[cyl] + columnofs[cx];
+    dest = ((uint16_t *)_dc->buffer) + ylookup[cyl] + columnofs[cx];
 
     // Looks familiar.
     fracstep = dc_iscale;
@@ -407,7 +400,7 @@ void R_DrawColumnLow (int cyl,int cyh,int cx)
     //    return;
     //}
 
-    dest32 = (uint32_t *)((uintptr_t)buf16 + ((((cx<<1))+(ylookup2[cyl]))<<1));
+    dest32 = (uint32_t *)((uintptr_t)_dc->buffer + ((((cx<<1))+(ylookup2[cyl]))<<1));
     // Looks familiar.
     fracstep = dc_iscale;
     frac = dc_texturemid + (cyl-centery)*fracstep;
@@ -485,7 +478,7 @@ void R_DrawSpan (int sx1, int sx2, int sy)
     xfrac = ds_xfrac; 
     yfrac = ds_yfrac; 
      
-    dest = (uint16_t*)(buf16 + ylookup[sy] + columnofs[sx1]);
+    dest = (uint16_t*)(((uint16_t *)_dc->buffer) + ylookup[sy] + columnofs[sx1]);
     do 
     {
         // Current texture index in u,v.
@@ -532,7 +525,7 @@ void R_DrawSpanLow (int sx1, int sx2, int sy)
     xfrac = ds_xfrac; 
     yfrac = ds_yfrac; 
      
-    dest = (uint32_t*)(buf16 + ylookup2[sy] + (sx1<<1));
+    dest = (uint32_t*)(((uint16_t *)_dc->buffer) + ylookup2[sy] + (sx1<<1));
 
     do 
     {
