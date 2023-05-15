@@ -40,8 +40,6 @@
 #include "r_state.h"
 
 #include "doomdef.h"
-int dobg = 0;
-
 
 #define ytab(y) (((y)<<8)+((y)<<6))
 
@@ -113,83 +111,83 @@ void F_StartFinale (void)
       case registered:
       case retail:
       {
-		S_ChangeMusic(mus_victor, true);
-		
-		switch (gameepisode)
-		{
-		  case 1:
-			finaleflat = "FLOOR4_8";
-			finaletext = e1text;
-			break;
-		  case 2:
-			finaleflat = "SFLR6_1";
-			finaletext = e2text;
-			break;
-		  case 3:
-			finaleflat = "MFLR8_4";
-			finaletext = e3text;
-			break;
-		  case 4:
-			finaleflat = "MFLR8_3";
-			finaletext = e4text;
-			break;
-		  default:
-			// Ouch.
-			break;
-		}
-		break;
+        S_ChangeMusic(mus_victor, true);
+        
+        switch (gameepisode)
+        {
+          case 1:
+            finaleflat = "FLOOR4_8";
+            finaletext = e1text;
+            break;
+          case 2:
+            finaleflat = "SFLR6_1";
+            finaletext = e2text;
+            break;
+          case 3:
+            finaleflat = "MFLR8_4";
+            finaletext = e3text;
+            break;
+          case 4:
+            finaleflat = "MFLR8_3";
+            finaletext = e4text;
+            break;
+          default:
+            // Ouch.
+            break;
+        }
+        break;
       }
       
       // DOOM II and missions packs with E1, M34
       case commercial:
       {
-	  S_ChangeMusic(mus_read_m, true);
+      S_ChangeMusic(mus_read_m, true);
 
-	  switch (gamemap)
-	  {
-	    case 6:
-	      finaleflat = "SLIME16";
-	      finaletext = c1text;
-	      break;
-	    case 11:
-	      finaleflat = "RROCK14";
-	      finaletext = c2text;
-	      break;
-	    case 20:
-	      finaleflat = "RROCK07";
-	      finaletext = c3text;
-	      break;
-	    case 30:
-	      finaleflat = "RROCK17";
-	      finaletext = c4text;
-	      break;
-	    case 15:
-	      finaleflat = "RROCK13";
-	      finaletext = c5text;
-	      break;
-	    case 31:
-	      finaleflat = "RROCK19";
-	      finaletext = c6text;
-	      break;
-	    default:
-	      // Ouch.
-	      break;
-	  }
-	  break;
-    }	
+      switch (gamemap)
+      {
+        case 6:
+          finaleflat = "SLIME16";
+          finaletext = c1text;
+          break;
+        case 11:
+          finaleflat = "RROCK14";
+          finaletext = c2text;
+          break;
+        case 20:
+          finaleflat = "RROCK07";
+          finaletext = c3text;
+          break;
+        case 30:
+          finaleflat = "RROCK17";
+          finaletext = c4text;
+          break;
+        case 15:
+          finaleflat = "RROCK13";
+          finaletext = c5text;
+          break;
+        case 31:
+          finaleflat = "RROCK19";
+          finaletext = c6text;
+          break;
+        default:
+          // Ouch.
+          break;
+      }
+      break;
+    }    
 
    
       // Indeterminate.
       default:
-	S_ChangeMusic(mus_read_m, true);
-	finaleflat = "F_SKY1"; // Not used anywhere else.
-	finaletext = c1text;  // FIXME - other text, music?
-	break;
+    S_ChangeMusic(mus_read_m, true);
+    finaleflat = "F_SKY1"; // Not used anywhere else.
+    finaletext = c1text;  // FIXME - other text, music?
+    break;
     }
     
     finalestage = 0;
     finalecount = 0;
-	lastcount = -1;
+    lastcount = -1;
 }
 
 
@@ -197,8 +195,8 @@ void F_StartFinale (void)
 boolean F_Responder (event_t *event)
 {
     if (finalestage == 2)
-	return F_CastResponder (event);
-	
+    return F_CastResponder (event);
+
     return false;
 }
 
@@ -208,45 +206,44 @@ boolean F_Responder (event_t *event)
 //
 void F_Ticker (void)
 {
-    int		i;
+    int        i;
     
     // check for skipping
-    if ( (gamemode == commercial)
-      && ( finalecount > 50) )
+    if ( (gamemode == commercial) && ( finalecount > 50) )
     {
-      // go on to the next level
-      for (i=0 ; i<MAXPLAYERS ; i++)
-	if (players[i].cmd.buttons)
-	  break;
-				
-      if (i < MAXPLAYERS)
-      {	
-	if (gamemap == 30)
-	  F_StartCast ();
-	else
-	  gameaction = ga_worlddone;
-      }
+        // go on to the next level
+        for (i=0 ; i<MAXPLAYERS ; i++)
+            if (players[i].cmd.buttons)
+                break;
+
+        if (i < MAXPLAYERS)
+        {
+            if (gamemap == 30)
+                F_StartCast ();
+            else
+                gameaction = ga_worlddone;
+        }
     }
     
     // advance animation
     finalecount++;
-	
+
     if (finalestage == 2)
     {
-	F_CastTicker ();
-	return;
+        F_CastTicker ();
+        return;
     }
-	
+
     if ( gamemode == commercial)
-	return;
-		
+        return;
+
     if (!finalestage && finalecount>strlen (finaletext)*TEXTSPEED + TEXTWAIT)
     {
-	finalecount = 0;
-	finalestage = 1;
-	wipegamestate = -1;		// force a wipe
-	if (gameepisode == 3)
-	    S_StartMusic (mus_bunny);
+        finalecount = 0;
+        finalestage = 1;
+        wipegamestate = -1; // force a wipe
+        if (gameepisode == 3)
+            S_StartMusic (mus_bunny);
     }
 }
 
@@ -259,12 +256,12 @@ extern uint16_t *buf16;
 //
 
 #include "hu_stuff.h"
-extern	patch_t *hu_font[HU_FONTSIZE];
-byte* bgsrc = 0;
+extern patch_t*    hu_font[HU_FONTSIZE];
+       byte*       bgsrc = 0;
 
 static inline void F_bgpart(void) {
     uint16_t *dest16 = (uint16_t *)((uintptr_t)_dc->buffer + ((ytab(SCREENWIDTH >> 4))<<1));
-    int		x,y;
+    int x,y;
     uint32_t curpix;
     for (y=0 ; y<SCREENHEIGHT ; y++)
     {
@@ -272,7 +269,7 @@ static inline void F_bgpart(void) {
         int asy = (y&63)<<6;
         for (int i=0;i<64;i++)
         {
-			curpix = palarray[bgsrc[asy+i]];
+            curpix = palarray[bgsrc[asy+i]];
             *(uint16_t*)(&dest16[(i+sy)]) = curpix;
             *(uint16_t*)(&dest16[(i+64+sy)]) = curpix;
             *(uint16_t*)(&dest16[(i+128+sy)]) = curpix;
@@ -284,14 +281,14 @@ static inline void F_bgpart(void) {
 
 void F_TextWrite (void)
 {
-    int	w;
-    int		count;
-    char*	ch;
-    int		c;
-    int		cx;
-    int		cy;
+    int      w;
+    int      count;
+    char*    ch;
+    int      c;
+    int      cx;
+    int      cy;
 
-	bgsrc = W_CacheLumpName (finaleflat , PU_CACHE);
+    bgsrc = W_CacheLumpName (finaleflat , PU_CACHE);
 
     // erase the entire screen to a tiled background
     F_bgpart();
@@ -302,35 +299,35 @@ void F_TextWrite (void)
     ch = finaletext;
     count = (finalecount - 10)/TEXTSPEED;
     if (count < 0)
-		count = 0;
+        count = 0;
 
-		while(count > 0)
-		{
-			count--;
-			c = *ch++;
-			if (!c)
-				break;
-			if (c == '\n')
-			{
-				cx = 10;
-				cy += 11;
-				continue;
-			}
+    while(count > 0)
+    {
+        count--;
+        c = *ch++;
+        if (!c)
+            break;
+        if (c == '\n')
+        {
+            cx = 10;
+            cy += 11;
+            continue;
+        }
 
-			c = toupper(c) - HU_FONTSTART;
-			if (c < 0 || c> HU_FONTSIZE)
-			{
-				cx += 4;
-				continue;
-			}
+        c = toupper(c) - HU_FONTSTART;
+        if (c < 0 || c> HU_FONTSIZE)
+        {
+            cx += 4;
+            continue;
+        }
 
-			w = SHORT (hu_font[c]->width);
-			if (cx+w > SCREENWIDTH)
-				break;
-			V_DrawPatch(cx, cy, 0, hu_font[c]);
-			cx+=w;
-		}
-	}
+        w = SHORT (hu_font[c]->width);
+        if (cx+w > SCREENWIDTH)
+            break;
+        V_DrawPatch(cx, cy, 0, hu_font[c]);
+        cx+=w;
+    }
+}
 
 //
 // Final DOOM 2 animation
@@ -708,20 +705,15 @@ void F_Drawer (void)
 {
     if (finalestage == 2)
     {
-		dobg = 0;
 	F_CastDrawer ();
 	return;
     }
 
     if (!finalestage) {
-		if(dobg == 0) {
-			dobg = 1;
-		}
 		F_TextWrite ();
 	}
     else
     {
-		dobg = 0;
 	switch (gameepisode)
 	{
 	  case 1:

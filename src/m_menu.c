@@ -22,7 +22,6 @@
 //	Sliders and icons. Kinda widget stuff.
 //
 //-----------------------------------------------------------------------------
-extern int dobg;
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1735,7 +1734,6 @@ boolean M_Responder (event_t* ev)
 		itemOn = 0;
 	    else itemOn++;
 	    S_StartSound(NULL,sfx_pstop);
-		dobg = 0;
 	} while(currentMenu->menuitems[itemOn].status==-1);
 	return true;
 		
@@ -1746,7 +1744,6 @@ boolean M_Responder (event_t* ev)
 		itemOn = currentMenu->numitems-1;
 	    else itemOn--;
 	    S_StartSound(NULL,sfx_pstop);
-		dobg = 0;
 	} while(currentMenu->menuitems[itemOn].status==-1);
 	return true;
 
@@ -1790,7 +1787,6 @@ boolean M_Responder (event_t* ev)
 	currentMenu->lastOn = itemOn;
 	M_ClearMenus ();
 	S_StartSound(NULL,sfx_swtchx);
-	dobg = 0;
 	return true;
 		
       case KEY_BACKSPACE:
@@ -1920,7 +1916,6 @@ void M_Drawer (void)
 //
 void M_ClearMenus (void)
 {
-    dobg = 0;
     menuactive = 0;
     // if (!netgame && usergame && paused)
     //       sendpause = true;

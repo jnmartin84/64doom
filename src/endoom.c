@@ -46,16 +46,16 @@ void DoomIsOver(void)
         I_Error("DoomIsOver: Could not load ENDOOM lump.\n");
     }
 
-	display_close();
+    display_close();
 
     // last thing we do with any of the Doom engine, get the text data lump
     W_ReadLump(ENDOOM_NUM, ENDOOM_BYTES);
     // done with using Doom subsystems here
-	// need to free the entire zone memory block that got allocated during init
-	free((void*)((uintptr_t)mainzone & (uintptr_t)0x8FFFFFFF));
-	// otherwise there isn't enough memory to reallocate the frame buffers
-	// and nothing else works
-	display_init(RESOLUTION_640x480, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
+    // need to free the entire zone memory block that got allocated during init
+    free((void*)((uintptr_t)mainzone & (uintptr_t)0x8FFFFFFF));
+    // otherwise there isn't enough memory to reallocate the frame buffers
+    // and nothing else works
+    display_init(RESOLUTION_640x480, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
 
     for (int i=0;i<2;i++)
     {

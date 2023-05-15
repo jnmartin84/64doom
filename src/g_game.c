@@ -104,23 +104,23 @@ int splitscreen_mode = 0;
 gameaction_t    gameaction; 
 gamestate_t     gamestate; 
 skill_t         gameskill; 
-boolean		respawnmonsters;
+boolean         respawnmonsters;
 int             gameepisode; 
 int             gamemap; 
  
 boolean         paused; 
-boolean         sendpause;             	// send a pause event next tic 
-boolean         sendsave;             	// send a save event next tic 
+boolean         sendpause;              // send a pause event next tic 
+boolean         sendsave;               // send a save event next tic 
 boolean         usergame;               // ok to save / end game 
  
 boolean         timingdemo;             // if true, exit with report on completion 
 boolean         nodrawers;              // for comparative timing purposes 
 boolean         noblit;                 // for comparative timing purposes 
-int             starttime;          	// for comparative timing purposes  	 
+int             starttime;              // for comparative timing purposes
  
 boolean         viewactive; 
  
-boolean         deathmatch;           	// only if started as net death 
+boolean         deathmatch;             // only if started as net death 
 boolean         netgame;                // only true if packets are broadcast 
 boolean         playeringame[MAXPLAYERS]; 
 player_t        players[MAXPLAYERS]; 
@@ -134,35 +134,35 @@ int             totalkills, totalitems, totalsecret;    // for intermission
 char            demoname[32]; 
 boolean         demorecording; 
 boolean         demoplayback; 
-boolean		netdemo; 
-byte*		demobuffer;
-byte*		demo_p;
-byte*		demoend; 
-boolean         singledemo;            	// quit after playing a demo from cmdline 
+boolean         netdemo; 
+byte*           demobuffer;
+byte*           demo_p;
+byte*           demoend; 
+boolean         singledemo;             // quit after playing a demo from cmdline 
  
 boolean         precache = true;        // if true, load all graphics at start 
  
-wbstartstruct_t wminfo;               	// parms for world map / intermission 
+wbstartstruct_t wminfo;                 // parms for world map / intermission 
  
-short		consistancy[MAXPLAYERS][BACKUPTICS]; 
+short           consistancy[MAXPLAYERS][BACKUPTICS]; 
 
-static byte __attribute__((aligned(8)))  savebuffer[SAVEGAMESIZE];
+static byte __attribute__((aligned(8)))    savebuffer[SAVEGAMESIZE];
 static uint8_t __attribute__((aligned(8))) mempak_data[256*123];
 
 // 
 // controls (have defaults) 
 // 
 int             key_right;
-int		key_left;
+int             key_left;
 
-int		key_up;
-int		key_down; 
+int             key_up;
+int             key_down; 
 int             key_strafeleft;
-int		key_straferight; 
+int             key_straferight; 
 int             key_fire;
-int		key_use;
-int		key_strafe;
-int		key_speed; 
+int             key_use;
+int             key_strafe;
+int             key_speed; 
  
 int             mousebfire; 
 int             mousebstrafe; 
@@ -175,62 +175,62 @@ int             joybspeed;
  
  
  
-#define MAXPLMOVE		(forwardmove[1]) 
+#define MAXPLMOVE         (forwardmove[1]) 
  
-#define TURBOTHRESHOLD	0x32
+#define TURBOTHRESHOLD    0x32
 
-fixed_t		forwardmove[2] = {0x19, 0x32}; 
-fixed_t		sidemove[2] = {0x18, 0x28}; 
-fixed_t		angleturn[3] = {640, 1280, 320};	// + slow turn 
+fixed_t         forwardmove[2] = {0x19, 0x32}; 
+fixed_t         sidemove[2] = {0x18, 0x28}; 
+fixed_t         angleturn[3] = {640, 1280, 320}; // + slow turn 
 
-#define SLOWTURNTICS	6 
+#define SLOWTURNTICS      6 
  
-#define NUMKEYS		256 
+#define NUMKEYS           256 
 
 boolean         gamekeydown[NUMKEYS]; 
-int             turnheld;				// for accelerative turning 
+int             turnheld; // for accelerative turning 
  
-boolean		mousearray[4]; 
-boolean*	mousebuttons = &mousearray[1];		// allow [-1]
+boolean         mousearray[4]; 
+boolean*        mousebuttons = &mousearray[1]; // allow [-1]
 
 // mouse values are used once 
 int             mousex;
-int		mousey;         
+int             mousey;         
 
 int             dclicktime;
-int		dclickstate;
-int		dclicks; 
+int             dclickstate;
+int             dclicks; 
 int             dclicktime2;
-int		dclickstate2;
-int		dclicks2;
+int             dclickstate2;
+int             dclicks2;
 
 // joystick values are repeated 
 int             joyxmove;
-int		joyymove;
+int             joyymove;
 boolean         joyarray[5]; 
-boolean*	joybuttons = &joyarray[1];		// allow [-1] 
+boolean*        joybuttons = &joyarray[1]; // allow [-1] 
  
-int		savegameslot; 
-char		savedescription[32]; 
+int             savegameslot; 
+char            savedescription[32]; 
  
  
-#define	BODYQUESIZE	32
+#define BODYQUESIZE       32
 
-mobj_t*		bodyque[BODYQUESIZE]; 
-int		bodyqueslot; 
+mobj_t*         bodyque[BODYQUESIZE]; 
+int             bodyqueslot; 
  
-void*		statcopy;				// for statistics driver
+void*           statcopy; // for statistics driver
  
  
  
 int G_CmdChecksum (ticcmd_t* cmd) 
 { 
-    int		i;
-    int		sum = 0; 
-	 
+    int    i;
+    int    sum = 0;
+
     for (i=0 ; i< sizeof(*cmd)/4 - 1 ; i++) 
-	sum += ((int *)cmd)[i]; 
-		 
+        sum += ((int *)cmd)[i]; 
+ 
     return sum; 
 } 
  
@@ -243,188 +243,179 @@ int G_CmdChecksum (ticcmd_t* cmd)
 // 
 void G_BuildTiccmd (ticcmd_t* cmd) 
 { 
-    int		i; 
-    boolean	strafe;
-    boolean	bstrafe; 
-    int		speed;
-    int		tspeed; 
-    int		forward;
-    int		side;
+    int          i; 
+    boolean      strafe;
+    boolean      bstrafe; 
+    int          speed;
+    int          tspeed; 
+    int          forward;
+    int          side;
     
-    ticcmd_t*	base;
+    ticcmd_t*    base;
 
-    base = I_BaseTiccmd ();		// empty, or external driver
+    base = I_BaseTiccmd (); // empty, or external driver
     D_memcpy (cmd,base,sizeof(*cmd)); 
-	
-    cmd->consistancy = 
-	consistancy[consoleplayer][maketic%BACKUPTICS]; 
+
+    cmd->consistancy = consistancy[consoleplayer][maketic%BACKUPTICS]; 
 
  
-    strafe = gamekeydown[key_strafe] || mousebuttons[mousebstrafe] 
-	|| joybuttons[joybstrafe]; 
+    strafe = gamekeydown[key_strafe] || mousebuttons[mousebstrafe] || joybuttons[joybstrafe]; 
     speed = gamekeydown[key_speed] || joybuttons[joybspeed];
  
     forward = side = 0;
     
     // use two stage accelerative turning
     // on the keyboard and joystick
-    if (joyxmove < 0
-	|| joyxmove > 0  
-	|| gamekeydown[key_right]
-	|| gamekeydown[key_left]) 
-	turnheld += ticdup; 
+    if (joyxmove < 0 || joyxmove > 0 || gamekeydown[key_right] || gamekeydown[key_left]) 
+        turnheld += ticdup; 
     else 
-	turnheld = 0; 
+        turnheld = 0; 
 
     if (turnheld < SLOWTURNTICS) 
-	tspeed = 2;             // slow turn 
+        tspeed = 2;             // slow turn 
     else 
-	tspeed = speed;
+        tspeed = speed;
     
     // let movement keys cancel each other out
     if (strafe) 
     { 
-	if (gamekeydown[key_right]) 
-	{
-	    // fprintf(stderr, "strafe right\n");
-	    side += sidemove[speed]; 
-	}
-	if (gamekeydown[key_left]) 
-	{
-	    //	fprintf(stderr, "strafe left\n");
-	    side -= sidemove[speed]; 
-	}
-	if (joyxmove > 0) 
-	    side += sidemove[speed]; 
-	if (joyxmove < 0) 
-	    side -= sidemove[speed]; 
- 
+    if (gamekeydown[key_right]) 
+    {
+        //fprintf(stderr, "strafe right\n");
+        side += sidemove[speed]; 
+    }
+    if (gamekeydown[key_left]) 
+    {
+        //fprintf(stderr, "strafe left\n");
+        side -= sidemove[speed]; 
+    }
+    if (joyxmove > 0) 
+        side += sidemove[speed]; 
+    if (joyxmove < 0) 
+        side -= sidemove[speed]; 
     } 
     else 
     { 
-	if (gamekeydown[key_right]) 
-	    cmd->angleturn -= angleturn[tspeed]; 
-	if (gamekeydown[key_left]) 
-	    cmd->angleturn += angleturn[tspeed]; 
-	if (joyxmove > 0) 
-	    cmd->angleturn -= angleturn[tspeed]; 
-	if (joyxmove < 0) 
-	    cmd->angleturn += angleturn[tspeed]; 
+    if (gamekeydown[key_right]) 
+        cmd->angleturn -= angleturn[tspeed]; 
+    if (gamekeydown[key_left]) 
+        cmd->angleturn += angleturn[tspeed]; 
+    if (joyxmove > 0) 
+        cmd->angleturn -= angleturn[tspeed]; 
+    if (joyxmove < 0) 
+        cmd->angleturn += angleturn[tspeed]; 
     } 
  
     if (gamekeydown[key_up]) 
     {
-	// fprintf(stderr, "up\n");
-	forward += forwardmove[speed]; 
+        //fprintf(stderr, "up\n");
+        forward += forwardmove[speed]; 
     }
     if (gamekeydown[key_down]) 
     {
-	// fprintf(stderr, "down\n");
-	forward -= forwardmove[speed]; 
+        //fprintf(stderr, "down\n");
+        forward -= forwardmove[speed]; 
     }
     if (joyymove < 0) 
-	forward += forwardmove[speed]; 
+        forward += forwardmove[speed]; 
     if (joyymove > 0) 
-	forward -= forwardmove[speed]; 
+        forward -= forwardmove[speed]; 
     if (gamekeydown[key_straferight]) 
-	side += sidemove[speed]; 
+        side += sidemove[speed]; 
     if (gamekeydown[key_strafeleft]) 
-	side -= sidemove[speed];
+        side -= sidemove[speed];
     
     // buttons
     cmd->chatchar = HU_dequeueChatChar(); 
  
-    if (gamekeydown[key_fire] || mousebuttons[mousebfire] 
-	|| joybuttons[joybfire]) 
-	cmd->buttons |= BT_ATTACK; 
+    if (gamekeydown[key_fire] || mousebuttons[mousebfire] || joybuttons[joybfire])
+        cmd->buttons |= BT_ATTACK; 
  
     if (gamekeydown[key_use] || joybuttons[joybuse] ) 
     { 
-	cmd->buttons |= BT_USE;
-	// clear double clicks if hit use button 
-	dclicks = 0;                   
+        cmd->buttons |= BT_USE;
+        // clear double clicks if hit use button 
+        dclicks = 0;                   
     } 
 
     // chainsaw overrides 
     for (i=0 ; i<NUMWEAPONS-1 ; i++)        
-	if (gamekeydown['1'+i]) 
-	{ 
-	    cmd->buttons |= BT_CHANGE; 
-	    cmd->buttons |= i<<BT_WEAPONSHIFT; 
-	    break; 
-	}
+        if (gamekeydown['1'+i]) 
+        { 
+            cmd->buttons |= BT_CHANGE; 
+            cmd->buttons |= i<<BT_WEAPONSHIFT; 
+            break; 
+        }
     
     // mouse
     if (mousebuttons[mousebforward]) 
-	forward += forwardmove[speed];
+        forward += forwardmove[speed];
     
     // forward double click
     if (mousebuttons[mousebforward] != dclickstate && dclicktime > 1 ) 
     { 
-	dclickstate = mousebuttons[mousebforward]; 
-	if (dclickstate) 
-	    dclicks++; 
-	if (dclicks == 2) 
-	{ 
-	    cmd->buttons |= BT_USE; 
-	    dclicks = 0; 
-	} 
-	else 
-	    dclicktime = 0; 
+    dclickstate = mousebuttons[mousebforward]; 
+    if (dclickstate) 
+        dclicks++; 
+    if (dclicks == 2) 
+    { 
+        cmd->buttons |= BT_USE; 
+        dclicks = 0; 
+    } 
+    else 
+        dclicktime = 0; 
     } 
     else 
     { 
-	dclicktime += ticdup; 
-	if (dclicktime > 20) 
-	{ 
-	    dclicks = 0; 
-	    dclickstate = 0; 
-	} 
+    dclicktime += ticdup; 
+    if (dclicktime > 20) 
+    { 
+        dclicks = 0; 
+        dclickstate = 0; 
+    } 
     }
     
     // strafe double click
-    bstrafe =
-	mousebuttons[mousebstrafe] 
-	|| joybuttons[joybstrafe]; 
+    bstrafe = mousebuttons[mousebstrafe] || joybuttons[joybstrafe]; 
     if (bstrafe != dclickstate2 && dclicktime2 > 1 ) 
     { 
-	dclickstate2 = bstrafe; 
-	if (dclickstate2) 
-	    dclicks2++; 
-	if (dclicks2 == 2) 
-	{ 
-	    cmd->buttons |= BT_USE; 
-	    dclicks2 = 0; 
-	} 
-	else 
-	    dclicktime2 = 0; 
+    dclickstate2 = bstrafe; 
+    if (dclickstate2) 
+        dclicks2++; 
+    if (dclicks2 == 2) 
+    { 
+        cmd->buttons |= BT_USE; 
+        dclicks2 = 0; 
+    } 
+    else 
+        dclicktime2 = 0; 
     } 
     else 
     { 
-	dclicktime2 += ticdup; 
-	if (dclicktime2 > 20) 
-	{ 
-	    dclicks2 = 0; 
-	    dclickstate2 = 0; 
-	} 
+    dclicktime2 += ticdup; 
+    if (dclicktime2 > 20) 
+    { 
+        dclicks2 = 0; 
+        dclickstate2 = 0; 
+    } 
     } 
  
     forward += mousey; 
     if (strafe) 
-	side += mousex*2; 
+    side += mousex*2; 
     else 
-	cmd->angleturn -= mousex*0x8; 
+    cmd->angleturn -= mousex*0x8; 
 
-    mousex = mousey = 0; 
-	 
+    mousex = mousey = 0;
+
     if (forward > MAXPLMOVE) 
-	forward = MAXPLMOVE; 
+    forward = MAXPLMOVE; 
     else if (forward < -MAXPLMOVE) 
-	forward = -MAXPLMOVE; 
+    forward = -MAXPLMOVE; 
     if (side > MAXPLMOVE) 
-	side = MAXPLMOVE; 
+    side = MAXPLMOVE; 
     else if (side < -MAXPLMOVE) 
-	side = -MAXPLMOVE; 
+    side = -MAXPLMOVE; 
  
     cmd->forwardmove += forward; 
     cmd->sidemove += side;
@@ -432,14 +423,14 @@ void G_BuildTiccmd (ticcmd_t* cmd)
     // special buttons
     if (sendpause) 
     { 
-	sendpause = false; 
-	cmd->buttons = BT_SPECIAL | BTS_PAUSE; 
+    sendpause = false; 
+    cmd->buttons = BT_SPECIAL | BTS_PAUSE; 
     } 
  
     if (sendsave) 
     { 
-	sendsave = false; 
-	cmd->buttons = BT_SPECIAL | BTS_SAVEGAME | (savegameslot<<BTS_SAVESHIFT); 
+    sendsave = false; 
+    cmd->buttons = BT_SPECIAL | BTS_SAVEGAME | (savegameslot<<BTS_SAVESHIFT); 
     } 
 } 
  
@@ -447,14 +438,12 @@ void G_BuildTiccmd (ticcmd_t* cmd)
 //
 // G_DoLoadLevel 
 //
-extern int dobg;
 
 extern  gamestate_t     wipegamestate; 
 extern GameMode_t gamemode; 
 void G_DoLoadLevel (void) 
 { 
-    int             i; 
-dobg = 0;
+    int             i;
     // Set the sky map.
     // First thing, we have a dummy sky texture name,
     //  a flat. The data is in the WAD only because
