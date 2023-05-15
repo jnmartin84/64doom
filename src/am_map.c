@@ -899,7 +899,7 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    D_memset((uint16_t *)((uintptr_t)_dc->buffer + (20*320*2)), 0, 320*220*2);
+    D_memset((uint16_t *)((uintptr_t)_dc->buffer + (20*320*2)), 0, 320*200*2);
 }
 
 
