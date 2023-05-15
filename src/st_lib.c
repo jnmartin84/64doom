@@ -223,34 +223,8 @@ STlib_updateMultIcon
 ( st_multicon_t*	mi,
   boolean		refresh )
 {
-    int			w;
-    int			h;
-    int			x;
-    int			y;
-
-#if 0
-    refresh = false;
-#endif
     if (*mi->on && (mi->oldinum != *mi->inum || refresh) && (*mi->inum!=-1))
     {
-        if (mi->oldinum != -1)
-        {
-            x = mi->x - SHORT(mi->p[mi->oldinum]->leftoffset);
-            y = mi->y - SHORT(mi->p[mi->oldinum]->topoffset);
-            w = SHORT(mi->p[mi->oldinum]->width);
-            h = SHORT(mi->p[mi->oldinum]->height);
-#ifdef RANGECHECK
-            if (y - ST_Y < 0)
-            {
-                I_Error("STlib_updateMultIcon: y - ST_Y < 0");
-            }
-#endif
-            // changes from not using 8bpp framebuffers, no background to copy from
-#if 0
-            V_CopyRect(x, y-ST_Y, 0, w, h, x, y, 5);
-#endif
-        }
-
         V_DrawPatch(mi->x, mi->y, FG, mi->p[*mi->inum]);
         mi->oldinum = *mi->inum;
     }
@@ -276,38 +250,12 @@ void STlib_initBinIcon
 
 void STlib_updateBinIcon(st_binicon_t* bi, boolean refresh)
 {
-    int			x;
-    int			y;
-    int			w;
-    int			h;
-
-#if 0
-    refresh = false;
-#endif
     if (*bi->on && (bi->oldval != *bi->val || refresh))
     {
-        x = bi->x - SHORT(bi->p->leftoffset);
-        y = bi->y - SHORT(bi->p->topoffset);
-        w = SHORT(bi->p->width);
-        h = SHORT(bi->p->height);
-#ifdef RANGECHECK
-        if (y - ST_Y < 0)
-        {
-            I_Error("STlib_updateBinIcon: y - ST_Y < 0");
-        }
-#endif
-
         if (*bi->val)
         {
             V_DrawPatch(bi->x, bi->y, FG, bi->p);
         }
-        // changes from not using 8bpp framebuffers, no background to copy from
-#if 0
-        else
-        {
-            V_CopyRect(x, y-ST_Y, BG, w, h, x, y, FG);
-        }
-#endif
         bi->oldval = *bi->val;
     }
 }

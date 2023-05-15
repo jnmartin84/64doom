@@ -54,7 +54,7 @@ static inline const int
 R_PointOnSide
 ( fixed_t	x,
   fixed_t	y,
-  node_t*	node )
+  const node_t*	node )
 {
     fixed_t	dx;
     fixed_t	dy;
@@ -427,7 +427,7 @@ static const int	checkcoord[12][4] =
 };
 
 
-static inline const boolean R_CheckBBox (fixed_t*	bspcoord)
+static inline const boolean R_CheckBBox (const fixed_t*	bspcoord)
 {
     int			boxx;
     int			boxy;

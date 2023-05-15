@@ -189,9 +189,11 @@ R_DrawColumnInCache
     int		count;
     int		position;
     byte*	source;
-    byte*	dest;
 
-    dest = (byte *)cache + 3;
+    // -Werror set but not used
+    //byte*	dest;
+    // -Werror set but not used
+    //dest = (byte *)cache + 3;
 
     while (patch->topdelta != 0xff)
     {
@@ -449,8 +451,10 @@ void R_InitTextures (void)
     int			totalwidth;
     int			nummappatches;
     int			offset;
+#ifdef RANGECCHECK
     int			maxoff;
     int			maxoff2;
+#endif
     int			numtextures1;
     int			numtextures2;
 
@@ -483,7 +487,9 @@ void R_InitTextures (void)
     //  TEXTURE1 for shareware, plus TEXTURE2 for commercial.
     maptex = maptex1 = W_CacheLumpName ("TEXTURE1", PU_STATIC);
     numtextures1 = LONG(*maptex);
+#ifdef RANGECCHECK
     maxoff = W_LumpLength (W_GetNumForName ("TEXTURE1"));
+#endif
 
     directory = maptex+1;
 
@@ -491,13 +497,17 @@ void R_InitTextures (void)
     {
 	maptex2 = W_CacheLumpName ("TEXTURE2", PU_STATIC);
 	numtextures2 = LONG(*maptex2);
+#ifdef RANGECCHECK
 	maxoff2 = W_LumpLength (W_GetNumForName ("TEXTURE2"));
+#endif
     }
     else
     {
 	maptex2 = NULL;
 	numtextures2 = 0;
+#ifdef RANGECCHECK
 	maxoff2 = 0;
+#endif
     }
     numtextures = numtextures1 + numtextures2;
     textures = Z_Malloc (numtextures*4, PU_STATIC, 0);
@@ -519,7 +529,9 @@ void R_InitTextures (void)
 		{
 			// Start looking in second texture file.
 			maptex = maptex2;
+#ifdef RANGECCHECK
 			maxoff = maxoff2;
+#endif            
 			directory = maptex+1;
 		}
 
