@@ -151,7 +151,6 @@ static int __attribute__((aligned(8))) lengths[NUMSFX];
 static ULONG NUM_SAMPLES = 316;
 static ULONG BEATS_PER_PASS = 4;
 
-static long __attribute__((aligned(8))) accum[632*4];
 static short __attribute__((aligned(8))) pcmout1[632*4];
 static short __attribute__((aligned(8))) pcmout2[632*4];
 static int __attribute__((aligned(8))) pcmflip = 0;
@@ -683,7 +682,7 @@ int Mus_Register(void *musdata)
 
     // music won't start playing until mus_playing set at this point
 
-    if (lptr[0] != LONG(0x1a53554d)) // 4D 55 53 1A
+    if (lptr[0] != 0x4d55531a)
     {
         return 0; // "MUS",26 always starts a vaild MUS file
     }
@@ -724,7 +723,7 @@ int Mus_Register(void *musdata)
     {
         uint8_t instrument = (uint8_t)SHORT(musheader->instruments[i]);
         
-		// fix TNT crash with one of the 10s levels
+        // fix TNT crash with one of the 10s levels
         ULONG ptr = LSWAP(midi_pointers[instrument]);
         if (!ptr)
             continue;
@@ -890,7 +889,7 @@ void Mus_Resume(int handle)
 //static uint32_t lsmp[4];
 void I_UpdateSound (void)
 {
-    D_memset((void *)accum, 0, (NUM_SAMPLES << 3));
+    D_memset((void *)pcmbuf, 0, (NUM_SAMPLES << 3));
 
 //if(music_okay) 
 {
@@ -1005,7 +1004,7 @@ nextEvent:
                                 // I took the tables for frequency and whatnot and did some curve fitting
                                 // with an online tool and then finessed the equations until it sounded good
 
-                                // all of this was to reducing memory accesses when mixing music
+                                // all of this was to reduce memory accesses when mixing music
 
                                 // empirically derived formula for note_table lookup
                                 uint32_t x = ((72 - mvc->base + (ULONG)loop_state.note) & 0x7f);
@@ -1245,8 +1244,8 @@ mix:
 
                 int ssmp1 = FixedMul(doom_mixer._fb_sample, doom_mixer._fb_ltvol);
                 int ssmp2 = FixedMul(doom_mixer._fb_sample, doom_mixer._fb_rtvol);
-                accum[doom_mixer._fb_iy    ] += ssmp1<<1;
-                accum[doom_mixer._fb_iy + 1] += ssmp2<<1;
+                pcmbuf[doom_mixer._fb_iy    ] += ssmp1<<1;
+                pcmbuf[doom_mixer._fb_iy + 1] += ssmp2<<1;
                 doom_mixer._fb_index += doom_mixer._fb_step;
             }
             audVoice[doom_mixer._fb_ix].index = doom_mixer._fb_index;
@@ -1254,24 +1253,7 @@ mix:
     }
 
 mixout:
-    for (doom_mixer._fb_iy=0; doom_mixer._fb_iy < (NUM_SAMPLES << 1); doom_mixer._fb_iy+=4*2)
-    {
-        // long_sample = left_channel_sample<<16 | right_channel_sample
-
-        // I unrolled this to write four samples per loop iteration
-        // samples are 16-bit stereo interleaved
-
-        // write L,R pair in a single 32-bit write
-
-        uint32_t lsmp  = ((accum[doom_mixer._fb_iy    ]) << 16) | ((accum[doom_mixer._fb_iy + 1]) & 0xFFFF);
-        uint32_t lsmp2 = ((accum[doom_mixer._fb_iy + 2]) << 16) | ((accum[doom_mixer._fb_iy + 3]) & 0xFFFF);
-        uint32_t lsmp3 = ((accum[doom_mixer._fb_iy + 4]) << 16) | ((accum[doom_mixer._fb_iy + 5]) & 0xFFFF);
-        uint32_t lsmp4 = ((accum[doom_mixer._fb_iy + 6]) << 16) | ((accum[doom_mixer._fb_iy + 7]) & 0xFFFF);
-        *((uint32_t *)(&pcmbuf[doom_mixer._fb_iy    ])) = lsmp;
-        *((uint32_t *)(&pcmbuf[doom_mixer._fb_iy + 2])) = lsmp2;
-        *((uint32_t *)(&pcmbuf[doom_mixer._fb_iy + 4])) = lsmp3;
-        *((uint32_t *)(&pcmbuf[doom_mixer._fb_iy + 6])) = lsmp4;
-    }
+    return;
 }
 
 /**********************************************************************/
