@@ -889,7 +889,7 @@ void Mus_Resume(int handle)
 //static uint32_t lsmp[4];
 void I_UpdateSound (void)
 {
-    D_memset((void *)pcmbuf, 0, (NUM_SAMPLES << 3));
+    D_memset((void *)pcmbuf, 0, (NUM_SAMPLES << 2));
 
 //if(music_okay) 
 {
