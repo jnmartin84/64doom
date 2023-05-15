@@ -46,8 +46,20 @@ void I_FinishUpdate(void);
 
 
 // globals
+
+// this is intentionally uint32_t
+// graphics_make_color will pack two 16-bit colors into a 32-bit word
+// and we use that full word when rendering columns and spans in low-detail mode
+// the color lookup is a single index into palarray
+// no shifting and masking necessary to create a doubled pixel
+// and it gets written to the 16-bit framebuffer as two pixels with a single 32-bit write
 uint32_t __attribute__((aligned(8))) palarray[256];
 
+// I don't want to rename this across the code base, it used to be display_context_t 
+// I started this port with libdragon in 2014
+// it did not expose a pointer to the buffer display_context_t was associated with
+// and I had to use __safe_buffer[_dc-1] to access it directly
+// I really like libdragon 9 years later though, much nicer
 surface_t *_dc;
 
 surface_t *lockVideo(int wait)
@@ -115,6 +127,7 @@ void I_SetPalette(byte* palette)
     byte r,g,b;
     unsigned int i;
 
+    // this is ugly from a well-intentioned but probably pointless attempt to make it oPtImIzEd 
     for (i = 0; i < 768/12; i++) {
 
 		uint32_t fc1 = *(uint32_t *)(&palette[i*12]);
