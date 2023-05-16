@@ -6,4 +6,4 @@ Generic C hashtable from here: https://github.com/dennisfrancis/generic-hashtabl
 
 LZFX codec from here: http://lzfx.googlecode.com
 
-Play-testing and video capture from: Borman @ Assembler forums and many others
+NEW IMPROVEMENTS: thekovic
