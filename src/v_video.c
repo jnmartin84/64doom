@@ -186,7 +186,7 @@ V_DrawPatch ( int x, int y, int scrn, patch_t* patch )
         uint16_t*    desttop;
         uint16_t*    dest;
 
-        desttop = (uint16_t*)((uintptr_t)_dc->buffer + (uintptr_t)((((y+20)*SCREENWIDTH)+x)*2));
+        desttop = (uint16_t*)((uintptr_t)_dc->buffer + (uintptr_t)((((y)*SCREENWIDTH)+x)*2));
 
         for ( ; col<w ; x++, col++, desttop++)
         { 

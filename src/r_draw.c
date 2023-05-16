@@ -611,7 +611,7 @@ void R_InitBuffer ( int width, int height )
         viewwindowy = ((SCREENHEIGHT-(SBARHEIGHT)-height) >> 1);
     }
 
-    offset = ytab(viewwindowy+20);
+    offset = ytab(viewwindowy);
 
     for (i=0 ; i<height ; i++)
     {
@@ -737,11 +737,11 @@ static int drew_bg_before=0;
 
 void R_VideoErase ( unsigned ofs, int count )
 {
-    uint16_t* dst = (uint16_t *)((uintptr_t)_dc->buffer + ((ytab(20)+ofs)<<1));
+    uint16_t* dst = (uint16_t *)((uintptr_t)_dc->buffer + ((ofs)<<1));
 
     for (int i=0;i<count;i++)
     {
-        *dst++ = srcp[((((ofs+i)/320)&63)<<6) + (((ofs+i)%320)&63)];
+        *dst++ = srcp[((((ofs+i)/SCREENWIDTH)&63)<<6) + (((ofs+i)%SCREENWIDTH)&63)];
     }
 }
 

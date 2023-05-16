@@ -177,7 +177,12 @@ void I_SetPalette(byte* palette)
 
 void I_InitGraphics(void)
 {
-    display_init(RESOLUTION_320x240, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
+    display_init( (resolution_t)
+	{
+		.width = SCREENWIDTH,
+		.height = SCREENHEIGHT,
+		.interlaced = false,
+	}, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE );
 }
 
 
@@ -212,6 +217,6 @@ void DebugOutput_String_For_IError(const char *str, int lineNumber, int good)
         {
             strncpy(copied_line, str + ((i-1)*ERROR_LINE_LEN), ERROR_LINE_LEN);
         }
-        graphics_draw_text(_dc, 20, 16+((lineNumber+i)*8), copied_line);
+        graphics_draw_text(_dc, 0, 16+((lineNumber+i)*8), copied_line);
     }
 }
