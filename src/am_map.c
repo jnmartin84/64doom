@@ -126,7 +126,7 @@ extern surface_t *_dc;
 #define MTOF(x) (FixedMul((x),scale_mtof)>>16)
 // translates between frame-buffer and map coordinates
 #define CXMTOF(x)  (f_x + MTOF((x)-m_x))
-#define CYMTOF(y)  ((f_y + (f_h - MTOF((y)-m_y)))+20)
+#define CYMTOF(y)  ((f_y + (f_h - MTOF((y)-m_y))))
 
 // the following is crap
 #define LINE_NEVERSEE ML_DONTDRAW
@@ -899,7 +899,7 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    D_memset((uint16_t *)((uintptr_t)_dc->buffer + (20*320*2)), 0, 320*200*2);
+    D_memset((uint16_t *)((uintptr_t)_dc->buffer), 0, 320*200*2);
 }
 
 
@@ -1052,7 +1052,7 @@ AM_drawMline
 
     if (AM_clipMline(ml, &fl))
     {
-        graphics_draw_line(_dc, fl.a.x, fl.a.y+20, fl.b.x, fl.b.y+20, palarray[color]);
+        graphics_draw_line(_dc, fl.a.x, fl.a.y, fl.b.x, fl.b.y, palarray[color]);
     }
 }
 

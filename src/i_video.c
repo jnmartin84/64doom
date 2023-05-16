@@ -177,7 +177,7 @@ void I_SetPalette(byte* palette)
 
 void I_InitGraphics(void)
 {
-    display_init(RESOLUTION_320x240, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
+    display_init( (resolution_t) {.width = 320, .height = 200, .interlaced=false,}, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
 }
 
 

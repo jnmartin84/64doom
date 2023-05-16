@@ -858,7 +858,7 @@ void D_DoomMain(void)
     for(int i=0;i<2;i++)
     {
         _dc = lockVideo(1);
-        D_memset(_dc->buffer, 0, 320*240*2);
+        D_memset(_dc->buffer, 0, 320*200*2);
         unlockVideo(_dc);
     }
 

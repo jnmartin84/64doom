@@ -260,7 +260,7 @@ extern patch_t*    hu_font[HU_FONTSIZE];
        byte*       bgsrc = 0;
 
 static inline void F_bgpart(void) {
-    uint16_t *dest16 = (uint16_t *)((uintptr_t)_dc->buffer + ((ytab(SCREENWIDTH >> 4))<<1));
+    uint16_t *dest16 = (uint16_t *)((uintptr_t)_dc->buffer);// + ((ytab(SCREENWIDTH >> 4))<<1));
     int x, y;
     uint32_t curpix;
     for (y=0 ; y<SCREENHEIGHT ; y++)
