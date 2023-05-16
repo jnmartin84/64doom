@@ -212,20 +212,13 @@ void reset_midiVoices(void)
             free((void*)((uintptr_t)midiVoice[i].wave & 0x8FFFFFFF));
         }
     }
-    D_memset(mus_channel, 0, sizeof(struct Channel)*MUS_VOICES);
-    D_memset(audVoice, 0x00, sizeof(Voice_t)*(NUM_VOICES));
-    D_memset(midiVoice, 0, sizeof(Voice_t)*256);
-    D_memset(voice_inuse, 0, MUS_VOICES*sizeof(int));
+    D_memset(mus_channel, 0, sizeof(mus_channel));
+    D_memset(audVoice,    0, sizeof(audVoice));
+    D_memset(midiVoice,   0, sizeof(midiVoice));
+    D_memset(voice_inuse, 0, sizeof(voice_inuse));
 
     // instrument used lookups
-    used_instrument_bits[0] = 0;
-    used_instrument_bits[1] = 0;
-    used_instrument_bits[2] = 0;
-    used_instrument_bits[3] = 0;
-    used_instrument_bits[4] = 0;
-    used_instrument_bits[5] = 0;
-    used_instrument_bits[6] = 0;
-    used_instrument_bits[7] = 0;
+    D_memset(used_instrument_bits, 0, sizeof(used_instrument_bits));
 
     for (i=0;i<256;i++)
     {
@@ -953,11 +946,8 @@ void I_MixSound (void)
 }
 
 /**********************************************************************/
-//static uint32_t lsmp[4];
-void I_UpdateSound (void)
-{
 
-//if(music_okay) 
+void I_UpdateSound (void)
 {
     if (mus_playing < 0)
     {
@@ -1219,8 +1209,6 @@ nextEvent:
             }
         }
     }
-
-}
 
 mix:
     I_MixSound();
