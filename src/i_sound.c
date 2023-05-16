@@ -821,6 +821,31 @@ void Mus_Resume(int handle)
     mus_playing = 1;                     // 1 = play from current position
 }
 
+/*
+GCC 12.1.0 mips64-elf
+-O3
+
+compiles this down to what I was hoping for,
+accumulating all of the mixed channels in a register
+before writing them out to the output sound buffer
+
+            next_mixed_sample += (ssmp1 | ssmp2);
+80001724:	00641825 	or	v1,v1,a0
+80001728:	00c33021 	addu	a2,a2,v1
+        for (size_t ix=0; ix<NUM_VOICES; ix++)
+8000172c:	24420024 	addiu	v0,v0,36
+80001730:	1447ffcf 	bne	v0,a3,80001670 <I_MixSound+0x50>
+80001734:	00000000 	nop
+    for (size_t iy=0; iy < (NUM_SAMPLES << 1); iy+=2)
+80001738:	254a0002 	addiu	t2,t2,2
+        }
+
+        *((uint32_t *)&pcmbuf[iy]) = next_mixed_sample;
+8000173c:	ad860000 	sw	a2,0(t4)
+    for (size_t iy=0; iy < (NUM_SAMPLES << 1); iy+=2)
+80001740:	154effc9 	bne	t2,t6,80001668 <I_MixSound+0x48>
+80001744:	258c0004 	addiu	t4,t4,4
+*/
 void I_MixSound (void)
 {
     for (size_t iy=0; iy < (NUM_SAMPLES << 1); iy+=2)
