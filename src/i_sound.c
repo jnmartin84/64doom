@@ -1015,12 +1015,11 @@ nextEvent:
                     {
                         note = *score_ptr++;
                         channel = (int)(event & 15);
-                        volume = 0;//-1;
+                        volume = 0;
                         if (note & 0x80)
                         {
                             // set volume as well
                             note &= 0x7f;
-                            // score_ptr++ 3
                             volume = (int32_t)(*score_ptr++);
                         }
                         for (voice=0; voice<MUS_VOICES+1; voice++)
@@ -1041,8 +1040,8 @@ nextEvent:
                             {
                                 mus_channel[channel].vol = volume;
                                 pan = mus_channel[channel].pan;
-                                mus_channel[channel].ltvol = (((127 - pan) * volume)) << 9;
-                                mus_channel[channel].rtvol = (((127 - (127 - pan)) * volume)) << 9;
+                                mus_channel[channel].ltvol = ((127 - pan) * volume) << 9;
+                                mus_channel[channel].rtvol = (pan * volume) << 9;
                             }
 
                             audVoice[voice + SFX_VOICES].ltvol = mus_channel[channel].ltvol;
@@ -1100,7 +1099,6 @@ nextEvent:
                     // Pitch
                     case 2:
                     {
-                        // score_ptr++ 2
                         pitch = ((uint32_t)*score_ptr++)&0xFF;
                         channel = (int)(event & 15);
                         // pitch*64 - pitch*4 == pitch*60
@@ -1110,7 +1108,6 @@ nextEvent:
                     // Tempo
                     case 3:
                     {
-                        // score_ptr++ 2
                         // skip value - not supported
                         score_ptr++;
                         break;
@@ -1118,9 +1115,7 @@ nextEvent:
                     // Change control
                     case 4:
                     {
-                        // score_ptr++ 2
                         ctrl = *score_ptr++;
-                        // score_ptr++ 3
                         value = *score_ptr++;
                         channel = (int)(event & 15);
                         switch (ctrl)
@@ -1137,8 +1132,8 @@ nextEvent:
                                 // set channel volume
                                 mus_channel[channel].vol = volume = value;
                                 pan = mus_channel[channel].pan;
-                                mus_channel[channel].ltvol = (((127 - pan) * volume)) << 9;
-                                mus_channel[channel].rtvol = (((127 - (127 - pan)) * volume)) << 9;
+                                mus_channel[channel].ltvol = ((127 - pan) * volume) << 9;
+                                mus_channel[channel].rtvol = (pan * volume) << 9;
                                 break;
                             }
                             case 4:
@@ -1146,8 +1141,8 @@ nextEvent:
                                 // set channel pan
                                 mus_channel[channel].pan = pan = value;
                                 volume = mus_channel[channel].vol;
-                                mus_channel[channel].ltvol = (((127 - pan) * volume)) << 9;
-                                mus_channel[channel].rtvol = (((127 - (127 - pan)) * volume)) << 9;
+                                mus_channel[channel].ltvol = ((127 - pan) * volume) << 9;
+                                mus_channel[channel].rtvol = (pan * volume) << 9;
                                 break;
                             }
                         }
