@@ -823,7 +823,6 @@ void Mus_Resume(int handle)
 
 void I_MixSound (void)
 {
-    // make this the outer loop, accumulate to a local and then store once instead of reloading, updating and storing...
     for (size_t iy=0; iy < (NUM_SAMPLES << 1); iy+=2)
     {
         uint32_t next_mixed_sample = 0;
@@ -835,8 +834,8 @@ void I_MixSound (void)
                 continue;
 
             uint32_t step = audVoice[ix].step;;
-            int32_t  ltvol = audVoice[ix].ltvol;
-            int32_t  rtvol = audVoice[ix].rtvol;
+            uint32_t ltvol = audVoice[ix].ltvol;
+            uint32_t rtvol = audVoice[ix].rtvol;
             uint32_t loop = audVoice[ix].loop;
             uint32_t length = audVoice[ix].length;
             int8_t*  wvbuff = audVoice[ix].wave;
@@ -870,9 +869,9 @@ void I_MixSound (void)
                         continue;
                     }
                 }
-                step = (((int64_t)step * (int64_t)(mus_channel[audVoice[ix].chan & 15].pitch)) >> 16);
-                ltvol = (((int64_t)ltvol * (int64_t)(mus_volume)) >> 9);
-                rtvol = (((int64_t)rtvol * (int64_t)(mus_volume)) >> 9);
+                step = FixedMul(step, mus_channel[audVoice[ix].chan & 15].pitch);
+                ltvol = FixedMul(ltvol, mus_volume) << 7;//(((uint64_t)ltvol * (uint64_t)(mus_volume)) >> 9);
+                rtvol = FixedMul(rtvol, mus_volume) << 7;//(((uint64_t)rtvol * (uint64_t)(mus_volume)) >> 9);
             }
 
             if (index >= length)
@@ -902,10 +901,10 @@ void I_MixSound (void)
                 }
             }
 
-            int sample = FixedMul(wvbuff[index >> 16],master_vol);
+            uint32_t sample = FixedMul(wvbuff[index >> 16],master_vol);
 
-            int ssmp1 = FixedMul(sample, ltvol)<<16;
-            int ssmp2 = FixedMul(sample, rtvol)&0xFFFF;
+            uint32_t ssmp1 = FixedMul(sample, ltvol)<<16;
+            uint32_t ssmp2 = FixedMul(sample, rtvol)&0xFFFF;
 
             next_mixed_sample += (ssmp1 | ssmp2);
 
