@@ -71,7 +71,7 @@ OBJS=						\
 		$(O)/p_maputl.o			\
 		$(O)/p_plats.o			\
 		$(O)/p_pspr.o			\
-		$(O)/nodestuff.o		\
+		$(O)/nodereorder.o		\
 		$(O)/p_setup.o			\
 		$(O)/p_sight.o			\
 		$(O)/p_spec.o			\
