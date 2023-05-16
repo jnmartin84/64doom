@@ -120,6 +120,18 @@ void I_ForcePaletteUpdate(void)
 //
 // I_SetPalette
 //
+static uint32_t old_palette[256];
+
+void I_SavePalette(void)
+{
+    memcpy(old_palette, palarray, sizeof(palarray));
+}
+
+void I_RestorePalette(void)
+{
+    memcpy(palarray, old_palette, sizeof(old_palette));
+}
+
 void I_SetPalette(byte* palette)
 {
     const byte *gammaptr = gammatable[usegamma];
@@ -174,6 +186,12 @@ void I_SetPalette(byte* palette)
 	palette += 256*3;
 }
 
+#include "z_zone.h"
+#include "w_wad.h"
+void I_SetDefaultPalette(void)
+{
+    I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
+}
 
 void I_InitGraphics(void)
 {

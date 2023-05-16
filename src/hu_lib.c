@@ -136,7 +136,10 @@ HUlib_drawTextLine
 
 #include "w_wad.h"
 #include "z_zone.h"
-//extern void* W_CacheLumpName(char* name, int tag);
+
+extern void I_SavePalette(void);
+extern void I_SetDefaultPalette(void);
+extern void I_RestorePalette(void);
 
 // sorta called by HU_Erase and just better darn get things straight
 void HUlib_eraseTextLine(hu_textline_t* l)
@@ -154,6 +157,8 @@ void HUlib_eraseTextLine(hu_textline_t* l)
 
 		for (y=l->y,yoffset=y*SCREENWIDTH ; y<l->y+(lh) ; y++,yoffset+=SCREENWIDTH)
 		{
+      I_SavePalette();
+      I_SetDefaultPalette();
 			if (y < viewwindowy || y >= viewwindowy + viewheight)
 				R_VideoErase(yoffset, SCREENWIDTH); // erase entire line
 			else
@@ -180,6 +185,7 @@ void HUlib_eraseTextLine(hu_textline_t* l)
          viewwindowy-8,
          0,
          W_CacheLumpName ("brdr_tr",PU_CACHE));
+      I_RestorePalette();
 		}
     }
 

@@ -602,6 +602,9 @@ void R_InitBuffer ( int width, int height )
 //  for variable screen sizes
 // Also draws a beveled edge.
 //
+extern void I_SavePalette(void);
+extern void I_SetDefaultPalette(void);
+extern void I_RestorePalette(void);
 
 // pre-color-indexed back screen flat for easier R_VideoErase
 static uint16_t srcp[64*64];
@@ -645,6 +648,9 @@ void R_DrawViewBorder (void)
         return;
     }
 
+    I_SavePalette();
+    I_SetDefaultPalette();
+
     if (!drew_bg_before)
     {
         // DOOM border patch.
@@ -678,6 +684,7 @@ void R_DrawViewBorder (void)
     top = (((SCREENHEIGHT-SBARHEIGHT)-viewheight)/2);
 
     side = (SCREENWIDTH-scaledviewwidth)/2;
+
 
     // copy top and one line of left side
     R_VideoErase (0, ytab(top)+side);
@@ -743,4 +750,6 @@ void R_DrawViewBorder (void)
 
     // ?
     //V_MarkRect (0,0,SCREENWIDTH, SCREENHEIGHT-SBARHEIGHT);
+
+    I_RestorePalette();
 }
