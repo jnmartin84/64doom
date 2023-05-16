@@ -150,17 +150,13 @@ void V_CopyRect( int srcx, int srcy, int srcscrn, int width, int height, int des
 // Masks a column based masked pic to the screen.
 //
 //__attribute__ ((optimize(1)))
- void
-V_DrawPatch ( int x, int y, int scrn, patch_t* patch )
+void V_DrawPatch ( int x, int y, int scrn, patch_t* patch )
 {
     int          count;
     int          col; 
     column_t*    column; 
     byte*        source; 
     int          w; 
-
-    if (scrn)
-        return;
 
     y -= SHORT(patch->topoffset); 
     x -= SHORT(patch->leftoffset); 
@@ -181,33 +177,30 @@ V_DrawPatch ( int x, int y, int scrn, patch_t* patch )
     }
 #endif 
 
-    //if (scrn == 0) 
-    {
-        uint16_t*    desttop;
-        uint16_t*    dest;
+    uint16_t*    desttop;
+    uint16_t*    dest;
 
-        desttop = (uint16_t*)((uintptr_t)_dc->buffer + (uintptr_t)((((y)*SCREENWIDTH)+x)*2));
+    desttop = (uint16_t*)((uintptr_t)_dc->buffer + (uintptr_t)((((y)*SCREENWIDTH)+x)*2));
 
-        for ( ; col<w ; x++, col++, desttop++)
+    for ( ; col<w ; x++, col++, desttop++)
+    { 
+        column = (column_t *)((byte *)patch + LONG(patch->columnofs[col])); 
+
+        // step through the posts in a column 
+        while (column->topdelta != 0xff ) 
         { 
-            column = (column_t *)((byte *)patch + LONG(patch->columnofs[col])); 
+            source = (byte *)column + 3; 
+            dest = (uint16_t*)((uintptr_t)desttop + (uintptr_t)(column->topdelta*SCREENWIDTH*2)); 
+            count = column->length; 
 
-            // step through the posts in a column 
-            while (column->topdelta != 0xff ) 
+            while (count--) 
             { 
-                source = (byte *)column + 3; 
-                dest = (uint16_t*)((uintptr_t)desttop + (uintptr_t)(column->topdelta*SCREENWIDTH*2)); 
-                count = column->length; 
-
-                while (count--) 
-                { 
-                    uint16_t next_spot = palarray[*source++];
-                    *dest = next_spot; 
-                    dest += SCREENWIDTH; 
-                } 
-                column = (column_t *)(  (byte *)column + column->length + 4 ); 
+                uint16_t next_spot = palarray[*source++];
+                *dest = next_spot; 
+                dest += SCREENWIDTH; 
             } 
-        }
+            column = (column_t *)(  (byte *)column + column->length + 4 ); 
+        } 
     }
 }
 
@@ -235,38 +228,34 @@ void V_DrawPatchFlipped ( int x, int y, int scrn, patch_t* patch )
 
     w = SHORT(patch->width);
 
-    //if (scrn == 0)
+    for ( ; col<w ; x++, col++)
     {
-        for ( ; col<w ; x++, col++)
+        column = (column_t *)((byte *)patch + LONG(patch->columnofs[w-1-col]));
+
+        // step through the posts in a column
+        while (column->topdelta != 0xff )
         {
-            column = (column_t *)((byte *)patch + LONG(patch->columnofs[w-1-col]));
+            y+=column->topdelta;
 
-            // step through the posts in a column
-            while (column->topdelta != 0xff )
+            source = (byte *)column + 3;
+
+            count = column->length;
+
+            while (count--)
             {
-                y+=column->topdelta;
-
-                source = (byte *)column + 3;
-
-                count = column->length;
-
-                while (count--)
-                {
-                    uint16_t mapped_spot = palarray[*source++];
-                    dest16 = (uint16_t *)((uintptr_t)_dc->buffer +(ytab(SCREENWIDTH>>3)) + (( (x)+(ytab(y)) )<<1));
-                    *dest16 = mapped_spot;
-                    y++;
-                }
-
-                y = y_o;
-                column = (column_t *)(  (byte *)column + column->length + 4 );
+                uint16_t mapped_spot = palarray[*source++];
+                dest16 = (uint16_t *)((uintptr_t)_dc->buffer +(ytab(SCREENWIDTH>>3)) + (( (x)+(ytab(y)) )<<1));
+                *dest16 = mapped_spot;
+                y++;
             }
+
+            y = y_o;
+            column = (column_t *)(  (byte *)column + column->length + 4 );
         }
     }
 }
 
-
-
+#if 0
 //
 // V_DrawPatchDirect
 // Draws directly to the screen on the pc.
@@ -276,7 +265,7 @@ V_DrawPatchDirect ( int x, int y, int scrn, patch_t* patch )
 {
     V_DrawPatch (x, y, scrn, patch);
 }
-
+#endif
 
 //
 // V_DrawBlock
