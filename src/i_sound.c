@@ -821,66 +821,60 @@ void Mus_Resume(int handle)
     mus_playing = 1;                     // 1 = play from current position
 }
 
-static void I_MixSound (void)
+void I_MixSound (void)
 {
-    // mix enabled voices
-    for (size_t ix=0; ix<NUM_VOICES; ix++)
+    // make this the outer loop, accumulate to a local and then store once instead of reloading, updating and storing...
+    for (size_t iy=0; iy < (NUM_SAMPLES << 1); iy+=2)
     {
-        if (!(audVoice[ix].flags & 0x01))
-            continue;
-        uint32_t    index;
-        uint32_t    step;
-        int32_t     ltvol;
-        int32_t     rtvol;
-        int32_t     sample;
-        uint32_t    loop;
-        uint32_t    length;
+        uint32_t next_mixed_sample = 0;
+        // mix enabled voices
+        for (size_t ix=0; ix<NUM_VOICES; ix++)
+        {
+            uint32_t index = audVoice[ix].index;
+            if (!(audVoice[ix].flags & 0x01))
+                continue;
 
-        index = audVoice[ix].index;
-        step = audVoice[ix].step;
-        loop = audVoice[ix].loop;
-        length = audVoice[ix].length;
-        ltvol = audVoice[ix].ltvol;
-        rtvol = audVoice[ix].rtvol;
-        int8_t* wvbuff = audVoice[ix].wave;
+            uint32_t step = audVoice[ix].step;;
+            int32_t  ltvol = audVoice[ix].ltvol;
+            int32_t  rtvol = audVoice[ix].rtvol;
+            uint32_t loop = audVoice[ix].loop;
+            uint32_t length = audVoice[ix].length;
+            int8_t*  wvbuff = audVoice[ix].wave;
 #ifdef RANGECHECK
-        // Doom 2 has issues without this, or at least my 1.666 data files do
-        if (!((uint32_t)wvbuff & 0x80000000))
-        {
-            continue;
-        }
-#endif
-        if (!(audVoice[ix].flags & 0x80))
-        {
-            // special handling for instrument
-            if (audVoice[ix].flags & 0x02)
+            // Doom 2 has issues without this, or at least my 1.666 data files do
+            if (!((uintptr_t)wvbuff & 0x80000000))
             {
-                // releasing
-                ltvol = ((ltvol << 3)-ltvol)>>3;
-                rtvol = ((rtvol << 3)-rtvol)>>3;
-                audVoice[ix].ltvol = ltvol;
-                audVoice[ix].rtvol = rtvol;
-
-                // this was originally derived from some floating point value in the original code
-                // changed to fixed_t when I went to a fixed-point mixer
-                // and further adjusted by ear until settling on this value
-                #define cmpvol (665835 - 150000)
-                if (((uint32_t)ltvol <= cmpvol) && ((uint32_t)rtvol <= cmpvol))
+                continue;
+            }
+#endif
+            if (!(audVoice[ix].flags & 0x80))
+            {
+                // special handling for instrument
+                if ((audVoice[ix].flags & 0x02) && iy == 0)
                 {
-                    // disable voice
-                    audVoice[ix].flags = 0;
-                    // next voice
-                    continue;
+                    // releasing
+                    ltvol = ((ltvol << 3)-ltvol)>>3;
+                    rtvol = ((rtvol << 3)-rtvol)>>3;
+                    audVoice[ix].ltvol = ltvol;
+                    audVoice[ix].rtvol = rtvol;
+
+                    // this was originally derived from some floating point value in the original code
+                    // changed to fixed_t when I went to a fixed-point mixer
+                    // and further adjusted by ear until settling on this value
+                    #define cmpvol (665835 - 150000)
+                    if (((uint32_t)ltvol <= cmpvol) && ((uint32_t)rtvol <= cmpvol))
+                    {
+                        // disable voice
+                        audVoice[ix].flags = 0;
+                        // next voice
+                        continue;
+                    }
                 }
+                step = (((int64_t)step * (int64_t)(mus_channel[audVoice[ix].chan & 15].pitch)) >> 16);
+                ltvol = (((int64_t)ltvol * (int64_t)(mus_volume)) >> 9);
+                rtvol = (((int64_t)rtvol * (int64_t)(mus_volume)) >> 9);
             }
 
-            step = (((int64_t)step * (int64_t)(mus_channel[audVoice[ix].chan & 15].pitch)) >> 16);
-            ltvol = (((int64_t)ltvol * (int64_t)(mus_volume)) >> 9);
-            rtvol = (((int64_t)rtvol * (int64_t)(mus_volume)) >> 9);
-        }
-
-        for (size_t iy=0; iy < (NUM_SAMPLES << 1); iy+=2)
-        {
             if (index >= length)
             {
                 if (audVoice[ix].flags & 0x80)
@@ -888,7 +882,7 @@ static void I_MixSound (void)
                     // disable voice
                     audVoice[ix].flags = 0;
                     // exit sample loop
-                    break;
+                    continue;
                 }
                 else
                 {
@@ -903,34 +897,24 @@ static void I_MixSound (void)
                         // disable voice
                         audVoice[ix].flags = 0;
                         // exit sample loop
-                        break;
+                        continue;
                     }
                 }
             }
 
-            sample = wvbuff[index >> 16];
-            sample = FixedMul(sample,master_vol);
+            int sample = FixedMul(wvbuff[index >> 16],master_vol);
 
-            // I really need to work on inverting these loops correctly
-            // would love to accumulate the mixed samples
-            // without having to read back pcmbuf every time
-#define COMBINE_32BIT 1
-#if COMBINE_32BIT
-            int ssmp1 = FixedMul(sample, ltvol) << 16;
-            int ssmp2 = FixedMul(sample, rtvol) & 0xFFFF;
+            int ssmp1 = FixedMul(sample, ltvol)<<16;
+            int ssmp2 = FixedMul(sample, rtvol)&0xFFFF;
 
-            // audibly OK-ish
-            *((uint32_t *)&pcmbuf[iy]) += (ssmp1 | ssmp2);
-#else
-            int ssmp1 = FixedMul(sample, ltvol) & 0xFFFF;
-            int ssmp2 = FixedMul(sample, rtvol) & 0xFFFF;
+            next_mixed_sample += (ssmp1 | ssmp2);
 
-            pcmbuf[iy]     += ssmp1;
-            pcmbuf[iy + 1] += ssmp2;
-#endif
             index += step;
+
+            audVoice[ix].index = index;
         }
-        audVoice[ix].index = index;
+
+        *((uint32_t *)&pcmbuf[iy]) = next_mixed_sample;
     }
 }
 
@@ -1148,22 +1132,18 @@ nextEvent:
                     // End score
                     case 6:
                     {
+                        for (voice=0; voice<MUS_VOICES; voice++)
+                        {
+                            audVoice[voice + SFX_VOICES].flags = 0;
+                            voice_inuse[voice] = 0;
+                        }
+
                         if (mus_looping)
                         {
-                            for (voice=0; voice<MUS_VOICES; voice++)
-                            {
-                                audVoice[voice + SFX_VOICES].flags = 0;
-                                voice_inuse[voice] = 0;
-                            }
                             score_ptr = (uint8_t *)((uint32_t)score_data + (uint32_t)score_start);
                         }
                         else
                         {
-                            for (voice=0; voice<MUS_VOICES; voice++)
-                            {
-                                audVoice[voice + SFX_VOICES].flags = 0;
-                                voice_inuse[voice] = 0;
-                            }
                             mus_delay = 0;
                             mus_playing = 0;
                             goto mix;
