@@ -74,7 +74,7 @@ When you save or load a game, you will see a message in the Doom HUD if it is su
 
 Savegames are compressed using the lzfx library. However, the compressed saves are still large relative to the capacity of a fully-formatted Controller Pak. 
 
-In the event that there is not enough free space on the Controller Pak to save the game, you will see a message in the Doom HUD if this happens:
+In the event that there is not enough free space on the Controller Pak to save the game, you will see a message in the Doom HUD:
 
 `NOT ENOUGH SPACE FOR SAVE (NEED #, HAVE #)`
 
