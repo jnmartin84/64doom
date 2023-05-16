@@ -870,8 +870,8 @@ void I_MixSound (void)
                     }
                 }
                 step = FixedMul(step, mus_channel[audVoice[ix].chan & 15].pitch);
-                ltvol = FixedMul(ltvol, mus_volume) << 7;//(((uint64_t)ltvol * (uint64_t)(mus_volume)) >> 9);
-                rtvol = FixedMul(rtvol, mus_volume) << 7;//(((uint64_t)rtvol * (uint64_t)(mus_volume)) >> 9);
+                ltvol = FixedMul(ltvol, mus_volume) << 7;
+                rtvol = FixedMul(rtvol, mus_volume) << 7;
             }
 
             if (index >= length)
