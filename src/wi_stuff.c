@@ -1525,8 +1525,8 @@ void WI_Ticker(void)
 
 void WI_loadData(void)
 {
-    int		i;
-    int		j;
+    unsigned int		i;
+    unsigned int		j;
     char	name[9];
     anim_t*	a;
 

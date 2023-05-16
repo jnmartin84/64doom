@@ -187,14 +187,14 @@ typedef struct
 
 typedef struct
 {
-    int		epsd;	// episode # (0-2)
+    unsigned int		epsd;	// episode # (0-2)
 
     // if true, splash the secret level
     boolean	didsecret;
     
     // previous and next levels, origin 0
-    int		last;
-    int		next;	
+    unsigned int		last;
+    unsigned int		next;	
     
     int		maxkills;
     int		maxitems;

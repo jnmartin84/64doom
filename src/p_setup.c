@@ -588,8 +588,8 @@ extern GameMode_t current_mode;
 //
 void
 P_SetupLevel
-( int		episode,
-  int		map,
+( unsigned int		episode,
+  unsigned int		map,
   int		playermask,
   skill_t	skill)
 {
