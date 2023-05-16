@@ -72,13 +72,18 @@ When you save or load a game, you will see a message in the Doom HUD if it is su
 
 `LOADED GAME FROM MEMPAK`
 
-Savegames are compressed using the lzfx library. However, the compressed saves are still large and it is even possible that on rare occasions
-the size of the compressed savegame may still exceed the limits of an empty Controller Pak. You will see a message in the Doom HUD if this happens:
+Savegames are compressed using the lzfx library. However, the compressed saves are still large relative to the capacity of a fully-formatted Controller Pak. 
+
+In the event that there is not enough free space on the Controller Pak to save the game, you will see a message in the Doom HUD if this happens:
 
 `NOT ENOUGH SPACE FOR SAVE (NEED #, HAVE #)`
 
-It is more likely to see this message if you have notes from other games on your Controller Pak, so it is desirable to play with a dedicated, initially empty
-Controller Pak.
+It is very likely you will see this message if you have notes from other games on your Controller Pak, so it is desirable to play with a dedicated, initially empty
+Controller Pak. 
+
+It is possible that there are rare occasions where this may happen even with an empty Controller Pak. 
+
+If it does, kill some more enemies, pick up some more items, try again. :-)
 
 ----------
 -CONTROLS-
