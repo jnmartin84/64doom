@@ -50,7 +50,7 @@
 #include "wi_stuff.h"
 
 #define ytab(y) (((y)<<8)+((y)<<6))
-extern uint16_t *buf16;
+
 //
 // Data needed to add patches to full screen intermission pics.
 // Patches are statistics messages, and animations.

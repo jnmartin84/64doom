@@ -116,7 +116,6 @@ void R_InitPlanes (void)
 //
 // BASIC PRIMITIVE
 //
-extern uint32_t palarray[256];
 void
 R_MapPlane
 ( int        y,
@@ -377,7 +376,6 @@ void swapvp(visplane_t *v1, visplane_t *v2)
 }
 #endif
 
-extern uint16_t* buf16;
 extern int* texturewidthmask;
 // needed for texture pegging
 extern fixed_t* textureheight;

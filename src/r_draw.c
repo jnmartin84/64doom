@@ -43,7 +43,7 @@
 
 extern void I_SetPalette(byte* palette);
 
-extern uint32_t   palarray[256];
+extern uint32_t*   palarray;
 extern surface_t* _dc;
 
 // ?
@@ -603,7 +603,6 @@ void R_InitBuffer ( int width, int height )
 // Also draws a beveled edge.
 //
 extern void I_SavePalette(void);
-extern void I_SetDefaultPalette(void);
 extern void I_RestorePalette(void);
 
 // pre-color-indexed back screen flat for easier R_VideoErase
@@ -649,7 +648,6 @@ void R_DrawViewBorder (void)
     }
 
     I_SavePalette();
-    I_SetDefaultPalette();
 
     if (!drew_bg_before)
     {

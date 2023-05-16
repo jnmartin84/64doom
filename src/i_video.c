@@ -33,27 +33,14 @@
 
 #include "doomdef.h"
 
-// externs
-extern uint16_t *buf16;
-
-//extern short* pcmbuf;
-
 // function prototypes
-int global_do_invul = 0;
+
 void I_SetPalette(byte* palette);
 
 void I_FinishUpdate(void);
 
 
 // globals
-
-// this is intentionally uint32_t
-// graphics_make_color will pack two 16-bit colors into a 32-bit word
-// and we use that full word when rendering columns and spans in low-detail mode
-// the color lookup is a single index into palarray
-// no shifting and masking necessary to create a doubled pixel
-// and it gets written to the 16-bit framebuffer as two pixels with a single 32-bit write
-uint32_t __attribute__((aligned(8))) palarray[256];
 
 // I don't want to rename this across the code base, it used to be display_context_t 
 // I started this port with libdragon in 2014
@@ -120,16 +107,27 @@ void I_ForcePaletteUpdate(void)
 //
 // I_SetPalette
 //
-static uint32_t old_palette[256];
+// this is intentionally uint32_t
+// graphics_make_color will pack two 16-bit colors into a 32-bit word
+// and we use that full word when rendering columns and spans in low-detail mode
+// the color lookup is a single index into palarray
+// no shifting and masking necessary to create a doubled pixel
+// and it gets written to the 16-bit framebuffer as two pixels with a single 32-bit write
+uint32_t*  palarray;
+static uint32_t __attribute__((aligned(8))) default_palarray[256];
+static uint32_t __attribute__((aligned(8))) current_palarray[256];
+static uint32_t *old_palarray = NULL;
 
 void I_SavePalette(void)
 {
-    memcpy(old_palette, palarray, sizeof(palarray));
+    old_palarray = current_palarray;
+    palarray = default_palarray;
 }
 
 void I_RestorePalette(void)
 {
-    memcpy(palarray, old_palette, sizeof(old_palette));
+    palarray = current_palarray;
+    old_palarray = default_palarray;
 }
 
 void I_SetPalette(byte* palette)
@@ -153,7 +151,7 @@ void I_SetPalette(byte* palette)
         r = gammaptr[p1];
         g = gammaptr[p2];
         b = gammaptr[p3];
-        palarray[i*4] = graphics_make_color(r,g,b,0xff);
+        current_palarray[i*4] = graphics_make_color(r,g,b,0xff);
 
 		p1 = fc1 & 0xff;
 		p2 = fc2 >> 24;
@@ -162,7 +160,7 @@ void I_SetPalette(byte* palette)
         r = gammaptr[p1];
         g = gammaptr[p2];
         b = gammaptr[p3];
-        palarray[(i*4)+1] = graphics_make_color(r,g,b,0xff);
+        current_palarray[(i*4)+1] = graphics_make_color(r,g,b,0xff);
 
 		p1 = fc2 >> 8;
 		p2 = fc2 & 0xff;
@@ -171,7 +169,7 @@ void I_SetPalette(byte* palette)
         r = gammaptr[p1];
         g = gammaptr[p2];
         b = gammaptr[p3];
-        palarray[(i*4)+2] = graphics_make_color(r,g,b,0xff);
+        current_palarray[(i*4)+2] = graphics_make_color(r,g,b,0xff);
 
 		p1 = fc3 >> 16;
 		p2 = fc3 >> 8;
@@ -180,7 +178,7 @@ void I_SetPalette(byte* palette)
         r = gammaptr[p1];
         g = gammaptr[p2];
         b = gammaptr[p3];
-        palarray[(i*4)+3] = graphics_make_color(r,g,b,0xff);
+        current_palarray[(i*4)+3] = graphics_make_color(r,g,b,0xff);
 	}
 
 	palette += 256*3;
@@ -191,6 +189,7 @@ void I_SetPalette(byte* palette)
 void I_SetDefaultPalette(void)
 {
     I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
+    memcpy(default_palarray, current_palarray, sizeof(current_palarray));
 }
 
 void I_InitGraphics(void)
@@ -201,6 +200,10 @@ void I_InitGraphics(void)
 		.height = SCREENHEIGHT,
 		.interlaced = false,
 	}, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE );
+
+    I_SetDefaultPalette();
+
+    palarray = current_palarray;
 }
 
 

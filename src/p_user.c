@@ -37,7 +37,6 @@
 // Index of the special effects (INVUL inverse) map.
 #define INVERSECOLORMAP		32
 
-extern int global_do_invul;
 //
 // Movement.
 //

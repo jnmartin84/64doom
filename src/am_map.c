@@ -50,7 +50,7 @@
 #include <libdragon.h>
 
 extern void graphics_draw_line( display_context_t disp, int x0, int y0, int x1, int y1, uint32_t color );
-extern uint32_t palarray[256];
+extern uint32_t* palarray;
 extern surface_t *_dc;
 
 // For use if I do walls with outsides/insides
@@ -893,13 +893,15 @@ void AM_Ticker (void)
     AM_updateLightLev();
 }
 
+// status bar height at bottom of screen
+#define SBARHEIGHT            32
 
 //
 // Clear automap frame buffer.
 //
 void AM_clearFB(int color)
 {
-    D_memset((uint16_t *)((uintptr_t)_dc->buffer), 0, SCREENWIDTH*SCREENHEIGHT*2);
+    D_memset((uint16_t *)((uintptr_t)_dc->buffer), 0, SCREENWIDTH*(SCREENHEIGHT-SBARHEIGHT)*2);
 }
 
 

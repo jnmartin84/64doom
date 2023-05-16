@@ -614,7 +614,7 @@ void* W_CacheLumpName(char* name, int tag)
     {
         return W_CacheLumpNum(numforname, tag);
     }
-    // sorry about these, I wasn't using DFS when I first added these
+    // these lumps get loaded from DFS in W_Init
     else
     {
         if (0 == strncmp(name,"X_G",3))

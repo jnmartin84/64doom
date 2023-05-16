@@ -247,9 +247,8 @@ void F_Ticker (void)
     }
 }
 
-extern uint32_t palarray[256];
+extern uint32_t* palarray;
 extern surface_t *_dc;
-extern uint16_t *buf16;
 
 //
 // F_TextWrite

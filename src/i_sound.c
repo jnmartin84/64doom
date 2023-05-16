@@ -47,19 +47,9 @@
 #include <errno.h>
 
 /**********************************************************************/
-// On the PC, need swap routines because the MIDI file was made on the Amiga and
-// is in big endian format. :)
-// The Nintendo 64 is also big endian so these are no-ops here. :D
 
-#define WSWAP(x) x
-#define LSWAP(x) x
-
-//extern volatile struct AI_regs_s *AI_regs;
+// I haven't re-written this yet to use fillbuffer callbacks so I just bang at the hardware
 volatile struct AI_regs_s *AI_regs = (struct AI_regs_s *)0xA4500000;
-
-
-extern const int MIDI_FILE;
-extern const int MIDI_FILESIZE;
 
 // Any value of numChannels set
 // by the defaults code in M_misc is now clobbered by I_InitSound().
@@ -68,19 +58,20 @@ extern int numChannels;
 
 /**********************************************************************/
 
+
 #define SAMPLERATE 11025
-//22050
 
 // NUM_VOICES = SFX_VOICES + MUS_VOICES
-#define SFX_VOICES 8
-#define MUS_VOICES 16
+#define NUM_MIDI_INSTRUMENTS 182
+#define SFX_VOICES 7
+#define MUS_VOICES 9
 #define NUM_VOICES (SFX_VOICES+MUS_VOICES)
 
 
 typedef struct MUSheader
 {
     // identifier "MUS" 0x1A
-    char     ID[4];
+    char        ID[4];
     uint16_t    scoreLen;
     uint16_t    scoreStart;
     // count of primary channels
@@ -135,10 +126,10 @@ typedef struct Voice
 Voice_t;
 
 static int __attribute__((aligned(8))) voice_inuse[MUS_VOICES];
-static struct Channel __attribute__((aligned(8))) mus_channel[16];
+static struct Channel __attribute__((aligned(8))) mus_channel[MUS_VOICES];
 
 static struct Voice __attribute__((aligned(8))) audVoice[NUM_VOICES];
-static struct Voice __attribute__((aligned(8))) midiVoice[256];
+static struct Voice __attribute__((aligned(8))) midiVoice[NUM_MIDI_INSTRUMENTS];
 
 // The actual lengths of all sound effects.
 static int __attribute__((aligned(8))) lengths[NUMSFX];
@@ -155,12 +146,12 @@ short __attribute__((aligned(8))) *pcmbuf;
 
 static int changepitch;
 
-static int32_t master_vol =  0x0000F000;
+static uint32_t master_vol =  0x0000F000;
 
 static int musicdies  = -1;
 static int music_okay =  0;
 
-uint32_t __attribute__((aligned(8))) midi_pointers[182];
+uint32_t __attribute__((aligned(8))) midi_pointers[NUM_MIDI_INSTRUMENTS];
 
 static uint16_t score_len, score_start, inst_cnt;
 static void __attribute__((aligned(8))) *score_data;
@@ -205,7 +196,7 @@ void reset_midiVoices(void)
 
     used_instrument_count = -1;
 
-    for (i=0;i<256;i++)
+    for (i=0;i<NUM_MIDI_INSTRUMENTS;i++)
     {
         if (midiVoice[i].wave)
         {
@@ -220,9 +211,9 @@ void reset_midiVoices(void)
     // instrument used lookups
     D_memset(used_instrument_bits, 0, sizeof(used_instrument_bits));
 
-    for (i=0;i<256;i++)
+    for (i=0;i<NUM_MIDI_INSTRUMENTS;i++)
     {
-        midiVoice[i].step = (1 << 16);
+        midiVoice[i].step = 0x10000;
         midiVoice[i].length = 2000 << 16;
         midiVoice[i].base = 60;
     }
@@ -462,9 +453,9 @@ void I_InitMusic(void)
         return;
     }
 
-    rc = dfs_read(midi_pointers, sizeof(uint32_t)*182, 1, mphnd);
+    rc = dfs_read(midi_pointers, sizeof(uint32_t)*NUM_MIDI_INSTRUMENTS, 1, mphnd);
     dfs_close(mphnd);
-    if ((sizeof(uint32_t)*182) != rc)
+    if ((sizeof(uint32_t)*NUM_MIDI_INSTRUMENTS) != rc)
     {
         printf("I_InitMusic: Could not read MUS instrument headers (%s)\n", strerror(errno));
         return;
@@ -572,7 +563,7 @@ void Sfx_Start(int8_t *wave, int cnum, int step, int volume, int seperation, int
     audVoice[cnum].wave = wave + 8;
     audVoice[cnum].index = 0;
     audVoice[cnum].step = (uint32_t)((step<<16) / SAMPLERATE);
-    audVoice[cnum].loop = 0 << 16;
+    audVoice[cnum].loop = 0 ;
     audVoice[cnum].length = (length - 8) << 16;
     audVoice[cnum].ltvol = FixedMul(((127 - ((127*sep*sep) / 65536))<<16), (vol<<7));
     sep -= 256;
@@ -663,34 +654,27 @@ int Mus_Register(void *musdata)
     score_data = musdata;
     MUSheader_t *musheader = (MUSheader_t*)score_data;
     // instrument used lookups
-    used_instrument_bits[0] = 0;
-    used_instrument_bits[1] = 0;
-    used_instrument_bits[2] = 0;
-    used_instrument_bits[3] = 0;
-    used_instrument_bits[4] = 0;
-    used_instrument_bits[5] = 0;
-    used_instrument_bits[6] = 0;
-    used_instrument_bits[7] = 0;
+    D_memset(used_instrument_bits,0,sizeof(used_instrument_bits));
     used_instrument_count = inst_cnt;
     for (i=0;i<inst_cnt;i++)
     {
         uint8_t instrument = (uint8_t)SHORT(musheader->instruments[i]);
         
         // fix TNT crash with one of the 10s levels
-        uint32_t ptr = LSWAP(midi_pointers[instrument]);
+        uint32_t ptr = midi_pointers[instrument];
         if (!ptr)
             continue;
         used_instrument_bits[(instrument >> 5)] |= (1 << (instrument & 31));
     }
 
     // iterating over all instruments
-    for (i=0;i<182;i++)
+    for (i=0;i<NUM_MIDI_INSTRUMENTS;i++)
     {
         // current instrument is used
         if (instrument_used(i))
         {
             // get the pointer into the instrument data struct
-            uint32_t ptr = LSWAP(midi_pointers[i]);
+            uint32_t ptr = midi_pointers[i];
 
 #ifdef RANGECHECK
             if (!ptr)
@@ -744,7 +728,7 @@ int Mus_Register(void *musdata)
 #endif
                 }
 
-                uint32_t length = LSWAP(mhdr->length) >> 16;
+                uint32_t length = mhdr->length >> 16;
 
                 void *sample = (void *)((uintptr_t)malloc(length));
 
@@ -756,13 +740,13 @@ int Mus_Register(void *musdata)
                     // it gets mixed to uncached buffer anyway
                     midiVoice[i].wave   = (int8_t*)((uintptr_t)sample | 0xA0000000);
                     midiVoice[i].index  = 0;
-                    midiVoice[i].step   = 1 << 16;
-                    midiVoice[i].loop   = LSWAP(mhdr->loop);
-                    midiVoice[i].length = LSWAP(mhdr->length);
+                    midiVoice[i].step   = 0x10000;
+                    midiVoice[i].loop   = mhdr->loop;
+                    midiVoice[i].length = mhdr->length;
                     midiVoice[i].ltvol  = 0;
                     midiVoice[i].rtvol  = 0;
-                    midiVoice[i].base   = WSWAP(mhdr->base);
-                    midiVoice[i].flags  = 0x00;
+                    midiVoice[i].base   = mhdr->base;
+                    midiVoice[i].flags  = 0;
 
                     free(mhdr);
                     dfs_close(hnd);
@@ -839,8 +823,6 @@ void Mus_Resume(int handle)
 
 void I_MixSound (void)
 {
-    uint32_t    first_voice_to_mix = snd_SfxVolume ? 0 : SFX_VOICES;
-    uint32_t    last_voice_to_mix = mus_playing ? NUM_VOICES : (snd_SfxVolume ? SFX_VOICES : 0);
     uint32_t    index;
     uint32_t    step;
     int32_t     ltvol;
@@ -852,8 +834,8 @@ void I_MixSound (void)
     uint32_t    length;
     // mix enabled voices
     for (
-        ix=first_voice_to_mix;
-        ix<last_voice_to_mix;
+        ix=0;
+        ix<NUM_VOICES;
         ix++
         )
     {
@@ -991,14 +973,12 @@ void I_UpdateSound (void)
 nextEvent:
             do
             {
-                // score_ptr++ 1
                 event = *score_ptr++;
                 switch ((event >> 4) & 7)
                 {
                     // Release
                     case 0:
                     {
-                           // score_ptr++ 2
                         note = *score_ptr++;
                         note &= 0x7f;
                         channel = (int)(event & 15);
@@ -1018,7 +998,6 @@ nextEvent:
                     // Play note
                     case 1:
                     {
-                        // score_ptr++ 2
                         note = *score_ptr++;
                         channel = (int)(event & 15);
                         volume = 0;//-1;
@@ -1076,6 +1055,7 @@ nextEvent:
                                 uint32_t x = ((72 - mvc->base + (uint32_t)note) & 0x7f);
 
                                 // why 12? i dont know any more, but it was something
+                                // modern GCC at -O3 compiles this without generating a div, makes me happy
                                 uint32_t xi  = x % 12;
                                 uint32_t xs  = x / 12;
                                 // xi squared

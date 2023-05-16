@@ -38,7 +38,7 @@
 
 #define ytab(y) (((y)<<8)+((y)<<6))
 
-extern uint32_t      palarray[256];
+extern uint32_t*      palarray;
 extern surface_t*    _dc;
 
 int                  usegamma;
