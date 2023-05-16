@@ -45,7 +45,7 @@ GameMode_t current_mode;
 
 static int pad_weapon = 1;
 static char weapons[8] = { '1', '2', '3', '3', '4', '5', '6', '7' };
-static int count = 0;
+static int lz_count = 0;
 
 int controller_mapping = 0;
 int last_x = 0;
@@ -54,9 +54,9 @@ int center_x = 0;
 int center_y = 0;
 int shift = 0;
 
-void pressed_key(struct controller_data *pressed_data);//, int player);
-void held_key(struct controller_data *pressed_data);//, int player);
-void released_key(struct controller_data *pressed_data);//, int player);
+void pressed_key(struct controller_data *p_data);//, int player);
+void held_key(struct controller_data *h_data);//, int player);
+void released_key(struct controller_data *r_data);//, int player);
 
 int current_player_for_input = 0;
 
@@ -96,14 +96,14 @@ void I_StartTic(void)
 // held_key
 // this function maps analog stick position into mouse movement event
 //
-void held_key(struct controller_data *pressed_data) //, int player)
+void held_key(struct controller_data *h_data) //, int player)
 {
-    struct SI_condat pressed = pressed_data->c[0];//player];
+    struct SI_condat held = h_data->c[0];//player];
     short mouse_x;
     short mouse_y;
 
-    last_x = pressed.x - center_x;
-    last_y = pressed.y - center_y;
+    last_x = held.x - center_x;
+    last_y = held.y - center_y;
 
 	// x,y in (-32,32),(-32,32) "dead zone" in center 
     if ( (last_x < -32) || (last_x > 32) || (last_y < -32) || (last_y > 32) )
@@ -133,25 +133,25 @@ int shift_times;
 // moving, shooting, opening doors, toggling run mode
 // also handles out-of-band input operations like toggling GOD MODE, idclev
 //
-void pressed_key(struct controller_data *pressed_data) //, int player)
+void pressed_key(struct controller_data *p_data) //, int player)
 {
     event_t doom_input_event;
-    struct SI_condat pressed = pressed_data->c[0];//player];
+    struct SI_condat pressed = p_data->c[0];//player];
 
 #if 1
     // CHEAT WARP TO NEXT LEVEL
-    if (pressed.L && pressed.Z)
+    if (pressed.L && pressed.Z && !pressed.R)
     {
-        if ( (count > 0) && (count % 4 == 0) )
+        if ( (lz_count > 0) && (lz_count % 4 == 0) )
         {
             n64_do_cheat(13); // IDCLEV
         }
 
-        count += 1;
+        lz_count += 1;
     }
 
     // TOGGLE GOD MODE
-    if (pressed.L && pressed.R)
+    if (pressed.L && pressed.R && !pressed.Z)
     {
         if (!GODDED)
         {
@@ -166,7 +166,7 @@ void pressed_key(struct controller_data *pressed_data) //, int player)
 #endif
 
     // RUN ON/OFF
-    if (pressed.Z)
+    if (pressed.Z & !pressed.L && !pressed.R)
     {
         shift = 1 - shift;
         shift_times = 0;
@@ -290,88 +290,88 @@ void pressed_key(struct controller_data *pressed_data) //, int player)
 // handle released buttons that are mapped to keyboard event operations such as
 // moving, shooting, opening doors, etc
 //
-void released_key(struct controller_data *pressed_data) //, int player)
+void released_key(struct controller_data *r_data) //, int player)
 {
     event_t doom_input_event;
 
-    struct SI_condat pressed = pressed_data->c[0];//player];
+    struct SI_condat released = r_data->c[0];//player];
 
-    last_x = pressed.x - center_x;
-    last_y = pressed.y - center_y;
+    last_x = released.x - center_x;
+    last_y = released.y - center_y;
 
-    if (pressed.A)
+    if (released.A)
     {
         doom_input_event.data1 = KEY_RCTRL;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.B)
+    if (released.B)
     {
         doom_input_event.data1 = ' ';
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.L && !pressed.R && !pressed.Z)
+    if (released.L)
     {
         doom_input_event.data1 = ',';
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.R && !pressed.L && !pressed.Z)
+    if (released.R)
     {
         doom_input_event.data1 = '.';
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_up)
+    if (released.C_up)
     {
         doom_input_event.data1 = KEY_TAB;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_down)
+    if (released.C_down)
     {
         doom_input_event.data1 = KEY_ENTER;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_left && !pressed.C_right)
+    if (released.C_left && !released.C_right)
     {
         doom_input_event.data1 = weapons[pad_weapon];
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_right && !pressed.C_left)
+    if (released.C_right && !released.C_left)
     {
         doom_input_event.data1 = weapons[pad_weapon];
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.up)
+    if (released.up)
     {
         doom_input_event.data1 = KEY_UPARROW;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.down)
+    if (released.down)
     {
         doom_input_event.data1 = KEY_DOWNARROW;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.left && !pressed.right)
+    if (released.left && !released.right)
     {
         doom_input_event.data1 = KEY_LEFTARROW;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.right && !pressed.left)
+    if (released.right && !released.left)
     {
         doom_input_event.data1 = KEY_RIGHTARROW;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.start)
+    if (released.start)
     {
         doom_input_event.data1 = KEY_ESCAPE;
         doom_input_event.type = ev_keyup;
