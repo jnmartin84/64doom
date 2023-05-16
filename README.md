@@ -67,12 +67,15 @@ One savegame slot is presented, mapped to a single note on the Controller Pak.
 The name of the note is the same as the game version ($IWAD_PREFIX) you are playing.
 
 When you save or load a game, you will see a message in the Doom HUD if it is successful:
-"SAVED GAME TO MEMPAK"
-"LOADED GAME FROM MEMPAK"
+
+`SAVED GAME TO MEMPAK`
+
+`LOADED GAME FROM MEMPAK`
 
 Savegames are compressed using the lzfx library. However, the compressed saves are still large and it is even possible that on rare occasions
 the size of the compressed savegame may still exceed the limits of an empty Controller Pak. You will see a message in the Doom HUD if this happens:
-NOT ENOUGH SPACE FOR SAVE (NEED #, HAVE #)
+
+`NOT ENOUGH SPACE FOR SAVE (NEED #, HAVE #)`
 
 It is more likely to see this message if you have notes from other games on your Controller Pak, so it is desirable to play with a dedicated, initially empty
 Controller Pak.
