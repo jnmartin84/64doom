@@ -64,7 +64,7 @@ If you want to build for a different game version, be sure to run make clean fir
 
 One savegame slot is presented, mapped to a single note on the Controller Pak.
 
-The name of the note is the same as the game version ($IWAD_PREFIX) you are playing.
+The name of the note is the same as the game version (`$IWAD_PREFIX`) you are playing.
 
 When you save or load a game, you will see a message in the Doom HUD if it is successful:
 
