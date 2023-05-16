@@ -617,7 +617,7 @@ void R_VideoErase ( unsigned ofs, int count )
 
     for (int i=0;i<count;i++)
     {
-        *dst++ = srcp[((((ofs+i)/320)&63)<<6) + (((ofs+i)%320)&63)];
+        *dst++ = srcp[((((ofs+i)/SCREENWIDTH)&63)<<6) + (((ofs+i)%SCREENWIDTH)&63)];
     }
 }
 
