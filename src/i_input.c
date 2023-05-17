@@ -17,7 +17,7 @@
 // $Log:$
 //
 // DESCRIPTION:
-//	Doom input handler for Nintendo 64, libdragon
+//    Doom input handler for Nintendo 64, libdragon
 //
 //-----------------------------------------------------------------------------
 
@@ -39,8 +39,8 @@ void n64_do_cheat(int cheat);
 
 static int GODDED;
 
-int current_map;
-int current_episode;
+uint32_t current_map;
+uint32_t current_episode;
 GameMode_t current_mode;
 
 static int pad_weapon = 1;
@@ -105,7 +105,7 @@ void held_key(struct controller_data *h_data) //, int player)
     last_x = held.x - center_x;
     last_y = held.y - center_y;
 
-	// x,y in (-32,32),(-32,32) "dead zone" in center 
+    // x,y in (-32,32),(-32,32) "dead zone" in center 
     if ( (last_x < -32) || (last_x > 32) || (last_y < -32) || (last_y > 32) )
     {
         mouse_x = last_x << 1;
@@ -155,10 +155,10 @@ void pressed_key(struct controller_data *p_data) //, int player)
     {
         if (!GODDED)
         {
-            n64_do_cheat(1); // IDDQD
-            n64_do_cheat(3); // IDKFA
+            n64_do_cheat(1);  // IDDQD
+            n64_do_cheat(3);  // IDKFA
             n64_do_cheat(10); // IDBEHOLDA
-            n64_do_cheat(5); // IDDT
+            n64_do_cheat(5);  // IDDT
         }
 
         GODDED = 1 - GODDED;
@@ -220,7 +220,7 @@ void pressed_key(struct controller_data *p_data) //, int player)
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_left)
+    if (pressed.C_left && !pressed.C_right)
     {
         pad_weapon -= 1;
 
@@ -233,7 +233,7 @@ void pressed_key(struct controller_data *p_data) //, int player)
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_right)
+    if (pressed.C_right && !pressed.C_left)
     {
         pad_weapon += 1;
 
@@ -329,13 +329,13 @@ void released_key(struct controller_data *r_data) //, int player)
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (released.C_left)
+    if (released.C_left && !released.C_right)
     {
         doom_input_event.data1 = weapons[pad_weapon];
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (released.C_right)
+    if (released.C_right && !released.C_left)
     {
         doom_input_event.data1 = weapons[pad_weapon];
         doom_input_event.type = ev_keyup;
@@ -373,15 +373,16 @@ void released_key(struct controller_data *r_data) //, int player)
     }
 }
 
-static char __attribute__((aligned(8))) clevstr[256];
+static char __attribute__((aligned(8))) clevstr[9];
 
-extern char *get_GAMEID();
-extern    char*	doom1wad;
-extern    char*	doomwad;
-extern    char*	doomuwad;
-extern    char*	doom2wad;
-extern    char*	plutoniawad;
-extern    char*	tntwad;
+extern    char*    get_GAMEID();
+extern    char*    doom1wad;
+extern    char*    doomwad;
+extern    char*    doomuwad;
+extern    char*    doom2wad;
+extern    char*    plutoniawad;
+extern    char*    tntwad;
+
 #define stricmp strcasecmp
 
 void n64_do_cheat(int cheat)
@@ -454,10 +455,10 @@ void n64_do_cheat(int cheat)
         }
         case 13: // change level
         {
-			const char *gameid = get_GAMEID();
+            const char *gameid = get_GAMEID();
 
-			if (!stricmp(doom2wad,gameid) || !stricmp(tntwad,gameid) || !stricmp(plutoniawad,gameid))
-			{
+            if (!stricmp(doom2wad,gameid) || !stricmp(tntwad,gameid) || !stricmp(plutoniawad,gameid))
+            {
                 if (!stricmp(doom2wad,gameid))
                 {
                     if (current_map < 32)
@@ -478,14 +479,21 @@ void n64_do_cheat(int cheat)
                     {
                         current_map = 1;
                     }
-				}
+                }
 
-                sprintf(clevstr, "idclev%02d", current_map);
+                sprintf(clevstr, "idclev%02ld", current_map);
 
                 str = clevstr;
             }
             else
             {
+                // shut up compiler...
+                if (current_episode >= 4)
+                {
+                    I_Error("n64_do_cheat: Invalid current_episode: %ld.", current_episode);
+                    return;
+                }
+
                 if (current_map < 9)
                 {
                     current_map++;
@@ -495,7 +503,7 @@ void n64_do_cheat(int cheat)
                     current_map = 1;
                 }
 
-                sprintf(clevstr, "idclev%1d%1d", current_episode, current_map);
+                sprintf(clevstr, "idclev%1ld%1ld", current_episode, current_map);
                 str = clevstr;
             }
             break;

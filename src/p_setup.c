@@ -580,8 +580,8 @@ void P_GroupLines (void)
     }
 }
 
-extern int current_map;
-extern int current_episode;
+extern uint32_t current_map;
+extern uint32_t current_episode;
 extern GameMode_t current_mode;
 //
 // P_SetupLevel
