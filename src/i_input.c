@@ -166,10 +166,9 @@ void pressed_key(struct controller_data *p_data) //, int player)
 #endif
 
     // RUN ON/OFF
-    if (pressed.Z & !pressed.L && !pressed.R)
+    if (pressed.Z)
     {
         shift = 1 - shift;
-        shift_times = 0;
     }
 
     if (shift)
@@ -177,17 +176,12 @@ void pressed_key(struct controller_data *p_data) //, int player)
         doom_input_event.data1 = KEY_RSHIFT;
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
-        shift_times++;
     }
     else
     {
-        if (shift_times == 0)
-        {
-            doom_input_event.data1 = KEY_RSHIFT;
-            doom_input_event.type = ev_keyup;
-            D_PostEvent(&doom_input_event);
-        }
-        shift_times++;
+        doom_input_event.data1 = KEY_RSHIFT;
+        doom_input_event.type = ev_keyup;
+        D_PostEvent(&doom_input_event);
     }
 
     if (pressed.A)
