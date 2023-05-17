@@ -259,16 +259,14 @@ extern patch_t*    hu_font[HU_FONTSIZE];
        byte*       bgsrc = 0;
 
 static inline void F_bgpart(void) {
-    uint16_t *dest16 = (uint16_t *)((uintptr_t)_dc->buffer);// + ((ytab(SCREENWIDTH >> 4))<<1));
-    int x, y;
-    uint32_t curpix;
-    for (y=0 ; y<SCREENHEIGHT ; y++)
+    uint16_t *dest16 = (uint16_t *)((uintptr_t)_dc->buffer);
+    for (size_t y = 0 ; y < SCREENHEIGHT ; y++)
     {
         int sy = ytab(y);
         int asy = (y&63)<<6;
-        for (x=0;x<64;x++)
+        for (size_t x = 0; x < 64; x++)
         {
-            curpix = palarray[bgsrc[asy+x]];
+            uint16_t curpix = palarray[bgsrc[asy+x]];
             *(uint16_t*)(&dest16[(x+sy)]) = curpix;
             *(uint16_t*)(&dest16[(x+64+sy)]) = curpix;
             *(uint16_t*)(&dest16[(x+128+sy)]) = curpix;
