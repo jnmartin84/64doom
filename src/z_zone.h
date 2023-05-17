@@ -27,6 +27,8 @@
 #ifndef __Z_ZONE__
 #define __Z_ZONE__
 
+#include <stdint.h>
+
 //
 // ZONE MEMORY
 // PU - purge tags.
@@ -58,7 +60,8 @@ typedef struct memblock_s
     int			id;	// should be ZONEID
     struct memblock_s*	next;
     struct memblock_s*	prev;
-    char		asd[8]; //padding
+    uint32_t pad1;
+    uint32_t pad2;
 } memblock_t;
 
 #endif

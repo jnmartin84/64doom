@@ -19,7 +19,7 @@
 // $Log:$
 //
 // DESCRIPTION:
-//	Zone Memory Allocation. Neat.
+//    Zone Memory Allocation. Neat.
 //
 //-----------------------------------------------------------------------------
 #include "z_zone.h"
@@ -36,26 +36,24 @@
 // It is of no value to free a cachable block,
 //  because it will get overwritten automatically if needed.
 //
-#define ZONEID	0x1d4a11
+#define ZONEID    0x1d4a11
 
 typedef struct
 {
     // total bytes malloced, including header
-    int32_t		size;
-    int32_t     pad0;
+    int32_t        size;
+    int32_t        pad0;
 
     // start / end cap for linked list
-    memblock_t	blocklist;
+    memblock_t    blocklist;
 
-    memblock_t*	rover;
+    memblock_t*    rover;
+
     int32_t pad1;
-
     int32_t pad2;
-	int32_t pad3;
-
-//    char pad[24];
+    int32_t pad3;
 } memzone_t;
-memzone_t*	mainzone;
+memzone_t*    mainzone;
 
 
 //
@@ -63,7 +61,7 @@ memzone_t*	mainzone;
 //
 void Z_ClearZone (memzone_t* zone)
 {
-    memblock_t*		block;
+    memblock_t*        block;
 
     // set the entire zone to one free block
     zone->blocklist.next = zone->blocklist.prev = block = (memblock_t *)( (byte *)zone + sizeof(memzone_t) );
@@ -87,10 +85,10 @@ void Z_ClearZone (memzone_t* zone)
 //
 void Z_Init (void)
 {
-    memblock_t*	block;
-    int		size;
+    memblock_t*        block;
+    int                size;
 
-    mainzone = (memzone_t *)((uintptr_t)I_ZoneBase (&size));
+    mainzone = (memzone_t *)I_ZoneBase (&size);
     mainzone->size = size;
 
     // set the entire zone to one free block
@@ -113,8 +111,8 @@ void Z_Init (void)
 //
 void Z_Free (void* ptr)
 {
-    memblock_t*		block;
-    memblock_t*		other;
+    memblock_t*        block;
+    memblock_t*        other;
 
     block = (memblock_t *) ( (byte *)ptr - sizeof(memblock_t));
 
@@ -123,15 +121,14 @@ void Z_Free (void* ptr)
         I_Error("Z_Free: freed a pointer without ZONEID");
     }
 #endif
-    // for MIPS use on Nintendo 64, real addresses
-    // will always be 0x80000000 or higher
-    if ((uint32_t)block->user > (uint32_t)0x7FFFFFFF)
+    // address will always be 0x80000000 or higher
+    if ((uintptr_t)block->user > (uintptr_t)0x7FFFFFFF)
     {
-	// smaller values are not pointers
-	// Note: OS-dependend?
-	// Note Note: We don't even have an OS here
-	// clear the user's mark
-	*block->user = 0;
+    // smaller values are not pointers
+    // Note: OS-dependend?
+    // Note Note: We don't even have an OS here
+    // clear the user's mark
+    *block->user = 0;
     }
 
     // mark as free
@@ -143,27 +140,27 @@ void Z_Free (void* ptr)
 
     if (!other->user)
     {
-	// merge with previous free block
-	other->size += block->size;
-	other->next = block->next;
-	other->next->prev = other;
+    // merge with previous free block
+    other->size += block->size;
+    other->next = block->next;
+    other->next->prev = other;
 
-	if (block == mainzone->rover)
-	    mainzone->rover = other;
+    if (block == mainzone->rover)
+        mainzone->rover = other;
 
-	block = other;
+    block = other;
     }
 
     other = block->next;
     if (!other->user)
     {
-	// merge the next free block onto the end
-	block->size += other->size;
-	block->next = other->next;
-	block->next->prev = block;
+    // merge the next free block onto the end
+    block->size += other->size;
+    block->next = other->next;
+    block->next->prev = block;
 
-	if (other == mainzone->rover)
-	    mainzone->rover = block;
+    if (other == mainzone->rover)
+        mainzone->rover = block;
     }
 }
 
@@ -173,22 +170,18 @@ void Z_Free (void* ptr)
 // Z_Malloc
 // You can pass a NULL user if the tag is < PU_PURGELEVEL.
 //
-#define MINFRAGMENT		64
+#define MINFRAGMENT        64
 
 
-void*
-Z_Malloc
-( int		size,
-  int		tag,
-  void*		user )
+void* Z_Malloc (int size, int tag, void* user)
 {
-    int		extra;
+    int                extra;
 #ifdef RANGECHECK
-    memblock_t*	start;
+    memblock_t*        start;
 #endif
-    memblock_t* rover;
-    memblock_t* newblock;
-    memblock_t*	base;
+    memblock_t*        rover;
+    memblock_t*        newblock;
+    memblock_t*        base;
 
     size = (size + 3) & ~3;
 
@@ -205,7 +198,7 @@ Z_Malloc
     base = mainzone->rover;
 
     if (!base->prev->user)
-	base = base->prev;
+    base = base->prev;
 
     rover = base;
 #ifdef RANGECHECK
@@ -297,13 +290,10 @@ Z_Malloc
 //
 // Z_FreeTags
 //
-void
-Z_FreeTags
-( int		lowtag,
-  int		hightag )
+void Z_FreeTags (int lowtag,  int hightag)
 {
-    memblock_t*	block;
-    memblock_t*	next;
+    memblock_t*        block;
+    memblock_t*        next;
 
     for (block = mainzone->blocklist.next ; block != &mainzone->blocklist ; block = next)
     {
@@ -326,7 +316,7 @@ Z_FreeTags
 //
 void Z_CheckHeap (void)
 {
-    memblock_t*	block;
+    memblock_t*        block;
 
     for (block = mainzone->blocklist.next ; ; block = block->next)
     {
@@ -358,12 +348,9 @@ void Z_CheckHeap (void)
 //
 // Z_ChangeTag
 //
-void
-Z_ChangeTag
-( void*		ptr,
-  int		tag )
+void Z_ChangeTag (void* ptr, int tag)
 {
-    memblock_t*	block;
+    memblock_t*        block;
 
     block = (memblock_t *) ( (byte *)ptr - sizeof(memblock_t));
 #ifdef RANGECHECK
@@ -386,8 +373,8 @@ Z_ChangeTag
 //
 int Z_FreeMemory (void)
 {
-    memblock_t*		block;
-    int			free;
+    memblock_t*        block;
+    int                free;
 
     free = 0;
 
