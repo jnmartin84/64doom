@@ -51,18 +51,14 @@ surface_t *_dc;
 
 surface_t *lockVideo(int wait)
 {
-    surface_t *dc;
-
     if (wait)
     {
-        while (!(dc = display_lock()));
+        return display_get();
     }
     else
     {
-        dc = display_lock();
+        return display_try_get();
     }
-
-    return dc;
 }
 
 void unlockVideo(surface_t *dc)
