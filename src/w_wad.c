@@ -349,9 +349,6 @@ void W_Reload (void)
         I_Error("W_Reload: couldn't open %s", reloadname);
     }
 
-#ifdef RANGECHECK
-    int sr = 
-#endif
     dfs_seek(handle, 0, SEEK_SET);
 
     dfs_read(&header, sizeof(header), 1, handle);

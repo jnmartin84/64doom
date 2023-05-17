@@ -451,7 +451,7 @@ void R_InitTextures (void)
     int			totalwidth;
     int			nummappatches;
     int			offset;
-#ifdef RANGECCHECK
+#ifdef RANGECHECK
     int			maxoff;
     int			maxoff2;
 #endif
@@ -487,7 +487,7 @@ void R_InitTextures (void)
     //  TEXTURE1 for shareware, plus TEXTURE2 for commercial.
     maptex = maptex1 = W_CacheLumpName ("TEXTURE1", PU_STATIC);
     numtextures1 = LONG(*maptex);
-#ifdef RANGECCHECK
+#ifdef RANGECHECK
     maxoff = W_LumpLength (W_GetNumForName ("TEXTURE1"));
 #endif
 
@@ -497,7 +497,7 @@ void R_InitTextures (void)
     {
 	maptex2 = W_CacheLumpName ("TEXTURE2", PU_STATIC);
 	numtextures2 = LONG(*maptex2);
-#ifdef RANGECCHECK
+#ifdef RANGECHECK
 	maxoff2 = W_LumpLength (W_GetNumForName ("TEXTURE2"));
 #endif
     }
@@ -505,7 +505,7 @@ void R_InitTextures (void)
     {
 	maptex2 = NULL;
 	numtextures2 = 0;
-#ifdef RANGECCHECK
+#ifdef RANGECHECK
 	maxoff2 = 0;
 #endif
     }
@@ -529,7 +529,7 @@ void R_InitTextures (void)
 		{
 			// Start looking in second texture file.
 			maptex = maptex2;
-#ifdef RANGECCHECK
+#ifdef RANGECHECK
 			maxoff = maxoff2;
 #endif            
 			directory = maptex+1;
