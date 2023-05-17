@@ -95,7 +95,7 @@ int ExpandTics (int low)
     return (maketic&~0xff) + 256 + low;
     }
 #ifdef RANGECHECK
-    IError("ExpandTics: strange value %i at maketic %i", low, maketic);
+    I_Error("ExpandTics: strange value %i at maketic %i", low, maketic);
 #endif
     return 0;
 }
