@@ -294,12 +294,10 @@ void W_AddFile (char *filename)
     numlumps += header.numlumps;
 
     lumpinfo = (lumpinfo_t *)realloc(lumpinfo, numlumps*sizeof(lumpinfo_t));
-//#ifdef RANGECHECK
     if (!lumpinfo)
     {
         I_Error("W_AddFile: Couldn't realloc lumpinfo");
     }
-//#endif    
 
     lump_p = &lumpinfo[startlump];
 
