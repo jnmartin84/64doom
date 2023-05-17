@@ -226,7 +226,7 @@ void pressed_key(struct controller_data *p_data) //, int player)
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_left && !pressed.C_right)
+    if (pressed.C_left)
     {
         pad_weapon -= 1;
 
@@ -239,7 +239,7 @@ void pressed_key(struct controller_data *p_data) //, int player)
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.C_right && !pressed.C_left)
+    if (pressed.C_right)
     {
         pad_weapon += 1;
 
@@ -264,13 +264,13 @@ void pressed_key(struct controller_data *p_data) //, int player)
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.left && !pressed.right)
+    if (pressed.left)
     {
         doom_input_event.data1 = KEY_LEFTARROW;
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
     }
-    if (pressed.right && !pressed.left)
+    if (pressed.right)
     {
         doom_input_event.data1 = KEY_RIGHTARROW;
         doom_input_event.type = ev_keydown;
@@ -335,13 +335,13 @@ void released_key(struct controller_data *r_data) //, int player)
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (released.C_left && !released.C_right)
+    if (released.C_left)
     {
         doom_input_event.data1 = weapons[pad_weapon];
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (released.C_right && !released.C_left)
+    if (released.C_right)
     {
         doom_input_event.data1 = weapons[pad_weapon];
         doom_input_event.type = ev_keyup;
@@ -359,13 +359,13 @@ void released_key(struct controller_data *r_data) //, int player)
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (released.left && !released.right)
+    if (released.left)
     {
         doom_input_event.data1 = KEY_LEFTARROW;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
     }
-    if (released.right && !released.left)
+    if (released.right)
     {
         doom_input_event.data1 = KEY_RIGHTARROW;
         doom_input_event.type = ev_keyup;
