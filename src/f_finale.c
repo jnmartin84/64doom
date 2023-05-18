@@ -259,19 +259,21 @@ extern patch_t*    hu_font[HU_FONTSIZE];
        byte*       bgsrc = 0;
 
 static inline void F_bgpart(void) {
-    uint16_t *dest16 = (uint16_t *)((uintptr_t)_dc->buffer);
+    uint32_t *dest32 = (uint32_t *)((uintptr_t)_dc->buffer);
+    bgsrc = W_CacheLumpName (finaleflat , PU_CACHE);
+
     for (size_t y = 0 ; y < SCREENHEIGHT ; y++)
     {
         int sy = ytab(y);
         int asy = (y&63)<<6;
-        for (size_t x = 0; x < 64; x++)
+        for (size_t x = 0; x < 64; x+=2)
         {
-            uint16_t curpix = palarray[bgsrc[asy+x]];
-            *(uint16_t*)(&dest16[(x+sy)]) = curpix;
-            *(uint16_t*)(&dest16[(x+64+sy)]) = curpix;
-            *(uint16_t*)(&dest16[(x+128+sy)]) = curpix;
-            *(uint16_t*)(&dest16[(x+192+sy)]) = curpix;
-            *(uint16_t*)(&dest16[(x+256+sy)]) = curpix;
+            uint32_t curpix = ((palarray[bgsrc[asy+x]]) << 16) | (palarray[bgsrc[asy+x+1]] & 0xFFFF);
+            dest32[(x+sy)>>1] = curpix;
+            dest32[(x+64+sy)>>1] = curpix;
+            dest32[(x+128+sy)>>1] = curpix;
+            dest32[(x+192+sy)>>1] = curpix;
+            dest32[(x+256+sy)>>1] = curpix;
         }
     }
 }
@@ -284,8 +286,6 @@ void F_TextWrite (void)
     int      c;
     int      cx;
     int      cy;
-
-    bgsrc = W_CacheLumpName (finaleflat , PU_CACHE);
 
     // erase the entire screen to a tiled background
     F_bgpart();
