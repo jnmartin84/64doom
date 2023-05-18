@@ -89,9 +89,9 @@ M_DrawText
 	if (x+w > SCREENWIDTH)
 	    break;
 	if (direct)
-	    V_DrawPatchDirect(x, y, 0, hu_font[c]);
+	    V_DrawPatchDirect(x, y, hu_font[c]);
 	else
-	    V_DrawPatch(x, y, 0, hu_font[c]);
+	    V_DrawPatch(x, y, hu_font[c]);
 	x+=w;
     }
 

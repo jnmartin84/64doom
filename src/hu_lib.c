@@ -116,7 +116,7 @@ HUlib_drawTextLine
 			w = SHORT(l->f[c - l->sc]->width);
 			if (x+w > SCREENWIDTH)
 			break;
-			V_DrawPatchDirect(x, l->y, FG, l->f[c - l->sc]);
+			V_DrawPatchDirect(x, l->y, l->f[c - l->sc]);
 			x += w;
 		}
 		else
@@ -130,7 +130,7 @@ HUlib_drawTextLine
     // draw the cursor if requested
     if (drawcursor && x + SHORT(l->f['_' - l->sc]->width) <= SCREENWIDTH)
     {
-		V_DrawPatchDirect(x, l->y, FG, l->f['_' - l->sc]);
+		V_DrawPatchDirect(x, l->y, l->f['_' - l->sc]);
     }
 }
 
@@ -170,18 +170,16 @@ void HUlib_eraseTextLine(hu_textline_t* l)
       // hacked up how the background erase/draw works so this is needed now...
       for (int x=0 ; x<scaledviewwidth ; x+=8)
       {
-        V_DrawPatch (viewwindowx+x,viewwindowy-8,0,W_CacheLumpName ("brdr_t",PU_CACHE));
+        V_DrawPatch (viewwindowx+x,viewwindowy-8,W_CacheLumpName ("brdr_t",PU_CACHE));
       }
-      V_DrawPatch (viewwindowx-8,viewwindowy,0,W_CacheLumpName ("brdr_l",PU_CACHE));
-      V_DrawPatch (viewwindowx+scaledviewwidth,viewwindowy,0,W_CacheLumpName ("brdr_r",PU_CACHE));
+      V_DrawPatch (viewwindowx-8,viewwindowy,W_CacheLumpName ("brdr_l",PU_CACHE));
+      V_DrawPatch (viewwindowx+scaledviewwidth,viewwindowy,W_CacheLumpName ("brdr_r",PU_CACHE));
       V_DrawPatch (viewwindowx-8,
          viewwindowy-8,
-         0,
          W_CacheLumpName ("brdr_tl",PU_CACHE));
 
       V_DrawPatch (viewwindowx+scaledviewwidth,
          viewwindowy-8,
-         0,
          W_CacheLumpName ("brdr_tr",PU_CACHE));
 
       I_RestorePalette();

@@ -150,7 +150,7 @@ void V_CopyRect( int srcx, int srcy, int srcscrn, int width, int height, int des
 // Masks a column based masked pic to the screen.
 //
 //__attribute__ ((optimize(1)))
-void V_DrawPatch ( int x, int y, int scrn, patch_t* patch )
+void V_DrawPatch ( int x, int y, patch_t* patch )
 {
     int          count;
     int          col; 
@@ -210,7 +210,7 @@ void V_DrawPatch ( int x, int y, int scrn, patch_t* patch )
 // Masks a column based masked pic to the screen.
 // Flips horizontally, e.g. to mirror face.
 //
-void V_DrawPatchFlipped ( int x, int y, int scrn, patch_t* patch )
+void V_DrawPatchFlipped ( int x, int y, patch_t* patch )
 {
     int          count;
     int          col;
@@ -261,9 +261,9 @@ void V_DrawPatchFlipped ( int x, int y, int scrn, patch_t* patch )
 // Draws directly to the screen on the pc.
 //
 void
-V_DrawPatchDirect ( int x, int y, int scrn, patch_t* patch )
+V_DrawPatchDirect ( int x, int y, patch_t* patch )
 {
-    V_DrawPatch (x, y, scrn, patch);
+    V_DrawPatch (x, y, patch);
 }
 #endif
 
@@ -275,7 +275,6 @@ void
 V_DrawBlock
 ( int		x,
   int		y,
-  int		scrn,
   int		width,
   int		height,
   byte*		src )
@@ -291,7 +290,6 @@ void
 V_GetBlock
 ( int		x,
   int		y,
-  int		scrn,
   int		width,
   int		height,
   byte*		dest )

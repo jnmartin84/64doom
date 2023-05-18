@@ -704,46 +704,42 @@ void R_DrawViewBorder (void)
     patch = W_CacheLumpName ("brdr_t",PU_CACHE);
     for (x=0 ; x<scaledviewwidth ; x+=8)
     {
-        V_DrawPatch (viewwindowx+x,viewwindowy-8,0,patch);
+        V_DrawPatch (viewwindowx+x,viewwindowy-8,patch);
     }
 
     patch = W_CacheLumpName ("brdr_b",PU_CACHE);
     for (x=0 ; x<scaledviewwidth ; x+=8)
     {
-        V_DrawPatch (viewwindowx+x,viewwindowy+viewheight,0,patch);
+        V_DrawPatch (viewwindowx+x,viewwindowy+viewheight,patch);
     }
 
     patch = W_CacheLumpName ("brdr_l",PU_CACHE);
     for (y=0 ; y<viewheight ; y+=8)
     {
-        V_DrawPatch (viewwindowx-8,viewwindowy+y,0,patch);
+        V_DrawPatch (viewwindowx-8,viewwindowy+y,patch);
     }
 
     patch = W_CacheLumpName ("brdr_r",PU_CACHE);
     for (y=0 ; y<viewheight ; y+=8)
     {
-        V_DrawPatch (viewwindowx+scaledviewwidth,viewwindowy+y,0,patch);
+        V_DrawPatch (viewwindowx+scaledviewwidth,viewwindowy+y,patch);
     }
 
     // Draw beveled edge.
     V_DrawPatch (viewwindowx-8,
          viewwindowy-8,
-         0,
          W_CacheLumpName ("brdr_tl",PU_CACHE));
 
     V_DrawPatch (viewwindowx+scaledviewwidth,
          viewwindowy-8,
-         0,
          W_CacheLumpName ("brdr_tr",PU_CACHE));
 
     V_DrawPatch (viewwindowx-8,
          viewwindowy+viewheight,
-         0,
          W_CacheLumpName ("brdr_bl",PU_CACHE));
 
     V_DrawPatch (viewwindowx+scaledviewwidth,
          viewwindowy+viewheight,
-         0,
          W_CacheLumpName ("brdr_br",PU_CACHE));    
 
     // ?

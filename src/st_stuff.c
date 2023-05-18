@@ -504,7 +504,7 @@ static inline void ST_refreshBackground()
 {
     if (st_statusbaron)
     {// ST_X,0,BG
-        V_DrawPatch(ST_X, ST_Y, FG, sbar);
+        V_DrawPatch(ST_X, ST_Y, sbar);
     }
 //    }
 }

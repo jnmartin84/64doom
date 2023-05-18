@@ -358,7 +358,7 @@ void D_Display(void)
             y = viewwindowy+4;
         }
 
-        V_DrawPatchDirect(viewwindowx+((scaledviewwidth-68)/2),y,0,W_CacheLumpName("M_PAUSE", PU_CACHE));
+        V_DrawPatch(viewwindowx+((scaledviewwidth-68)/2),y,W_CacheLumpName("M_PAUSE", PU_CACHE));
     }
 
     // menus go directly to the screen
@@ -432,7 +432,7 @@ void D_PageTicker(void)
 //
 void D_PageDrawer(void)
 {
-    V_DrawPatch(0,0,0,W_CacheLumpName(pagename, PU_CACHE));
+    V_DrawPatch(0,0,W_CacheLumpName(pagename, PU_CACHE));
 }
 
 

@@ -1294,7 +1294,7 @@ void AM_drawMarks(void)
             fx = CXMTOF(markpoints[i].x);
             fy = CYMTOF(markpoints[i].y);
             if (fx >= f_x && fx <= f_w - w && fy >= f_y && fy <= f_h - h)
-            V_DrawPatch(fx>>1, fy>>1, FB, marknums[i]);
+            V_DrawPatch(fx>>1, fy>>1, marknums[i]);
         }
     }
 }
