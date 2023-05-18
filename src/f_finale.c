@@ -611,12 +611,11 @@ F_DrawPatchCol
   patch_t*	patch,
   int		col )
 {
-    column_t*	column;
-    byte*	source;
-//    byte*	desttop;
-    int		count;
-    int		not_count;
-    uint16_t*	dest16;
+    column_t*	 column;
+    byte*	     source;
+    int		     count;
+    uint16_t*    dest;
+    uint16_t*    desttop = (uint16_t *)(_dc->buffer + (x << 1));
 
     column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
 
@@ -625,14 +624,13 @@ F_DrawPatchCol
     {
         source = (byte *)column + 3;
         count = column->length;
-        not_count = count;
 
-        dest16 = (uint16_t *)((uintptr_t)_dc->buffer + ((ytab((SCREENWIDTH>>4)+(column->topdelta + not_count)))<<1));
+        dest = (uint16_t *)((uintptr_t)desttop + (ytab(column->topdelta) << 1)); 
 
         while (count--)
         {
-            uint16_t spot = palarray[*source++];
-            dest16[x - ytab(count)] = spot;
+            *dest = palarray[*source++];
+            dest += SCREENWIDTH;
         }
         column = (column_t *)( (byte *)column + column->length + 4 );
     }
