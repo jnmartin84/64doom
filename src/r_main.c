@@ -106,8 +106,8 @@ lighttable_t*        zlight[LIGHTLEVELS][MAXLIGHTZ];
 
 // fixed_t        finesine[5*FINEANGLES/4];
 fixed_t*        finecosine;// = &finesine[FINEANGLES/4];
-extern int *finesine2; // 10240
-extern int *finetan2; // 4096
+extern fixed_t *finesine2; // 10240
+extern fixed_t *finetan2; // 4096
 extern angle_t *tantoangle2; // 2049
 
 
@@ -648,8 +648,8 @@ void R_Init (void)
 
     // performance is equally good if not better when you access the math tables uncached
     tantoangle2 = (angle_t *)((uintptr_t)tantoangle | 0xA0000000);
-    finesine2 = (int *)((uintptr_t)finesine | 0xA0000000);
-    finetan2 = (int *)((uintptr_t)finetangent | 0xA0000000);
+    finesine2 = (fixed_t *)((uintptr_t)finesine | 0xA0000000);
+    finetan2 = (fixed_t *)((uintptr_t)finetangent | 0xA0000000);
     finecosine = &finesine2[FINEANGLES/4];
 }
 

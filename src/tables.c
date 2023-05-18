@@ -41,7 +41,7 @@
 #include "tables.h"
 
 
-int __attribute__((aligned(64))) finetangent[4096] =
+fixed_t __attribute__((aligned(64))) finetangent[4096] =
 {
     -170910304,-56965752,-34178904,-24413316,-18988036,-15535599,-13145455,-11392683,
     -10052327,-8994149,-8137527,-7429880,-6835455,-6329090,-5892567,-5512368,
@@ -557,10 +557,10 @@ int __attribute__((aligned(64))) finetangent[4096] =
     11392683,13145455,15535599,18988036,24413316,34178904,56965752,170910304
 };
 
-int* finetan2 = 0;
+fixed_t* finetan2 = 0;
 
 
-int __attribute__((aligned(64))) finesine[10240] =
+fixed_t __attribute__((aligned(64))) finesine[10240] =
 {
 	
     25,75,125,175,226,276,326,376,
