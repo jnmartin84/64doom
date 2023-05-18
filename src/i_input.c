@@ -46,6 +46,7 @@ GameMode_t current_mode;
 static int pad_weapon = 1;
 static char weapons[8] = { '1', '2', '3', '3', '4', '5', '6', '7' };
 static int lz_count = 0;
+static int shift_times = 0;
 
 int controller_mapping = 0;
 int last_x = 0;
@@ -125,8 +126,6 @@ void held_key(struct controller_data *h_data) //, int player)
     }
 }
 
-int shift_times;
-
 //
 // pressed_key
 // handle pressed buttons that are mapped to keyboard event operations such as
@@ -169,6 +168,7 @@ void pressed_key(struct controller_data *p_data) //, int player)
     if (pressed.Z)
     {
         shift = 1 - shift;
+        shift_times = 0;
     }
 
     if (shift)
@@ -176,12 +176,14 @@ void pressed_key(struct controller_data *p_data) //, int player)
         doom_input_event.data1 = KEY_RSHIFT;
         doom_input_event.type = ev_keydown;
         D_PostEvent(&doom_input_event);
+        shift_times++;
     }
-    else
+    else if (shift_times == 0)
     {
         doom_input_event.data1 = KEY_RSHIFT;
         doom_input_event.type = ev_keyup;
         D_PostEvent(&doom_input_event);
+        shift_times++;
     }
 
     if (pressed.A)
