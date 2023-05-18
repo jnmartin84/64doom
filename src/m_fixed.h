@@ -36,28 +36,23 @@
 #define FRACBITS		16
 #define FRACUNIT		(1<<FRACBITS)
 
-#define float_to_fixed(val) (val * FRACUNIT)
-#define fixed_to_float(val) (val / FRACUNIT)
+typedef int32_t fixed_t;
 
-typedef int fixed_t;
-
-inline static int D_abs(fixed_t x)
+static inline int D_abs(fixed_t x)
 {
-  register fixed_t _t = (x),_s;
+  fixed_t _t = (x),_s;
   _s = _t >> (8*sizeof _t-1);
   return (_t^_s)-_s;
 }
 
 static inline fixed_t __attribute__((always_inline)) FixedMul(fixed_t a, fixed_t b)
 {
-    return ((uint64_t)a * (uint64_t)b)>>16;
+    return (fixed_t)(((uint64_t)a * (uint64_t)b) >> 16);
 }
 
 static inline fixed_t __attribute__((always_inline)) FixedDiv(fixed_t a, fixed_t b)
 {
-    register long long c;
-    c = ((long long)a<<16) / ((long long)b);
-    return (fixed_t) c;
+    return (fixed_t) ((int64_t)((int64_t)a<<16) / ((int64_t)b));
 }
 
 #endif
