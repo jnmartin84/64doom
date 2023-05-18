@@ -63,8 +63,8 @@ extern int numChannels;
 
 // NUM_VOICES = SFX_VOICES + MUS_VOICES
 #define NUM_MIDI_INSTRUMENTS 182
-#define SFX_VOICES 7    
-#define MUS_VOICES 9
+#define SFX_VOICES 8
+#define MUS_VOICES 16
 #define NUM_VOICES (SFX_VOICES+MUS_VOICES)
 
 
@@ -830,30 +830,21 @@ accumulating all of the mixed channels in a register
 before writing them out to the output sound buffer
 
             next_mixed_sample += (ssmp1 | ssmp2);
-                        // a2 : next_mixed_sample
-                        // v1,a0 : ssmp1,ssmp2
-                        or       v1, v1, a0
-                        addu     a2, a2, v1
+                        or       ssmp1, ssmp1, ssmp2
+                        addu     next_mixed_sample, next_mixed_sample, ssmp1
         for (size_t ix=0; ix<NUM_VOICES; ix++)
-                        // v0 : &audVoice[ix].flags
-                        addiu    v0, v0, 36
-                        // 
-                        // a3 : &audVoice[16].flags
-                        bne      v0, a3, I_MixSound+0x50
+                        addiu    &audVoice[ix].flags, &audVoice[ix].flags, 36
+                        bne      &audVoice[ix].flags, &audVoice[NUM_VOICES].flags, I_MixSound+0x50
                         nop
     for (size_t iy=0; iy < (NUM_SAMPLES << 1); iy+=2)
-                        // t1 : iy
-                        addiu    t1, t1, 2
+                        addiu    iy, iy, 2
         }
 
         *((uint32_t *)&pcmbuf[iy]) = next_mixed_sample;
-                        // t3 : &pcmbuf[iy]
-                        sw       a2, 0(t3)
+                        sw       next_mixed_sample, 0(&pcmbuf[iy])
     for (size_t iy=0; iy < (NUM_SAMPLES << 1); iy+=2)
-                        // t6 : (NUM_SAMPLES << 1)
-                        bne      t2, t6, I_MixSound+0x48
-                        // t3 : &pcmbuf[iy]
-                        addiu    t3, t3, 4
+                        bne      iy, (NUM_SAMPLES << 1), I_MixSound+0x48
+                        addiu    &pcmbuf[iy], &pcmbuf[iy], 4
 */
 void I_MixSound (void)
 {
