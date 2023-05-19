@@ -38,8 +38,6 @@
 
 #define LZFX_HSIZE (1 << (LZFX_HLOG))
 
-#define D_memset memset
-
 # define fx_expect_false(expr)  (expr)
 # define fx_expect_true(expr)   (expr)
 
@@ -114,7 +112,7 @@ int lzfx_compress(const void *const ibuf, const unsigned int ilen,
         return lzfx_getsize(ibuf, ilen, olen);
     }
 
-    D_memset(htab, 0, sizeof(htab));
+    memset(htab, 0, sizeof(htab));
 
     /*  Start a literal run.  Whenever we do this the output pointer is
         advanced because the current byte will hold the encoded length. */

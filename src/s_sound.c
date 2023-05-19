@@ -356,37 +356,8 @@ S_StartSoundAtVolume
   if (cnum<0)
     return;
 
-  //
-  // This is supposed to handle the loading/caching.
-  // For some odd reason, the caching is done nearly
-  //  each time the sound is needed?
-  //
-  
-#if 0
-  // get lumpnum if necessary
-  if (sfx->lumpnum < 0)
-    sfx->lumpnum = I_GetSfxLumpNum(sfx);
-
-#ifndef SNDSRV
-  // cache data if necessary
-  if (!sfx->data)
-  {
-/*    fprintf( stderr,
-	     "S_StartSoundAtVolume: 16bit and not pre-cached - wtf?\n");
-*/
-    // DOS remains, 8bit handling
-    //sfx->data = (void *) W_CacheLumpNum(sfx->lumpnum, PU_MUSIC);
-    // fprintf( stderr,
-    //	     "S_StartSoundAtVolume: loading %d (lump %d) : 0x%x\n",
-    //       sfx_id, sfx->lumpnum, (int)sfx->data );
-    
-  }
-#endif
-  
-#endif
-
   // increase the usefulness
-//  if (sfx->usefulness++ < 0)
+  //if (sfx->usefulness++ < 0)
   //  sfx->usefulness = 1;
   
   // Assigns the handle to one of the channels in the
@@ -400,82 +371,14 @@ S_StartSoundAtVolume
 				       priority);
 }	
 
+
 void
 S_StartSound
 ( void*		origin,
   int		sfx_id )
 {
-#ifdef SAWDEBUG
-    // if (sfx_id == sfx_sawful)
-    // sfx_id = sfx_itemup;
-#endif
-  
     S_StartSoundAtVolume(origin, sfx_id, snd_SfxVolume);
-
-
-    // UNUSED. We had problems, had we not?
-#ifdef SAWDEBUG
-{
-    int i;
-    int n;
-	
-    static mobj_t*      last_saw_origins[10] = {1,1,1,1,1,1,1,1,1,1};
-    static int		first_saw=0;
-    static int		next_saw=0;
-	
-    if (sfx_id == sfx_sawidl
-	|| sfx_id == sfx_sawful
-	|| sfx_id == sfx_sawhit)
-    {
-/*	for (i=first_saw;i!=next_saw;i=(i+1)%10)
-        {
-	    if (last_saw_origins[i] != origin)
-            {
-		fprintf(stderr, "old origin 0x%lx != "
-			"origin 0x%lx for sfx %d\n",
-			last_saw_origins[i],
-			origin,
-			sfx_id);
-            }
-        }
-	    */
-	last_saw_origins[next_saw] = origin;
-	next_saw = (next_saw + 1) % 10;
-	if (next_saw == first_saw)
-	    first_saw = (first_saw + 1) % 10;
-	    
-	for (n=i=0; i<numChannels ; i++)
-	{
-	    if (channels[i].sfxinfo == &S_sfx[sfx_sawidl]
-		|| channels[i].sfxinfo == &S_sfx[sfx_sawful]
-		|| channels[i].sfxinfo == &S_sfx[sfx_sawhit]) n++;
-	}
-	    
-/*	if (n>1)
-	{
-	    for (i=0; i<numChannels ; i++)
-	    {
-		if (channels[i].sfxinfo == &S_sfx[sfx_sawidl]
-		    || channels[i].sfxinfo == &S_sfx[sfx_sawful]
-		    || channels[i].sfxinfo == &S_sfx[sfx_sawhit])
-		{
-		    fprintf(stderr,
-			    "chn: sfxinfo=0x%lx, origin=0x%lx, "
-			    "handle=%d\n",
-			    channels[i].sfxinfo,
-			    channels[i].origin,
-			    channels[i].handle);
-		}
-	    }
-	    fprintf(stderr, "\n");
-	}*/
-    }
 }
-#endif
- 
-}
-
-
 
 
 void S_StopSound(void *origin)
@@ -492,13 +395,6 @@ void S_StopSound(void *origin)
 	}
     }
 }
-
-
-
-
-
-
-
 
 
 //
@@ -538,28 +434,6 @@ void S_UpdateSounds(void* listener_p)
     
     mobj_t*	listener = (mobj_t*)listener_p;
 
-
-    
-    // Clean up unused data.
-    // This is currently not done for 16bit (sounds cached static).
-    // DOS 8bit remains. 
-    /*if (gametic > nextcleanup)
-    {
-	for (i=1 ; i<NUMSFX ; i++)
-	{
-	    if (S_sfx[i].usefulness < 1
-		&& S_sfx[i].usefulness > -1)
-	    {
-		if (--S_sfx[i].usefulness == -1)
-		{
-		    Z_ChangeTag(S_sfx[i].data, PU_CACHE);
-		    S_sfx[i].data = 0;
-		}
-	    }
-	}
-	nextcleanup = gametic + 15;
-    }*/
-    
     for (cnum=0 ; cnum<numChannels ; cnum++)
     {
 	c = &channels[cnum];
@@ -615,11 +489,6 @@ void S_UpdateSounds(void* listener_p)
 	    }
 	}
     }
-    // kill music if it is a single-play && finished
-//     if (	mus_playing
-//          && !I_QrySongPlaying(mus_playing->handle)
-//          && !mus_paused )
-//     S_StopMusic();
 }
 
 
@@ -631,11 +500,9 @@ void S_SetMusicVolume(int volume)
 	I_Error("S_SetMusicVolume: Attempt to set music volume at %d",volume);
     }
 #endif
-//    I_SetMusicVolume(127);
     I_SetMusicVolume(volume);
     snd_MusicVolume = volume;
 }
-
 
 
 void S_SetSfxVolume(int volume)
@@ -649,6 +516,7 @@ void S_SetSfxVolume(int volume)
     snd_SfxVolume = volume;
 }
 
+
 //
 // Starts some music with the music id found in sounds.h.
 //
@@ -656,6 +524,7 @@ void S_StartMusic(int m_id)
 {
     S_ChangeMusic(m_id, false);
 }
+
 
 void
 S_ChangeMusic
@@ -671,14 +540,8 @@ S_ChangeMusic
 	I_Error("S_ChangeMusic: Bad music number %d", musicnum);
 	return;
     }
-    else
-    {
-	music = &S_music[musicnum];
-    }
 #endif
-#ifndef RANGECHECK
 	music = &S_music[musicnum];
-#endif
 
     if (mus_playing == music)
     {
@@ -711,9 +574,9 @@ void S_StopMusic(void)
     if (mus_playing)
     {
 	if (mus_paused)
-        {
-	    I_ResumeSong(mus_playing->handle);
-        }
+    {
+    I_ResumeSong(mus_playing->handle);
+    }
 	I_StopSong(mus_playing->handle);
 	I_UnRegisterSong(mus_playing->handle);
 	Z_ChangeTag(mus_playing->data, PU_CACHE);
@@ -722,8 +585,6 @@ void S_StopMusic(void)
 	mus_playing = 0;
     }
 }
-
-
 
 
 void S_StopChannel(int cnum)
@@ -756,7 +617,6 @@ void S_StopChannel(int cnum)
 	c->sfxinfo = 0;
     }
 }
-
 
 
 //
@@ -834,8 +694,6 @@ int S_AdjustSoundParams(
 }
 
 
-
-
 //
 // S_getChannel :
 //   If none available, return -1.  Otherwise channel #.
@@ -854,13 +712,13 @@ S_getChannel
     for (cnum=0 ; cnum<numChannels ; cnum++)
     {
 	if (!channels[cnum].sfxinfo)
-        {
-	    break;
-        }
+    {
+    break;
+    }
 	else if (origin &&  channels[cnum].origin ==  origin)
 	{
-	    S_StopChannel(cnum);
-	    break;
+    S_StopChannel(cnum);
+    break;
 	}
     }
 
@@ -869,19 +727,20 @@ S_getChannel
     {
 	// Look for lower priority
 	for (cnum=0 ; cnum<numChannels ; cnum++)
-        {
-	    if (channels[cnum].sfxinfo->priority >= sfxinfo->priority) break;
-        }
+    {
+    if (channels[cnum].sfxinfo->priority >= sfxinfo->priority)
+    break;
+    }
 
 	if (cnum == numChannels)
 	{
-	    // FUCK!  No lower priority.  Sorry, Charlie.
-	    return -1;
+    // FUCK!  No lower priority.  Sorry, Charlie.
+    return -1;
 	}
 	else
 	{
-	    // Otherwise, kick out lower priority.
-	    S_StopChannel(cnum);
+    // Otherwise, kick out lower priority.
+    S_StopChannel(cnum);
 	}
     }
 

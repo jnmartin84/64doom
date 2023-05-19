@@ -1,4 +1,4 @@
-// Emacs style mode select   -*- C++ -*-
+    // Emacs style mode select   -*- C++ -*-
 //-----------------------------------------------------------------------------
 //
 // $Id:$
@@ -49,9 +49,9 @@
 static hashtable_t ht;
 
 
-void wadupr(char *s)
+void wadupr (char *s)
 {
-    int i;
+    int    i;
 
     for (i=0;i<8;i++)
     {
@@ -79,9 +79,9 @@ void**         lumpcache;
 
 void ExtractFileBase(char* path, char* dest)
 {
-    char* src;
+    char*    src;
 #ifdef RANGECHECK    
-    int length;
+    int      length;
 #endif
 
     src = path + strlen(path) - 1;
@@ -93,7 +93,7 @@ void ExtractFileBase(char* path, char* dest)
     }
 
     // copy up to eight characters
-    D_memset(dest, 0, 8);
+    memset(dest, 0, 8);
 #ifdef RANGECHECK
     length = 0;
 #endif
@@ -134,7 +134,7 @@ char*    reloadname;
 
 
 // Hash table for fast lookups
-int comp_keys(void *el1, void *el2)
+int comp_keys (void *el1, void *el2)
 {
     char *t1 = ((lumpinfo_t *)el1)->name;
     char *t2 = ((lumpinfo_t *)el2)->name;
@@ -166,31 +166,33 @@ unsigned long int W_LumpNameHash(char *s)
 }
 
 
-unsigned long int hash(void *element, void *params)
+unsigned long int hash (void *element, void *params)
 {
     wadupr(((lumpinfo_t *)element)->name);
     return W_LumpNameHash(((lumpinfo_t *)element)->name) % 256;
 }
 
 // lumps for 64Doom-specific menu graphics (created with SLADE)
-static uint8_t* GAMMA_lmp;
-static uint8_t* RZHIGH_lmp;
-static uint8_t* RZLOW_lmp;
-static uint8_t* VIDTTL_lmp;
-static uint8_t* VIDEOSET_lmp;
-static uint8_t* RESOLUTI_lmp;     
+static void* GAMMA_lmp;
+static void* RZHIGH_lmp;
+static void* RZLOW_lmp;
+static void* VIDTTL_lmp;
+static void* VIDEOSET_lmp;
+static void* RESOLUTI_lmp;     
 
-#define LOAD_MENU_LUMP(name,x) \
+#define LOAD_MENU_LUMP(menulump_name,menulump_ptr) \
     {\
-    int fd = dfs_open(name); \
-    if (fd < 0) I_Error("W_Init: missing %s.\n", name); \
-    x = malloc(dfs_size(fd)); \
-    if (x == NULL) I_Error("W_Init: could not allocate memory for %s.\n", name); \
-    dfs_read(x, dfs_size(fd), 1, fd); \
-    dfs_close(fd); \
+    int menulump_fd = dfs_open(menulump_name); \
+    if (menulump_fd < 0) I_Error("W_Init: missing %s.\n", menulump_name); \
+    size_t menulump_len = dfs_size(menulump_fd); \
+    menulump_ptr = malloc(menulump_len); \
+    if (menulump_ptr == NULL) I_Error("W_Init: could not allocate memory for %s.\n", menulump_name); \
+    size_t menulump_read = dfs_read(menulump_ptr, sizeof(uint8_t), menulump_len, menulump_fd); \
+    if (menulump_len != menulump_read) I_Error("W_Init: could not read lump data for %s.\n", menulump_name); \
+    dfs_close(menulump_fd); \
     }
 
-void W_Init()
+void W_Init (void)
 {
     reloadname = 0;
     hashtable_init(&ht, 256, comp_keys, hash, 0);
@@ -238,7 +240,7 @@ void W_AddFile (char *filename)
 #ifdef RANGECHECK
     size_t size_r =    
 #endif    
-    dfs_read( &header, sizeof(header), 1, handle);
+    dfs_read(&header, sizeof(header), 1, handle);
 #ifdef RANGECHECK
     if (sizeof(header) != size_r)
     {
@@ -275,15 +277,15 @@ void W_AddFile (char *filename)
     dfs_seek(handle, header.infotableofs, SEEK_SET);
 #ifdef RANGECHECK
     if (DFS_ESUCCESS != sr)
-	{
-        I_Error("W_AddFile: Error while seeking to infotableofs.\n");		
-	}
+    {
+        I_Error("W_AddFile: Error while seeking to infotableofs.\n");
+    }
 #endif
 
 #ifdef RANGECHECK
     size_r = 
 #endif
-    dfs_read(fileinfo, length, 1, handle);
+    dfs_read(fileinfo, sizeof(uint8_t), length, handle);
 #ifdef RANGECHECK
     if (length != size_r)
     {
@@ -329,13 +331,13 @@ void W_AddFile (char *filename)
 //
 void W_Reload (void)
 {
-    wadinfo_t        header;
+    wadinfo_t      header;
     int            lumpcount;
-    lumpinfo_t*        lump_p;
-    unsigned        i;
+    lumpinfo_t*    lump_p;
+    unsigned       i;
     int            handle;
     int            length;
-    filelump_t*        fileinfo;
+    filelump_t*    fileinfo;
 
     if (!reloadname)
     {
@@ -357,7 +359,7 @@ void W_Reload (void)
     fileinfo = alloca(length);
 
     dfs_seek(handle, header.infotableofs, SEEK_SET);
-    dfs_read(fileinfo, length, 1, handle);
+    dfs_read(fileinfo, sizeof(filelump_t), lumpcount, handle);
 
     // Fill in lumpinfo
     lump_p = &lumpinfo[reloadlump];
@@ -421,7 +423,7 @@ void W_InitMultipleFiles (char** filenames)
         I_Error("W_InitMultipleFiles: Couldn't allocate lumpcache");
     }
 #endif
-    D_memset(lumpcache, 0, size);
+    memset(lumpcache, 0, size);
 }
 
 
@@ -429,7 +431,7 @@ void W_InitMultipleFiles (char** filenames)
 // W_InitFile
 // Just initialize from a single file.
 //
-void W_InitFile(char* filename)
+void W_InitFile (char* filename)
 {
     char*    names[2];
 
@@ -452,7 +454,7 @@ int W_NumLumps(void)
 // W_CheckNumForName
 // Returns -1 if name not found.
 //
-int W_CheckNumForName(char* name)
+int W_CheckNumForName (char* name)
 {
     lumpinfo_t *testlump = (lumpinfo_t *)alloca(sizeof(lumpinfo_t));
 #ifdef RANGECHECK
@@ -481,7 +483,7 @@ int W_CheckNumForName(char* name)
 // Calls W_CheckNumForName.
 // It is ok to return -1.
 //
-int W_GetNumForName(char* name)
+int W_GetNumForName (char* name)
 {
     int    i;
 
@@ -495,7 +497,7 @@ int W_GetNumForName(char* name)
 // W_LumpLength
 // Returns the buffer size needed to load the given lump.
 //
-int W_LumpLength(int lump)
+int W_LumpLength (int lump)
 {
 #ifdef RANGECHECK    
     if (lump >= numlumps)
@@ -512,13 +514,13 @@ int W_LumpLength(int lump)
 // Loads the lump into the given buffer,
 //  which must be >= W_LumpLength().
 //
-void W_ReadLump(int lump, void* dest)
+void W_ReadLump (int lump, void* dest)
 {
 #ifdef RANGECHECK
-    int        c;
+    int            c;
 #endif
     lumpinfo_t*    l;
-    int        handle;
+    int            handle;
 
 #ifdef RANGECHECK
     if (lump >= numlumps)
@@ -540,15 +542,13 @@ void W_ReadLump(int lump, void* dest)
     {
         handle = l->handle;
     }
-    // ??? I_BeginRead ();
 
-    //?
     dfs_seek(handle, l->position, SEEK_SET);
 
 #ifdef RANGECHECK
     c =
 #endif
-    dfs_read( dest, l->size, 1, handle);
+    dfs_read(dest, sizeof(uint8_t), l->size, handle);
 
 #ifdef RANGECHECK
     if (l->size != c)
@@ -566,7 +566,7 @@ void W_ReadLump(int lump, void* dest)
 //
 // W_CacheLumpNum
 //
-void* W_CacheLumpNum(int lump, int tag)
+void* W_CacheLumpNum (int lump, int tag)
 {
 #ifdef RANGECHECK
     byte*    ptr;
@@ -601,7 +601,7 @@ void* W_CacheLumpNum(int lump, int tag)
 //
 // W_CacheLumpName
 //
-void* W_CacheLumpName(char* name, int tag)
+void* W_CacheLumpName (char* name, int tag)
 {
     int numforname = W_GetNumForName(name);
 

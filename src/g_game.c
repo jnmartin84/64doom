@@ -254,7 +254,7 @@ void G_BuildTiccmd (ticcmd_t* cmd)
     ticcmd_t*    base;
 
     base = I_BaseTiccmd (); // empty, or external driver
-    D_memcpy (cmd,base,sizeof(*cmd)); 
+    memcpy (cmd,base,sizeof(*cmd)); 
 
     cmd->consistancy = consistancy[consoleplayer][maketic%BACKUPTICS]; 
 
@@ -500,7 +500,7 @@ void G_DoLoadLevel (void)
         {
             players[i].playerstate = PST_REBORN; 
         }
-        D_memset (players[i].frags,0,sizeof(players[i].frags)); 
+        memset (players[i].frags,0,sizeof(players[i].frags)); 
     } 
 
     P_SetupLevel (gameepisode, gamemap, 0, gameskill);    
@@ -511,14 +511,14 @@ void G_DoLoadLevel (void)
     Z_CheckHeap ();
     
     // clear cmd building stuff
-    D_memset (gamekeydown, 0, sizeof(gamekeydown)); 
+    memset (gamekeydown, 0, sizeof(gamekeydown)); 
     joyxmove = joyymove = 0; 
     mousex = mousey = 0; 
     sendpause = sendsave = paused = false; 
-//    D_memset (mousebuttons, 0, sizeof(mousebuttons)); 
-//    D_memset (joybuttons, 0, sizeof(joybuttons));
-    D_memset (mousearray, 0, sizeof(mousearray)); 
-    D_memset (joyarray, 0, sizeof(joyarray));
+//    memset (mousebuttons, 0, sizeof(mousebuttons)); 
+//    memset (joybuttons, 0, sizeof(joybuttons));
+    memset (mousearray, 0, sizeof(mousearray)); 
+    memset (joyarray, 0, sizeof(joyarray));
 } 
  
  
@@ -556,13 +556,6 @@ boolean G_Responder (event_t* ev)
  
     if (gamestate == GS_LEVEL) 
     { 
-#if 0 
-    if (devparm && ev->type == ev_keydown && ev->data1 == ';') 
-    { 
-        G_DeathMatchSpawnPlayer (0); 
-        return true; 
-    } 
-#endif 
     if (HU_Responder (ev)) 
         return true;    // chat ate the event 
     if (ST_Responder (ev)) 
@@ -683,7 +676,7 @@ void G_Ticker (void)
         if (playeringame[i]) 
         { 
             cmd = &players[i].cmd; 
-            D_memcpy (cmd, &netcmds[i][buf], sizeof(ticcmd_t)); 
+            memcpy (cmd, &netcmds[i][buf], sizeof(ticcmd_t)); 
 
             if (demoplayback) 
             G_ReadDemoTiccmd (cmd); 
@@ -803,8 +796,8 @@ void G_PlayerFinishLevel (int player)
 
     p = &players[player]; 
 
-    D_memset (p->powers, 0, sizeof (p->powers)); 
-    D_memset (p->cards, 0, sizeof (p->cards)); 
+    memset (p->powers, 0, sizeof (p->powers)); 
+    memset (p->cards, 0, sizeof (p->cards)); 
     p->mo->flags &= ~MF_SHADOW;    // cancel invisibility 
     p->extralight = 0;             // cancel gun flashes 
     p->fixedcolormap = 0;          // cancel ir gogles 
@@ -827,15 +820,15 @@ void G_PlayerReborn (int player)
     int          itemcount;
     int          secretcount; 
 
-    D_memcpy (frags,players[player].frags,sizeof(frags)); 
+    memcpy (frags,players[player].frags,sizeof(frags)); 
     killcount = players[player].killcount; 
     itemcount = players[player].itemcount; 
     secretcount = players[player].secretcount; 
 
     p = &players[player]; 
-    D_memset (p, 0, sizeof(*p)); 
+    memset (p, 0, sizeof(*p)); 
  
-    D_memcpy (players[player].frags, frags, sizeof(players[player].frags)); 
+    memcpy (players[player].frags, frags, sizeof(players[player].frags)); 
     players[player].killcount = killcount; 
     players[player].itemcount = itemcount; 
     players[player].secretcount = secretcount; 
@@ -1063,25 +1056,6 @@ void G_DoCompleted (void)
         break;
     }
 
-#if 0  
-Hmmm - why?
-    if ( (gamemap == 8)
-     && (gamemode != commercial) ) 
-    {
-    // victory 
-    gameaction = ga_victory; 
-    return; 
-    } 
-     
-    if ( (gamemap == 9)
-     && (gamemode != commercial) ) 
-    {
-    // exit secret level 
-    for (i=0 ; i<MAXPLAYERS ; i++) 
-        players[i].didsecret = true; 
-    } 
-#endif
-    
     wminfo.didsecret = players[consoleplayer].didsecret; 
     wminfo.epsd = gameepisode -1; 
     wminfo.last = gamemap -1;
@@ -1147,7 +1121,7 @@ Hmmm - why?
     wminfo.plyr[i].sitems = players[i].itemcount; 
     wminfo.plyr[i].ssecret = players[i].secretcount; 
     wminfo.plyr[i].stime = leveltime; 
-    D_memcpy (wminfo.plyr[i].frags, players[i].frags, sizeof(wminfo.plyr[i].frags)); 
+    memcpy (wminfo.plyr[i].frags, players[i].frags, sizeof(wminfo.plyr[i].frags)); 
     } 
  
     gamestate = GS_INTERMISSION; 
@@ -1155,7 +1129,7 @@ Hmmm - why?
     automapactive = false; 
  
     if (statcopy)
-    D_memcpy (statcopy, &wminfo, sizeof(wminfo));
+    memcpy (statcopy, &wminfo, sizeof(wminfo));
 
     WI_Start (&wminfo); 
 } 
@@ -1230,12 +1204,11 @@ void G_DoLoadGame (void)
     int any_entries;
 
     set_AI_interrupt(0);
-    mus_playing = 0;
 
     sprintf(msg, "Loaded game from mempak.");
 
-    D_memset(&savebuffer[0],  0, SAVEGAMESIZE);
-    D_memset(&mempak_data[0], 0, 256*123);
+    memset(&savebuffer[0],  0, SAVEGAMESIZE);
+    memset(&mempak_data[0], 0, 256*123);
 
     struct controller_data output;
     get_accessories_present(&output);
@@ -1356,7 +1329,7 @@ void G_DoLoadGame (void)
     save_p = savebuffer + SAVESTRINGSIZE;
 
     // skip the description field
-    D_memset(vcheck,0,sizeof(vcheck));
+    memset(vcheck,0,sizeof(vcheck));
     sprintf(vcheck,"version %i",VERSION);
     if (strcmp ((char *)save_p, vcheck))
     {
@@ -1399,7 +1372,6 @@ the_end_of_loading:
 
     gameaction = ga_nothing;
 
-    mus_playing = 1;
     set_AI_interrupt(1);
 }
 
@@ -1432,18 +1404,18 @@ void G_DoSaveGame (void)
     sprintf(name,SAVEGAMENAME"%d.dsg",savegameslot);
     sprintf(msg, "Saved game to mempak.");
 
-    D_memset(&savebuffer[0],0,SAVEGAMESIZE);
-    D_memset(&mempak_data[0], 0, 256*123);
+    memset(&savebuffer[0],0,SAVEGAMESIZE);
+    memset(&mempak_data[0], 0, 256*123);
 
     save_p = savebuffer;
 
     description = savedescription;
 
-    D_memcpy (save_p, description, SAVESTRINGSIZE);
+    memcpy (save_p, description, SAVESTRINGSIZE);
     save_p += SAVESTRINGSIZE;
-    D_memset (name2,0,sizeof(name2));
+    memset (name2,0,sizeof(name2));
     sprintf (name2,"version %i",VERSION);
-    D_memcpy (save_p, name2, VERSIONSIZE);
+    memcpy (save_p, name2, VERSIONSIZE);
     save_p += VERSIONSIZE;
 
     *save_p++ = gameskill;
@@ -1582,7 +1554,7 @@ void G_DoSaveGame (void)
     doom_save_entry.blocks = save_size_in_blocks;
     doom_save_entry.region = 'A';
     doom_save_entry.valid = 1;
-    D_memset(doom_save_entry.name, '\0', 19);
+    memset(doom_save_entry.name, '\0', 19);
 
     for (i=0;i<strlen(gameid)-1;i++)
     {

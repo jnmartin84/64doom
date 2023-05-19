@@ -14,12 +14,13 @@ HEADERPATH = $(ROOTDIR)/mips64-elf/lib
 N64TOOL = $(ROOTDIR)/bin/n64tool
 HEADERNAME = header
 LIBS = -ldragon -lc -lm -ldragonsys
-LINK_FLAGS = -G4 -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64.ld
 PROG_NAME = $(IWAD_PREFIX)
 OPTFLAG = -O3
 
-CFLAGS = -falign-functions=16 -Werror -Wno-error=switch -Wall -g -mabi=o64 -mno-shared -mno-abicalls -mno-branch-likely -mno-llsc -mno-check-zero-division -mfix4300 -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -G4 $(OPTFLAG) -I$(ROOTDIR)/mips64-elf/include 
-#-DRANGECHECK
+# function/data sections + gc-sections saves about ~200kb from output binary
+CFLAGS = -ffunction-sections -fdata-sections -falign-functions=32 -ffile-prefix-map=$(CURDIR)= -DN64 -fdiagnostics-color=always -Werror -Wno-error=switch -Wall -g -mabi=o64 -mno-shared -mno-abicalls -mno-branch-likely -mno-llsc -mno-check-zero-division -mfix4300 -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -G4 $(OPTFLAG) -I$(ROOTDIR)/mips64-elf/include
+# -DRANGECHECK
+LINK_FLAGS = --gc-sections -G4 -g -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64.ld
 
 CC = $(GCCN64PREFIX)gcc
 AS = $(GCCN64PREFIX)as

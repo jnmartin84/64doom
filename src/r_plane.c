@@ -199,7 +199,7 @@ void R_ClearPlanes (void)
     lastopening = openings;
 
     // texture calculation
-    D_memset (cachedheight, 0, sizeof(cachedheight));
+    memset (cachedheight, 0, sizeof(cachedheight));
 
     // left to right mapping
     angle = (viewangle-ANG90)>>ANGLETOFINESHIFT;
@@ -255,7 +255,7 @@ R_FindPlane
     check->minx = SCREENWIDTH;
     check->maxx = -1;
 
-    D_memset (check->top,0xff,sizeof(check->top));
+    memset (check->top,0xff,sizeof(check->top));
 
     return check;
 }
@@ -321,7 +321,7 @@ R_CheckPlane
     pl->minx = start;
     pl->maxx = stop;
 
-    D_memset (pl->top,0xff,sizeof(pl->top));
+    memset (pl->top,0xff,sizeof(pl->top));
 
     return pl;
 }
@@ -370,9 +370,9 @@ void swapvp(visplane_t *v1, visplane_t *v2)
 {
     visplane_t tmpvp;
 
-    D_memcpy(&tmpvp, v1, sizeof(visplane_t));
-    D_memcpy(v1, v2, sizeof(visplane_t));
-    D_memcpy(v2, &tmpvp, sizeof(visplane_t));
+    memcpy(&tmpvp, v1, sizeof(visplane_t));
+    memcpy(v1, v2, sizeof(visplane_t));
+    memcpy(v2, &tmpvp, sizeof(visplane_t));
 }
 #endif
 

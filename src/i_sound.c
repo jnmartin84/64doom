@@ -203,13 +203,13 @@ void reset_midiVoices(void)
             free((void*)((uintptr_t)midiVoice[i].wave & 0x8FFFFFFF));
         }
     }
-    D_memset(mus_channel, 0, sizeof(mus_channel));
-    D_memset(audVoice,    0, sizeof(audVoice));
-    D_memset(midiVoice,   0, sizeof(midiVoice));
-    D_memset(voice_inuse, 0, sizeof(voice_inuse));
+    memset(mus_channel, 0, sizeof(mus_channel));
+    memset(audVoice,    0, sizeof(audVoice));
+    memset(midiVoice,   0, sizeof(midiVoice));
+    memset(voice_inuse, 0, sizeof(voice_inuse));
 
     // instrument used lookups
-    D_memset(used_instrument_bits, 0, sizeof(used_instrument_bits));
+    memset(used_instrument_bits, 0, sizeof(used_instrument_bits));
 
     for (i=0;i<NUM_MIDI_INSTRUMENTS;i++)
     {
@@ -227,12 +227,12 @@ void reset_midiVoices(void)
 //
 void *getsfx (char *sfxname, int *len)
 {
-    unsigned char *sfx;
-    unsigned char *cnvsfx;
-    int i;
-    int size;
-    char name[32];
-    int sfxlump;
+    uint8_t*    sfx;
+    uint8_t*    cnvsfx;
+    int         i;
+    int         size;
+    char        name[32];
+    int         sfxlump;
 
     // Get the sound data from the WAD, allocate lump
     //  in zone memory.
@@ -258,10 +258,10 @@ void *getsfx (char *sfxname, int *len)
     }
 
     size = W_LumpLength(sfxlump);
-    sfx = (unsigned char*)W_CacheLumpNum(sfxlump, PU_STATIC);
+    sfx = (uint8_t*)W_CacheLumpNum(sfxlump, PU_STATIC);
 
     // Allocate from zone memory.
-    cnvsfx = (unsigned char*)Z_Malloc(size, PU_SOUND, 0);
+    cnvsfx = (uint8_t*)Z_Malloc(size, PU_SOUND, 0);
     // Now copy and convert offset to signed.
     for (i = 0; i < size; i++)
     {
@@ -274,8 +274,8 @@ void *getsfx (char *sfxname, int *len)
     // return length.
     *len = size;
 
-    // Return allocated converted data.
-    return (void *)((uintptr_t)cnvsfx|0xA0000000);
+    // Return uncached pointer for allocated, converted data.
+    return (void *)((uintptr_t)cnvsfx | 0xA0000000);
 }
 
 
@@ -286,7 +286,7 @@ void *getsfx (char *sfxname, int *len)
 
 void sound_callback(void)
 {
-    D_memset((void *)pcmbuf, 0, (NUM_SAMPLES << 2));
+    memset(pcmbuf, 0, (NUM_SAMPLES << 2));
     // Sound mixing for the buffer is synchronous.
     // Synchronous sound output is explicitly called.
     I_UpdateSound();
@@ -350,7 +350,7 @@ void I_SubmitSound (void)
 {
     if (!(AI_regs->status & AI_STATUS_FULL))
     {
-        AI_regs->address = (uint32_t *)((uintptr_t)pcmbuf);
+        AI_regs->address = (void*)pcmbuf;
         AI_regs->length = NUM_SAMPLES*2*2;
         AI_regs->control = 1;
         pcmflip ^= 1;
@@ -362,6 +362,7 @@ void I_SubmitSound (void)
 // ... shut down and relase at program termination.
 void I_ShutdownSound (void)
 {
+    set_AI_interrupt(0);
 }
 
 /**********************************************************************/
@@ -450,14 +451,16 @@ void I_InitMusic(void)
     if (-1 == mphnd)
     {
         printf("I_InitMusic: Could not open MIDI_Instruments file (%s)\n", strerror(errno));
+        printf("             MUS playback is disabled.\n");
         return;
     }
 
-    rc = dfs_read(midi_pointers, sizeof(uint32_t)*NUM_MIDI_INSTRUMENTS, 1, mphnd);
+    rc = dfs_read(midi_pointers, sizeof(uint32_t), NUM_MIDI_INSTRUMENTS, mphnd);
     dfs_close(mphnd);
     if ((sizeof(uint32_t)*NUM_MIDI_INSTRUMENTS) != rc)
     {
         printf("I_InitMusic: Could not read MUS instrument headers (%s)\n", strerror(errno));
+        printf("             MUS playback is disabled.\n");
         return;
     }
 
@@ -468,6 +471,7 @@ void I_InitMusic(void)
 /**********************************************************************/
 void I_ShutdownMusic(void)
 {
+    set_AI_interrupt(0);
 }
 
 /**********************************************************************/
@@ -476,41 +480,27 @@ void I_SetMusicVolume(int volume)
 {
     snd_MusicVolume = volume;
 
-    if (music_okay)
-    {
-        Mus_SetVol(volume);
-    }
+    Mus_SetVol(volume);
 }
 
 /**********************************************************************/
 // PAUSE game handling.
 void I_PauseSong(int handle)
 {
-    if (music_okay)
-    {
-        Mus_Pause(handle);
-    }
+    Mus_Pause(handle);
 }
 
 /**********************************************************************/
 void I_ResumeSong(int handle)
 {
-    if (music_okay)
-    {
-        Mus_Resume(handle);
-    }
+    Mus_Resume(handle);
 }
 
 /**********************************************************************/
 // Registers a song handle to song data.
 int I_RegisterSong(void *data)
 {
-    if (music_okay)
-    {
-        return Mus_Register(data);
-    }
-
-    return 0;
+    return Mus_Register(data);
 }
 
 /**********************************************************************/
@@ -523,10 +513,7 @@ I_PlaySong
 ( int        handle,
   int        looping )
 {
-    if (music_okay)
-    {
-        Mus_Play(handle, looping);
-    }
+    Mus_Play(handle, looping);
 
     musicdies = gametic + TICRATE*30;
 }
@@ -535,10 +522,7 @@ I_PlaySong
 // Stops a song over 3 seconds.
 void I_StopSong(int handle)
 {
-    if (music_okay)
-    {
-        Mus_Stop(handle);
-    }
+    Mus_Stop(handle);
 
     musicdies = 0;
 }
@@ -547,10 +531,7 @@ void I_StopSong(int handle)
 // See above (register), then think backwards
 void I_UnRegisterSong(int handle)
 {
-    if (music_okay)
-    {
-        Mus_Unregister(handle);
-    }
+    Mus_Unregister(handle);
 }
 
 /**********************************************************************/
@@ -654,36 +635,36 @@ int Mus_Register(void *musdata)
     score_data = musdata;
     MUSheader_t *musheader = (MUSheader_t*)score_data;
     // instrument used lookups
-    D_memset(used_instrument_bits,0,sizeof(used_instrument_bits));
+    memset(used_instrument_bits,0,sizeof(used_instrument_bits));
     used_instrument_count = inst_cnt;
     for (i=0;i<inst_cnt;i++)
     {
         uint8_t instrument = (uint8_t)SHORT(musheader->instruments[i]);
         
         // fix TNT crash with one of the 10s levels
-        uint32_t ptr = midi_pointers[instrument];
-        if (!ptr)
+        if (!midi_pointers[instrument])
             continue;
+
         used_instrument_bits[(instrument >> 5)] |= (1 << (instrument & 31));
     }
 
     // iterating over all instruments
-    for (i=0;i<NUM_MIDI_INSTRUMENTS;i++)
+    for (i = 0; i < NUM_MIDI_INSTRUMENTS; i++)
     {
         // current instrument is used
         if (instrument_used(i))
         {
             // get the pointer into the instrument data struct
-            uint32_t ptr = midi_pointers[i];
+            uintptr_t instrdata_ptr = midi_pointers[i];
 
 #ifdef RANGECHECK
-            if (!ptr)
+            if (!instrdata_ptr)
             {
                 I_Error("Mus_Register: instrument %d used but MUS instrument pointer is NULL.\n", i);
             }
 
             // make sure it doesn't point to NULL
-            if (ptr)
+            if (instrdata_ptr)
 #endif
             {
                 // allocate some space for the header
@@ -715,10 +696,10 @@ int Mus_Register(void *musdata)
 #endif
                 }
 
-                // documentation for this makes it sound like it is pointless to test the return value
-                dfs_seek(hnd,ptr,SEEK_SET);
+                // handle already checked
+                dfs_seek(hnd, instrdata_ptr, SEEK_SET);
 
-                if (sizeof(struct midiHdr) != dfs_read((void*)mhdr,sizeof(struct midiHdr),1,hnd))
+                if (sizeof(struct midiHdr) != dfs_read(mhdr, sizeof(uint8_t), sizeof(struct midiHdr), hnd))
                 {
 #ifdef RANGECHECK
                     I_Error("Mus_Register: Could not read header for instrument %d from MIDI_Instruments file.\n", i);
@@ -730,12 +711,12 @@ int Mus_Register(void *musdata)
 
                 uint32_t length = mhdr->length >> 16;
 
-                void *sample = (void *)((uintptr_t)malloc(length));
+                int8_t* sample = (int8_t*)malloc(length);
 
                 if (sample)
                 {
-                    dfs_seek(hnd,ptr + 4 + 4 + 4 + 2,SEEK_SET);
-                    dfs_read(sample,length,1,hnd);
+                    dfs_seek(hnd, instrdata_ptr + offsetof(struct midiHdr, sample), SEEK_SET);
+                    dfs_read(sample, sizeof(int8_t), length, hnd);
                     // it doesn't hurt to access sound data from a non-cached address
                     // it gets mixed to uncached buffer anyway
                     midiVoice[i].wave   = (int8_t*)((uintptr_t)sample | 0xA0000000);
@@ -769,6 +750,7 @@ int Mus_Register(void *musdata)
 void Mus_Unregister(int handle)
 {
     Mus_Stop(handle);
+
     // music won't start playing until mus_playing set at this point
 
     score_data = 0;
@@ -946,7 +928,7 @@ void I_MixSound (void)
 
 void I_UpdateSound (void)
 {
-    if (mus_playing < 0)
+    if (mus_playing < 0 || !music_okay)
     {
         // music now off
         mus_playing = 0;

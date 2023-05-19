@@ -164,39 +164,3 @@ void I_InitGraphics(void)
 
     palarray = current_palarray;
 }
-
-
-void DebugOutput_String_For_IError(const char *str, int lineNumber, int good)
-{
-    #define ERROR_LINE_LEN 32
-    int error_string_length = strlen(str);
-    int error_string_line_count = (error_string_length / ERROR_LINE_LEN) + 1;
-
-    graphics_set_color(graphics_make_color(0xFF,0xFF,0xFF,0x00), graphics_make_color(0x00,0x00,0x00,0x00));
-
-    for (int i=0;i<=error_string_line_count;i++)
-    {
-        if (!good)
-        {
-            graphics_draw_box(_dc, 18, 12+((lineNumber+i)*8), 284, 16, graphics_make_color(0xFF,0x00,0x00,0x00));
-        }
-        else
-        {
-            graphics_draw_box(_dc, 18, 12+((lineNumber+i)*8), 284, 16, graphics_make_color(0x00,0x00,0xFF,0x00));
-        }
-    }
-
-    for (int i=0;i<=error_string_line_count;i++)
-    {
-        char copied_line[ERROR_LINE_LEN + 1] = {'\0'};
-        if (0 == i)
-        {
-            strncpy(copied_line, "I_Error:", ERROR_LINE_LEN);
-        }
-        else
-        {
-            strncpy(copied_line, str + ((i-1)*ERROR_LINE_LEN), ERROR_LINE_LEN);
-        }
-        graphics_draw_text(_dc, 0, 16+((lineNumber+i)*8), copied_line);
-    }
-}

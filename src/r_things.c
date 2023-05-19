@@ -232,7 +232,7 @@ void R_InitSpriteDefs (char** namelist)
     for (i=0 ; i<numsprites ; i++)
     {
 	spritename = namelist[i];
-	D_memset (sprtemp,-1, sizeof(sprtemp));
+	memset (sprtemp,-1, sizeof(sprtemp));
 
 	maxframe = -1;
 	intname = *(int *)namelist[i];
@@ -302,9 +302,8 @@ void R_InitSpriteDefs (char** namelist)
 #endif
 	// allocate space for the frames present and copy sprtemp to it
 	sprites[i].numframes = maxframe;
-	sprites[i].spriteframes =
-	    Z_Malloc (maxframe * sizeof(spriteframe_t), PU_STATIC, NULL);
-	D_memcpy (sprites[i].spriteframes, sprtemp, maxframe*sizeof(spriteframe_t));
+	sprites[i].spriteframes = Z_Malloc (maxframe * sizeof(spriteframe_t), PU_STATIC, NULL);
+	memcpy (sprites[i].spriteframes, sprtemp, maxframe*sizeof(spriteframe_t));
     }
 
 }

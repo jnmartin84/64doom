@@ -89,9 +89,6 @@ void STlib_drawNum(st_number_t* n, boolean refresh)
     refresh = false;
 
     int w = SHORT(n->p[0]->width);
-#if 0
-    int h = SHORT(n->p[0]->height);
-#endif
     int x = n->x;
     const int y = n->y;
 
@@ -124,11 +121,6 @@ void STlib_drawNum(st_number_t* n, boolean refresh)
     {
         I_Error("STlib_drawNum: n->y - ST_Y < 0; %d - %d < 0", y, ST_Y);
     }
-#endif
-
-    // changes from not using 8bpp framebuffers, no background to copy from
-#if 0
-    V_CopyRect(x, y - ST_Y, 0, w*numdigits, h, x, y, 5);
 #endif
 
     // if non-number, do not draw it

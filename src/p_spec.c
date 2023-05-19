@@ -1155,7 +1155,7 @@ void P_UpdateSpecials (void)
 		    break;
 		}
 		S_StartSound((mobj_t *)&buttonlist[i].soundorg,sfx_swtchn);
-		D_memset(&buttonlist[i],0,sizeof(button_t));
+		memset(&buttonlist[i],0,sizeof(button_t));
 	    }
 	}
 	
@@ -1357,7 +1357,7 @@ void P_SpawnSpecials (void)
 	activeplats[i] = NULL;
     
     for (i = 0;i < MAXBUTTONS;i++)
-	D_memset(&buttonlist[i],0,sizeof(button_t));
+	memset(&buttonlist[i],0,sizeof(button_t));
 
     // UNUSED: no horizonal sliders.
     //	P_InitSlidingDoorFrames();

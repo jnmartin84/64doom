@@ -901,7 +901,7 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    D_memset((uint16_t *)((uintptr_t)_dc->buffer), 0, SCREENWIDTH*(SCREENHEIGHT-SBARHEIGHT)*2);
+    memset((uint16_t *)((uintptr_t)_dc->buffer), 0, SCREENWIDTH*(SCREENHEIGHT-SBARHEIGHT)*2);
 }
 
 

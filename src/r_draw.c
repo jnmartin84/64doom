@@ -200,6 +200,7 @@ void R_DrawFuzzColumnLow (int cyl,int cyh,int cx)
     }
 
     count = cyh - cyl;
+
     // Zero length.
     if (count < 0)
     {
@@ -253,8 +254,6 @@ void R_DrawTranslatedColumn (int cyl,int cyh,int cx)
     fixed_t          fracstep;
     uint16_t*        dest;
 
-    count = cyh - cyl;
-
 #ifdef RANGECHECK
     if ((unsigned)cx >= SCREENWIDTH
     || cyl < 0
@@ -263,6 +262,8 @@ void R_DrawTranslatedColumn (int cyl,int cyh,int cx)
         I_Error("R_DrawTranslatedColumn: %i to %i at %i", cyl, cyh, cx);
     }
 #endif
+
+    count = cyh - cyl;
 
     // Framebuffer destination address.
     // Use ylookup LUT to avoid multiply with ScreenWidth.
@@ -307,6 +308,15 @@ void R_DrawTranslatedColumnLow (int cyl,int cyh,int cx)
     fixed_t          fracstep;
     uint32_t*        dest32;
 
+#ifdef RANGECHECK
+    if ((unsigned)cx >= SCREENWIDTH
+    || cyl < 0
+    || cyh >= SCREENHEIGHT)
+    {
+        I_Error("R_DrawTranslatedColumnLow: %i to %i at %i", cyl, cyh, cx);
+    }
+#endif
+
     count = cyh - cyl;
 
     x = cx << 1;
@@ -341,8 +351,6 @@ void R_DrawColumn (int cyl,int cyh,int cx)
     fixed_t          fracstep;
     uint16_t*        dest;
 
-    count = cyh - cyl;
-
 #ifdef RANGECHECK
     if ((unsigned)cx >= SCREENWIDTH
     || cyl < 0
@@ -351,6 +359,8 @@ void R_DrawColumn (int cyl,int cyh,int cx)
         I_Error("R_DrawColumn: %i to %i at %i", cyl, cyh, cx);
     }
 #endif
+
+    count = cyh - cyl;
 
     // Framebuffer destination address.
     // Use ylookup LUT to avoid multiply with ScreenWidth.
@@ -377,6 +387,15 @@ void R_DrawColumnLow (int cyl,int cyh,int cx)
     fixed_t     frac;
     fixed_t     fracstep;
     uint32_t    *dest32;
+
+#ifdef RANGECHECK
+    if ((unsigned)cx >= SCREENWIDTH
+    || cyl < 0
+    || cyh >= SCREENHEIGHT)
+    {
+        I_Error("R_DrawColumnLow: %i to %i at %i", cyl, cyh, cx);
+    }
+#endif
 
     count = cyh - cyl;
 
@@ -431,8 +450,7 @@ void R_DrawSpan (int sx1, int sx2, int sy)
     int              count;
     int              spot; 
      
-#if 0
-//#ifdef RANGECHECK 
+#ifdef RANGECHECK 
     if (sx2 < sx1
     || sx1<0
     || sx2>=SCREENWIDTH  
@@ -441,15 +459,9 @@ void R_DrawSpan (int sx1, int sx2, int sy)
     I_Error( "R_DrawSpan: %i to %i at %i",
          sx1,sx2,sy);
     }
-//    dscount++; 
-#endif 
-    // We do not check for zero spans here?
-    count = sx2 - sx1; 
+#endif
 
-    //if (count < 0)
-    //{
-    //    return;
-    //}
+    count = sx2 - sx1; 
     
     xfrac = ds_xfrac; 
     yfrac = ds_yfrac; 
@@ -488,13 +500,7 @@ void R_DrawSpanLow (int sx1, int sx2, int sy)
     }
 #endif 
 
-    // We do not check for zero spans here?
     count = sx2 - sx1; 
-
-    //if (count < 0)
-    //{
-    //    return;
-    //}
     
     xfrac = ds_xfrac; 
     yfrac = ds_yfrac; 

@@ -167,8 +167,7 @@ void V_DrawPatch ( int x, int y, patch_t* patch )
     if (x<0
     ||x+SHORT(patch->width) >SCREENWIDTH
     || y<0
-    || y+SHORT(patch->height)>SCREENHEIGHT 
-    || (unsigned)scrn>4)
+    || y+SHORT(patch->height)>SCREENHEIGHT )
     {
       I_Error("Patch at %d,%d exceeds LFB\n", x,y );
       // No I_Error abort - what is up with TNT.WAD?
@@ -254,18 +253,6 @@ void V_DrawPatchFlipped ( int x, int y, patch_t* patch )
         }
     }
 }
-
-#if 0
-//
-// V_DrawPatchDirect
-// Draws directly to the screen on the pc.
-//
-void
-V_DrawPatchDirect ( int x, int y, patch_t* patch )
-{
-    V_DrawPatch (x, y, patch);
-}
-#endif
 
 //
 // V_DrawBlock

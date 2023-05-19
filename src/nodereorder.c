@@ -59,7 +59,7 @@ static inline void copy_node_data_as_is(void *dn, void *sn, uint16_t dsti, uint1
     for (int i=0;i<srci;i++)
         srcn++;
 
-    D_memcpy((void*)dstn, (void*)srcn, 1*sizeof(node_t));
+    memcpy((void*)dstn, (void*)srcn, 1*sizeof(node_t));
 }
 
 void node_reorder(int numn, node_t *np)
@@ -79,19 +79,19 @@ void node_reorder(int numn, node_t *np)
         I_Error("no queue space");
 
     if (rewrites == NULL)
-        rewrites = (uint16_t *)Z_Malloc(sizeof(uint16_t)*numn,PU_STATIC,0);
+        rewrites = (uint16_t*)Z_Malloc(sizeof(uint16_t)*numn,PU_STATIC,0);
     if(rewrites == NULL)
         I_Error("no rewrite space");
 
     if (new_nodes == NULL)
-        new_nodes = Z_Malloc (numn*sizeof(node_t),PU_LEVEL,0);	
+        new_nodes = (node_t*)Z_Malloc (numn*sizeof(node_t),PU_LEVEL,0);	
     if(new_nodes == NULL)
         I_Error("no new node space");
 
     qsize = 0;
-    D_memset(new_nodes, 0, numn*sizeof(node_t));
-    D_memset(qarray,0,numn*sizeof(uint16_t));
-    D_memset(rewrites,0,(numn+1)*sizeof(uint16_t));
+    memset(new_nodes, 0,     numn*sizeof(node_t));
+    memset(qarray,    0,     numn*sizeof(uint16_t));
+    memset(rewrites,  0, (numn+1)*sizeof(uint16_t));
 
     numNodesExplored = numn-1;
     node_index = numn-1;

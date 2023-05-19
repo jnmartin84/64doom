@@ -485,7 +485,7 @@ P_SpawnMobj
     mobjinfo_t*	info;
 	
     mobj = Z_Malloc (sizeof(*mobj), PU_LEVEL, NULL);
-    D_memset (mobj, 0, sizeof (*mobj));
+    memset (mobj, 0, sizeof (*mobj));
     info = &mobjinfo[type];
 
     mobj->type = type;
@@ -715,8 +715,7 @@ void P_SpawnMapThing (mapthing_t* mthing)
     {
 	if (deathmatch_p < &deathmatchstarts[10])
 	{
-//	    n64_memcpy (deathmatch_p, mthing, sizeof(*mthing));
-	    D_memcpy (deathmatch_p, mthing, sizeof(*mthing));
+	    memcpy (deathmatch_p, mthing, sizeof(*mthing));
 	    deathmatch_p++;
 	}
 	return;

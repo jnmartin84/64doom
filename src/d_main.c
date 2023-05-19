@@ -591,13 +591,15 @@ char *get_GAMEID()
     }
     memset(gameid,0,16);
 
-    if (len != dfs_read(gameid, len, 1, fd))
+    if (len != dfs_read(gameid, sizeof(char), len, fd))
     {
         I_Error("get_GAMEID: DFS could not read identifier file after opening.\n");
     }
     dfs_close(fd);
 
-    for (size_t i=0;i<16;i++)
+
+    // deal with newlines or other stray characters after the end of the filename
+    for (size_t i=0;i<len;i++)
     {
         if (!(
             ('a' <= gameid[i] && gameid[i] <= 'z') ||
@@ -606,6 +608,7 @@ char *get_GAMEID()
             ('.' == gameid[i]) ))
         {
             gameid[i] = '\0';
+            break;
         }
     }
 
@@ -858,7 +861,7 @@ void D_DoomMain(void)
     for(int i=0;i<2;i++)
     {
         _dc = lockVideo(1);
-        D_memset(_dc->buffer, 0, SCREENWIDTH*SCREENHEIGHT*2);
+        memset(_dc->buffer, 0, SCREENWIDTH*SCREENHEIGHT*2);
         unlockVideo(_dc);
     }
 

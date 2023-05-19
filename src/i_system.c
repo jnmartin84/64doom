@@ -48,11 +48,11 @@ extern surface_t* lockVideo(int i);
 
 extern void DebugOutput_String_For_IError(const char *str, int lineNumber, int good);
 
-volatile uint64_t timekeeping;
+volatile uint32_t timekeeping;
 
 // give 5 MB to zone
 // anything more and music starts to fail to allocate samples
-const int kb_used = 4096+512+512;
+const size_t zone_size = 5242880;
 int based_zone = 0;
 
 void I_Tactile(int on, int off, int total)
@@ -76,7 +76,7 @@ int I_GetHeapSize(void)
         return 0;
     }
 
-    return kb_used*1024;
+    return zone_size;
 }
 
 
@@ -84,7 +84,7 @@ byte* I_ZoneBase(int* size)
 {
     based_zone = 1;
 
-    *size = kb_used*1024;
+    *size = zone_size;
 
     byte *ptr = (byte *)malloc(*size);
 
@@ -98,7 +98,7 @@ byte* I_ZoneBase(int* size)
 //
 unsigned long I_GetTime(void)
 {
-    return timekeeping>>2;
+    return timekeeping;
 }
 
 
@@ -117,7 +117,10 @@ void I_Init(void)
 
     timer_init();
     timekeeping = 0;
-    new_timer(669643/2, TF_CONTINUOUS, tickercb);
+
+    // 70 times per second
+    // 93750000 / 70
+    new_timer(1339286, TF_CONTINUOUS, tickercb);
 
     I_InitGraphics();
 }
@@ -170,6 +173,43 @@ byte* I_AllocLow(int length)
 //
 extern boolean demorecording;
 
+
+void DebugOutput_String_For_IError(const char *str, int lineNumber, int good)
+{
+    #define ERROR_LINE_LEN 40
+    int error_string_length = strlen(str);
+    int error_string_line_count = (error_string_length / ERROR_LINE_LEN) + 1;
+
+    graphics_set_color(graphics_make_color(0xFF,0xFF,0xFF,0x00), graphics_make_color(0x00,0x00,0x00,0x00));
+
+    for (int i=0;i<=error_string_line_count;i++)
+    {
+        if (!good)
+        {
+            graphics_draw_box(_dc, 0, 12+((lineNumber+i)*8), display_get_width(), 16, graphics_make_color(0xFF,0x00,0x00,0x00));
+        }
+        else
+        {
+            graphics_draw_box(_dc, 0, 12+((lineNumber+i)*8), display_get_width(), 16, graphics_make_color(0x00,0x00,0xFF,0x00));
+        }
+    }
+
+    for (int i=0;i<=error_string_line_count;i++)
+    {
+        char copied_line[ERROR_LINE_LEN + 1] = {'\0'};
+        if (0 == i)
+        {
+            strncpy(copied_line, "I_Error:", ERROR_LINE_LEN);
+        }
+        else
+        {
+            strncpy(copied_line, str + ((i-1)*ERROR_LINE_LEN), ERROR_LINE_LEN);
+        }
+        graphics_draw_text(_dc, 0, 16+((lineNumber+i)*8), copied_line);
+    }
+}
+
+
 void I_Error(const char *fmt, ...)
 {   
     char errstr[256];
@@ -178,25 +218,18 @@ void I_Error(const char *fmt, ...)
     vsnprintf(errstr, sizeof(errstr), fmt, args);
     // in case we haven't reached I_InitGraphics yet
     printf("I_Error: %s\n", errstr);
-    DebugOutput_String_For_IError(errstr, 0, 0);
-    
+    unlockVideo(_dc);
+    for(int i=0;i<2;i++)
+    {
+        _dc = lockVideo(1);
+        DebugOutput_String_For_IError(errstr, 0, 0);
+        unlockVideo(_dc);
+    }    
     D_QuitNetGame();
-//    I_ShutdownGraphics();
+    I_ShutdownMusic();
+    I_ShutdownSound();
+    I_ShutdownGraphics();
 
-    while (1)
-    {}
-}
-
-void I_Warn(char *fmt, ...)
-{
-    char errstr[256];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(errstr, sizeof(errstr), fmt, args);
-    // in case we haven't reached I_InitGraphics yet
-    printf("I_Warn: %s\n", errstr);
-    DebugOutput_String_For_IError(errstr, 0, 1);
-    
     while (1)
     {}
 }
