@@ -69,6 +69,8 @@
 
 #include "lzfx.h"
 
+
+
 #define BYTES_PER_BLOCK 256
 #define BYTES_TO_BLOCKS(bytes) ((bytes + (BYTES_PER_BLOCK - 1)) / BYTES_PER_BLOCK)
 #define SAVE_SIZE_IN_BLOCKS(bytes) (BYTES_TO_BLOCKS(bytes) + 1)
@@ -888,7 +890,7 @@ boolean G_CheckSpot ( int playernum, mapthing_t* mthing )
     ss = R_PointInSubsector (x,y); 
     an = ( ANG45 * (mthing->angle/45) ) >> ANGLETOFINESHIFT; 
  
-    mo = P_SpawnMobj (x+20*finecosine[an], y+20*finesine[an] 
+    mo = P_SpawnMobj (x+20*finecosine(an), y+20*finesine(an) 
               , ss->sector->floorheight 
               , MT_TFOG); 
 

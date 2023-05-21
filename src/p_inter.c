@@ -44,6 +44,9 @@
 #include "p_inter.h"
 
 
+
+
+
 #define BONUSADD	6
 
 
@@ -833,8 +836,8 @@ P_DamageMobj
 	}
 		
 	ang >>= ANGLETOFINESHIFT;
-	target->momx += FixedMul (thrust, finecosine[ang]);
-	target->momy += FixedMul (thrust, finesine[ang]);
+	target->momx += FixedMul (thrust, finecosine(ang));
+	target->momy += FixedMul (thrust, finesine(ang));
     }
     
     // player specific

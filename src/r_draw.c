@@ -445,11 +445,11 @@ byte*                ds_source;
 void R_DrawSpan (int sx1, int sx2, int sy) 
 { 
     fixed_t          xfrac;
-    fixed_t          yfrac; 
-    uint16_t*        dest; 
+    fixed_t          yfrac;
+    uint16_t*        dest;
     int              count;
-    int              spot; 
-     
+    int              spot;
+
 #ifdef RANGECHECK 
     if (sx2 < sx1
     || sx1<0
@@ -465,21 +465,21 @@ void R_DrawSpan (int sx1, int sx2, int sy)
     
     xfrac = ds_xfrac; 
     yfrac = ds_yfrac; 
-     
+
     dest = (uint16_t*)(((uint16_t *)_dc->buffer) + ylookup[sy] + columnofs[sx1]);
+
     do 
     {
         // Current texture index in u,v.
         spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
         xfrac += (ds_xstep); 
         yfrac += (ds_ystep);
-        
+
         // Lookup pixel from flat texture tile,
         //  re-index using light/colormap.
         *dest++ = palarray[ds_colormap[ds_source[spot]]];
-        count--;
-    } while (count >= 0); 
-} 
+    } while (count--); 
+}
 
 
 void R_DrawSpanLow (int sx1, int sx2, int sy) 
@@ -518,8 +518,7 @@ void R_DrawSpanLow (int sx1, int sx2, int sy)
         // Lookup pixel from flat texture tile,
         //  re-index using light/colormap.
         *dest++ = palarray[ds_colormap[ds_source[spot]]];
-        count--;
-    } while (count >= 0); 
+    } while (count--); 
 } 
 
 //

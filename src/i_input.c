@@ -160,14 +160,14 @@ void pressed_key(struct controller_data *p_data) //, int player)
             n64_do_cheat(5);  // IDDT
         }
 
-        GODDED = 1 - GODDED;
+        GODDED ^= 1;
     }
 #endif
 
     // RUN ON/OFF
     if (pressed.Z)
     {
-        shift = 1 - shift;
+        shift ^= 1;
         shift_times = 0;
     }
 

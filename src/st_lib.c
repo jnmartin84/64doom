@@ -18,7 +18,7 @@
 // $Log:$
 //
 // DESCRIPTION:
-//	The status bar widget code.
+//    The status bar widget code.
 //
 //-----------------------------------------------------------------------------
 
@@ -41,13 +41,14 @@
 
 
 // in AM_map.c
-extern boolean		automapactive;
+extern boolean        automapactive;
 
 //
 // Hack display negative frags.
 //  Loads and store the stminus lump.
 //
-patch_t*		sttminus;
+patch_t*              sttminus;
+
 
 void STlib_init(void)
 {
@@ -56,23 +57,15 @@ void STlib_init(void)
 
 
 // ?
-void
-STlib_initNum
-( st_number_t*		n,
-  int			x,
-  int			y,
-  patch_t**		pl,
-  int*			num,
-  boolean*		on,
-  int			width )
+void STlib_initNum(st_number_t* n, int x, int y, patch_t** pl, int* num, boolean* on, int width)
 {
-    n->x	= x;
-    n->y	= y;
-    n->oldnum	= 0;
-    n->width	= width;
-    n->num	= num;
-    n->on	= on;
-    n->p	= pl;
+    n->x = x;
+    n->y = y;
+    n->oldnum = 0;
+    n->width = width;
+    n->num = num;
+    n->on = on;
+    n->p = pl;
 }
 
 
@@ -83,16 +76,14 @@ STlib_initNum
 //
 void STlib_drawNum(st_number_t* n, boolean refresh)
 {
-    int numdigits = n->width;
-    int num = *n->num;
+    int    x = n->x;
+    int    y = n->y;
+    int    w = SHORT(n->p[0]->width);
+    int    neg;
+    int    numdigits = n->width;
+    int    num = *n->num;
 
     refresh = false;
-
-    int w = SHORT(n->p[0]->width);
-    int x = n->x;
-    const int y = n->y;
-
-    int neg;
 
     n->oldnum = *n->num;
 
@@ -125,13 +116,16 @@ void STlib_drawNum(st_number_t* n, boolean refresh)
 
     // if non-number, do not draw it
     if (num == 1994)
+    {
         return;
-
+    }
     x = n->x;
 
     // in the special case of 0, you draw 0
     if (!num)
-        V_DrawPatch(x - w, y, n->p[ 0 ]);
+    {
+        V_DrawPatch(x - w, y, n->p[0]);
+    }
 
     // draw the new number
     while (num && numdigits--)
@@ -160,27 +154,14 @@ void STlib_updateNum(st_number_t* n, boolean refresh)
 
 
 //
-void
-STlib_initPercent
-( st_percent_t*		p,
-  int			x,
-  int			y,
-  patch_t**		pl,
-  int*			num,
-  boolean*		on,
-  patch_t*		percent )
+void STlib_initPercent(st_percent_t* p, int x, int y, patch_t** pl, int* num, boolean* on, patch_t* percent)
 {
     STlib_initNum(&p->n, x, y, pl, num, on, 3);
     p->p = percent;
 }
 
 
-
-
-void
-STlib_updatePercent
-( st_percent_t*		per,
-  int			refresh )
+void STlib_updatePercent(st_percent_t* per, int refresh)
 {
     if (refresh && *per->n.on)
     {
@@ -190,30 +171,18 @@ STlib_updatePercent
     STlib_updateNum(&per->n, refresh);
 }
 
-
-
-void
-STlib_initMultIcon
-( st_multicon_t*	i,
-  int			x,
-  int			y,
-  patch_t**		il,
-  int*			inum,
-  boolean*		on )
+void STlib_initMultIcon(st_multicon_t* i, int x, int y, patch_t** il, int* inum, boolean* on)
 {
-    i->x	= x;
-    i->y	= y;
-    i->oldinum 	= -1;
-    i->inum	= inum;
-    i->on	= on;
-    i->p	= il;
+    i->x = x;
+    i->y = y;
+    i->oldinum = -1;
+    i->inum = inum;
+    i->on = on;
+    i->p = il;
 }
 
 
-void
-STlib_updateMultIcon
-( st_multicon_t*	mi,
-  boolean		refresh )
+void STlib_updateMultIcon(st_multicon_t* mi, boolean refresh)
 {
     if (*mi->on && (mi->oldinum != *mi->inum || refresh) && (*mi->inum!=-1))
     {
@@ -223,20 +192,14 @@ STlib_updateMultIcon
 }
 
 
-void STlib_initBinIcon
-( st_binicon_t*		b,
-  int			x,
-  int			y,
-  patch_t*		i,
-  boolean*		val,
-  boolean*		on )
+void STlib_initBinIcon(st_binicon_t* b, int x, int y, patch_t* i, boolean* val, boolean* on)
 {
-    b->x	= x;
-    b->y	= y;
-    b->oldval	= 0;
-    b->val	= val;
-    b->on	= on;
-    b->p	= i;
+    b->x = x;
+    b->y = y;
+    b->oldval = 0;
+    b->val = val;
+    b->on = on;
+    b->p = i;
 }
 
 

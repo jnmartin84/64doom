@@ -46,7 +46,7 @@
 // 3 multiplies, an add and a subtract
 // vs an uncached memory access
 // this wins
-#define tantoangle_approx(x) ((angle_t)((-47*((x)*(x))) + (359628*(x)) - 3150270))
+#define tantoangle(x) ((angle_t)((-47*((x)*(x))) + (359628*(x)) - 3150270))
 
 
 int            viewangleoffset;
@@ -110,9 +110,6 @@ lighttable_t*        zlight[LIGHTLEVELS][MAXLIGHTZ];
 // ranging from MININT to 0 to MAXINT.
 // fixed_t        finetangent[FINEANGLES/2];
 
-// fixed_t        finesine[5*FINEANGLES/4];
-fixed_t*        finecosine;// = &finesine[FINEANGLES/4];
-extern fixed_t *finesine2; // 10240
 extern fixed_t *finetan2; // 4096
 
 
@@ -123,7 +120,7 @@ void (*fuzzcolfunc) (int yl, int yh, int x);
 void (*transcolfunc) (int yl, int yh, int x);
 void (*spanfunc) (int x1, int x2, int y);
 
-static const inline int SlopeDiv(uint32_t num, uint32_t den)
+static inline  __attribute__((always_inline)) int SlopeDiv(uint32_t num, uint32_t den)
 {
     uint32_t ans;
 
@@ -258,12 +255,12 @@ R_PointToAngle
             if (x>y)
             {
                 // octant 0
-                return tantoangle_approx( SlopeDiv(y,x));
+                return tantoangle(SlopeDiv(y,x));
             }
             else
             {
                 // octant 1
-                return ANG90-1-tantoangle_approx( SlopeDiv(x,y));
+                return ANG90-1-tantoangle(SlopeDiv(x,y));
             }
         }
         else
@@ -274,12 +271,12 @@ R_PointToAngle
             if (x>y)
             {
                 // octant 8
-                return -tantoangle_approx(SlopeDiv(y,x));
+                return -tantoangle(SlopeDiv(y,x));
             }
             else
             {
                 // octant 7
-                return ANG270+tantoangle_approx( SlopeDiv(x,y));
+                return ANG270+tantoangle(SlopeDiv(x,y));
             }
         }
     }
@@ -294,12 +291,12 @@ R_PointToAngle
             if (x>y)
             {
                 // octant 3
-                return ANG180-1-tantoangle_approx( SlopeDiv(y,x));
+                return ANG180-1-tantoangle(SlopeDiv(y,x));
             }
             else
             {
                 // octant 2
-                return ANG90+ tantoangle_approx( SlopeDiv(x,y));
+                return ANG90+ tantoangle(SlopeDiv(x,y));
             }
         }
         else
@@ -310,12 +307,12 @@ R_PointToAngle
             if (x>y)
             {
                 // octant 4
-                return ANG180+tantoangle_approx( SlopeDiv(y,x));
+                return ANG180+tantoangle(SlopeDiv(y,x));
             }
             else
             {
                 // octant 5
-                return ANG270-1-tantoangle_approx( SlopeDiv(x,y));
+                return ANG270-1-tantoangle(SlopeDiv(x,y));
             }
         }
     }
@@ -348,6 +345,7 @@ void R_InitPointToAngle (void)
 }
 
 
+
 //
 // R_ScaleFromGlobalAngle
 // Returns the texture mapping scale
@@ -369,8 +367,10 @@ fixed_t R_ScaleFromGlobalAngle (angle_t visangle)
     angleb = ANG90 + (visangle-rw_normalangle);
 
     // both sines are allways positive
-    sinea = finesine2[(anglea>>ANGLETOFINESHIFT)];
-    sineb = finesine2[(angleb>>ANGLETOFINESHIFT)];
+ //   sinea = finesine((anglea>>ANGLETOFINESHIFT));
+   // sineb = finesine((angleb>>ANGLETOFINESHIFT));
+    sinea = finesine((anglea>>ANGLETOFINESHIFT));
+    sineb = finesine((angleb>>ANGLETOFINESHIFT));
     num = FixedMul(projection, sineb) << detailshift;
     den = FixedMul(rw_distance, sinea);
 
@@ -604,7 +604,7 @@ void R_ExecuteSetViewSize (void)
 
     for (i=0 ; i<viewwidth ; i++)
     {
-        cosadj = D_abs(finecosine[xtoviewangle[i]>>ANGLETOFINESHIFT]);
+        cosadj = D_abs(finecosine(xtoviewangle[i]>>ANGLETOFINESHIFT));
         distscale[i] = FixedDiv (FRACUNIT,cosadj);
     }
 
@@ -652,9 +652,7 @@ void R_Init (void)
     R_InitTranslationTables ();
 
     // performance is equally good if not better when you access the math tables uncached
-    finesine2 = (fixed_t *)((uintptr_t)finesine | 0xA0000000);
     finetan2 = (fixed_t *)((uintptr_t)finetangent | 0xA0000000);
-    finecosine = &finesine2[FINEANGLES/4];
 }
 
 
@@ -703,8 +701,8 @@ void R_SetupFrame (player_t* player)
 
     viewz = player->viewz;
 
-    viewsin = finesine2[viewangle>>ANGLETOFINESHIFT];
-    viewcos = finecosine[viewangle>>ANGLETOFINESHIFT];
+    viewsin = finesine(viewangle>>ANGLETOFINESHIFT);
+    viewcos = finecosine(viewangle>>ANGLETOFINESHIFT);
 
     sscount = 0;
 

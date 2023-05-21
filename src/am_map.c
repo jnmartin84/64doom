@@ -313,9 +313,9 @@ extern boolean viewactive;
 //extern void V_MarkRect(int x, int y, int width, int height);
 
 
-extern int *finesine2; // 10240
+
+
 extern int *finetan2; // 4096
-extern angle_t *tantoangle2; // 2049
 
 
 
@@ -1167,8 +1167,8 @@ AM_rotate
   angle_t    a )
 {
     fixed_t tmpx;
-    tmpx = FixedMul(*x,finecosine[a>>ANGLETOFINESHIFT]) - FixedMul(*y,finesine2[a>>ANGLETOFINESHIFT]);
-    *y = FixedMul(*x,finesine2[a>>ANGLETOFINESHIFT]) + FixedMul(*y,finecosine[a>>ANGLETOFINESHIFT]);
+    tmpx = FixedMul(*x,finecosine(a>>ANGLETOFINESHIFT)) - FixedMul(*y,finesine(a>>ANGLETOFINESHIFT));
+    *y = FixedMul(*x,finesine(a>>ANGLETOFINESHIFT)) + FixedMul(*y,finecosine(a>>ANGLETOFINESHIFT));
     *x = tmpx;
 }
 

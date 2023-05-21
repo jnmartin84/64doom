@@ -46,7 +46,7 @@ extern surface_t* _dc;
 extern void unlockVideo(surface_t* _dc);
 extern surface_t* lockVideo(int i);
 
-extern void DebugOutput_String_For_IError(const char *str, int lineNumber, int good);
+void DebugOutput_String_For_IError(const char *str, int lineNumber, int good);
 
 volatile uint32_t timekeeping;
 
@@ -176,7 +176,7 @@ extern boolean demorecording;
 
 void DebugOutput_String_For_IError(const char *str, int lineNumber, int good)
 {
-    #define ERROR_LINE_LEN 40
+    #define ERROR_LINE_LEN 36
     int error_string_length = strlen(str);
     int error_string_line_count = (error_string_length / ERROR_LINE_LEN) + 1;
 
@@ -186,11 +186,11 @@ void DebugOutput_String_For_IError(const char *str, int lineNumber, int good)
     {
         if (!good)
         {
-            graphics_draw_box(_dc, 0, 12+((lineNumber+i)*8), display_get_width(), 16, graphics_make_color(0xFF,0x00,0x00,0x00));
+            graphics_draw_box(_dc, 16, 12+((lineNumber+i)*8), display_get_width()-32, 16, graphics_make_color(0xFF,0x00,0x00,0x00));
         }
         else
         {
-            graphics_draw_box(_dc, 0, 12+((lineNumber+i)*8), display_get_width(), 16, graphics_make_color(0x00,0x00,0xFF,0x00));
+            graphics_draw_box(_dc, 16, 12+((lineNumber+i)*8), display_get_width()-32, 16, graphics_make_color(0x00,0x00,0xFF,0x00));
         }
     }
 
@@ -205,7 +205,7 @@ void DebugOutput_String_For_IError(const char *str, int lineNumber, int good)
         {
             strncpy(copied_line, str + ((i-1)*ERROR_LINE_LEN), ERROR_LINE_LEN);
         }
-        graphics_draw_text(_dc, 0, 16+((lineNumber+i)*8), copied_line);
+        graphics_draw_text(_dc, 16, 16+((lineNumber+i)*8), copied_line);
     }
 }
 

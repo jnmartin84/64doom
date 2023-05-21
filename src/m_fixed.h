@@ -16,7 +16,7 @@
 // GNU General Public License for more details.
 //
 // DESCRIPTION:
-//	Fixed point arithemtics, implementation.
+//    Fixed point arithemtics, implementation.
 //
 //-----------------------------------------------------------------------------
 
@@ -33,16 +33,15 @@
 //
 // Fixed point, 32bit as 16.16.
 //
-#define FRACBITS		16
-#define FRACUNIT		(1<<FRACBITS)
+#define FRACBITS        16
+#define FRACUNIT        (1<<FRACBITS)
 
 typedef int32_t fixed_t;
 
 static inline int D_abs(fixed_t x)
 {
-  fixed_t _t = (x),_s;
-  _s = _t >> (8*sizeof _t-1);
-  return (_t^_s)-_s;
+    fixed_t _s = x >> 31;
+    return (x ^ _s) - _s;
 }
 
 static inline fixed_t __attribute__((always_inline)) FixedMul(fixed_t a, fixed_t b)
@@ -54,6 +53,32 @@ static inline fixed_t __attribute__((always_inline)) FixedDiv(fixed_t a, fixed_t
 {
     return (fixed_t) ((int64_t)((int64_t)a<<16) / ((int64_t)b));
 }
+
+static inline int32_t  __attribute__((always_inline)) finesine(int32_t x)
+{
+    // original has qA = 12 (output range [-4095,4095])
+    // we need 16 (output range [-65535,65535])
+    static const int qN = 13, qA= 16, qP= 15, qR= 2*qN-qP, qS= qN+qP+1-qA;
+
+    // scale the input range
+    // this makes it work as a replacement for the old finesine table
+    x <<= 2;
+
+    x = (x << (30 - qN));
+
+    if ((x ^ (x << 1)) < 0)
+        x = (1 << 31) - x;
+
+    x = x >> (30 - qN);
+
+    return x * ((3 << qP) - ((x * x) >> qR)) >> qS;
+}
+
+static inline int32_t  __attribute__((always_inline)) finecosine(int32_t x)
+{
+    return finesine(x + 2048);
+}
+
 
 #endif
 //-----------------------------------------------------------------------------

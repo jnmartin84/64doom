@@ -32,9 +32,8 @@
 #include "r_local.h"
 #include "r_sky.h"
 
-extern char errstr[256];
 
-#define tantoangle_approx(x) ((angle_t)((-47*((x)*(x))) + (359628*(x)) - 3150270))
+#define tantoangle(x) ((angle_t)((-47*((x)*(x))) + (359628*(x)) - 3150270))
 
 // OPTIMIZE: closed two sided lines as single sided
 
@@ -115,10 +114,10 @@ R_PointToDist
         dy = temp;
     }
     
-    angle = ((tantoangle_approx( FixedDiv(dy,dx)>>DBITS ))+ANG90) >> ANGLETOFINESHIFT;
+    angle = ((tantoangle( FixedDiv(dy,dx)>>DBITS ))+ANG90) >> ANGLETOFINESHIFT;
 
     // use as cosine
-    dist = FixedDiv (dx, finesine2[angle] );    
+    dist = FixedDiv (dx, finesine(angle) );    
     
     return dist;
 }
@@ -440,7 +439,7 @@ R_StoreWallRange
 
     distangle = ANG90 - offsetangle;
     hyp = R_PointToDist (curline->v1->x, curline->v1->y);
-    sineval = finesine[distangle>>ANGLETOFINESHIFT];
+    sineval = finesine(distangle>>ANGLETOFINESHIFT);
     rw_distance = FixedMul (hyp, sineval);
 
     ds_p->x1 = rw_x = start;
@@ -636,7 +635,7 @@ R_StoreWallRange
         if (offsetangle > ANG90)
             offsetangle = ANG90;
 
-        sineval = finesine[offsetangle >>ANGLETOFINESHIFT];
+        sineval = finesine(offsetangle >>ANGLETOFINESHIFT);
         rw_offset = FixedMul (hyp, sineval);
 
         if (rw_normalangle-rw_angle1 < ANG180)

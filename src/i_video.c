@@ -130,16 +130,21 @@ void I_SetPalette(byte* palette)
 {
     const byte *gammaptr = gammatable[usegamma];
 
-    unsigned int r,g,b;
     unsigned int i;
     
     for (i = 0; i < 256; i++)
     {
-        r = gammaptr[*palette++];
-        g = gammaptr[*palette++];
-        b = gammaptr[*palette++];
+        int r = *palette++;
+        int g = *palette++;
+        int b = *palette++;
 
-        current_palarray[i] = graphics_make_color(r,g,b,0xff);
+        r = gammaptr[r];
+        g = gammaptr[g];
+        b = gammaptr[b];
+
+        uint16_t unpackedcol = ((r >> 3) << 11) | ((g >> 3) << 6) | ((b >> 3) << 1);
+        uint32_t packedcol = (unpackedcol << 16) | unpackedcol;
+        current_palarray[i] = packedcol;
     }
 }
 

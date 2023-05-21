@@ -214,7 +214,7 @@ void reset_midiVoices(void)
     for (i=0;i<NUM_MIDI_INSTRUMENTS;i++)
     {
         midiVoice[i].step = 0x10000;
-        midiVoice[i].length = 2000 << 16;
+        midiVoice[i].length = 2000;
         midiVoice[i].base = 60;
     }
 }
@@ -709,7 +709,7 @@ int Mus_Register(void *musdata)
 #endif
                 }
 
-                uint32_t length = mhdr->length >> 16;
+                size_t length = mhdr->length >> 16;
 
                 int8_t* sample = (int8_t*)malloc(length);
 
