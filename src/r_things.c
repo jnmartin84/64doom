@@ -838,7 +838,7 @@ void R_SortVisSprites (void)
 //r_things.c:821: error: 'best' may be used uninitialized in this function
 //    vissprite_t*	best;
     vissprite_t*	best = NULL;
-    vissprite_t		unsorted;
+    vissprite_t*   unsorted = (vissprite_t*)malloc(sizeof(vissprite_t)); // Allocate memory for unsorted
     fixed_t		bestscale;
 
     count = vissprite_p - vissprites;
@@ -846,7 +846,8 @@ void R_SortVisSprites (void)
     unsorted.next = unsorted.prev = &unsorted;
 
     if (!count)
-	return;
+        free(unsorted); // Free the allocated memory before returning
+        return;
 
     for (ds=vissprites ; ds<vissprite_p ; ds++)
     {
@@ -880,6 +881,9 @@ void R_SortVisSprites (void)
 	vsprsortedhead.prev->next = best;
 	vsprsortedhead.prev = best;
     }
+	
+	free(unsorted); // Free the allocated memory when no longer needed
+	
 }
 
 
