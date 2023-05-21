@@ -41,6 +41,12 @@
 // Fineangles in the SCREENWIDTH wide window.
 #define FIELDOFVIEW        2048    
 
+// used https://www.dcode.fr/function-equation-finder
+// parabola / hyperbola using curve fitting
+// 3 multiplies, an add and a subtract
+// vs an uncached memory access
+// this wins
+#define tantoangle_approx(x) ((angle_t)((-47*((x)*(x))) + (359628*(x)) - 3150270))
 
 
 int            viewangleoffset;
@@ -108,7 +114,6 @@ lighttable_t*        zlight[LIGHTLEVELS][MAXLIGHTZ];
 fixed_t*        finecosine;// = &finesine[FINEANGLES/4];
 extern fixed_t *finesine2; // 10240
 extern fixed_t *finetan2; // 4096
-extern angle_t *tantoangle2; // 2049
 
 
 void (*colfunc) (int yl, int yh, int x);
@@ -253,12 +258,12 @@ R_PointToAngle
             if (x>y)
             {
                 // octant 0
-                return tantoangle2[ SlopeDiv(y,x)];
+                return tantoangle_approx( SlopeDiv(y,x));
             }
             else
             {
                 // octant 1
-                return ANG90-1-tantoangle2[ SlopeDiv(x,y)];
+                return ANG90-1-tantoangle_approx( SlopeDiv(x,y));
             }
         }
         else
@@ -269,12 +274,12 @@ R_PointToAngle
             if (x>y)
             {
                 // octant 8
-                return -tantoangle2[SlopeDiv(y,x)];
+                return -tantoangle_approx(SlopeDiv(y,x));
             }
             else
             {
                 // octant 7
-                return ANG270+tantoangle2[ SlopeDiv(x,y)];
+                return ANG270+tantoangle_approx( SlopeDiv(x,y));
             }
         }
     }
@@ -289,12 +294,12 @@ R_PointToAngle
             if (x>y)
             {
                 // octant 3
-                return ANG180-1-tantoangle2[ SlopeDiv(y,x)];
+                return ANG180-1-tantoangle_approx( SlopeDiv(y,x));
             }
             else
             {
                 // octant 2
-                return ANG90+ tantoangle2[ SlopeDiv(x,y)];
+                return ANG90+ tantoangle_approx( SlopeDiv(x,y));
             }
         }
         else
@@ -305,12 +310,12 @@ R_PointToAngle
             if (x>y)
             {
                 // octant 4
-                return ANG180+tantoangle2[ SlopeDiv(y,x)];
+                return ANG180+tantoangle_approx( SlopeDiv(y,x));
             }
             else
             {
                 // octant 5
-                return ANG270-1-tantoangle2[ SlopeDiv(x,y)];
+                return ANG270-1-tantoangle_approx( SlopeDiv(x,y));
             }
         }
     }
@@ -647,7 +652,6 @@ void R_Init (void)
     R_InitTranslationTables ();
 
     // performance is equally good if not better when you access the math tables uncached
-    tantoangle2 = (angle_t *)((uintptr_t)tantoangle | 0xA0000000);
     finesine2 = (fixed_t *)((uintptr_t)finesine | 0xA0000000);
     finetan2 = (fixed_t *)((uintptr_t)finetangent | 0xA0000000);
     finecosine = &finesine2[FINEANGLES/4];

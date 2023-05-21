@@ -34,6 +34,7 @@
 
 extern char errstr[256];
 
+#define tantoangle_approx(x) ((angle_t)((-47*((x)*(x))) + (359628*(x)) - 3150270))
 
 // OPTIMIZE: closed two sided lines as single sided
 
@@ -92,7 +93,6 @@ short*        maskedtexturecol;
 
 extern int *finesine2; // 10240
 extern int *finetan2; // 4096
-extern angle_t *tantoangle2; // 2049
 
 static inline const fixed_t
 R_PointToDist
@@ -115,7 +115,7 @@ R_PointToDist
         dy = temp;
     }
     
-    angle = (tantoangle2[ FixedDiv(dy,dx)>>DBITS ]+ANG90) >> ANGLETOFINESHIFT;
+    angle = ((tantoangle_approx( FixedDiv(dy,dx)>>DBITS ))+ANG90) >> ANGLETOFINESHIFT;
 
     // use as cosine
     dist = FixedDiv (dx, finesine2[angle] );    
