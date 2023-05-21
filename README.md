@@ -3,7 +3,7 @@
 ---------------
 
 
-Updated 2023/05/16
+Updated 2023/05/21
 
 
 -------------------------
@@ -29,7 +29,7 @@ Updated 2023/05/16
 --------------
 -how to build-
 --------------
-Setup libdragon: https://github.com/DragonMinded/libdragon/wiki/Installing-libdragon
+Setup libdragon UNSTABLE branch: https://github.com/DragonMinded/libdragon/wiki/Installing-libdragon
 
 Get a copy of a supported version of Doom (Doom shareware, retail, Ultimate Doom, Doom II, Plutonia, TNT).
 
@@ -37,7 +37,7 @@ Export two environment variables:
 
 `IWAD_DIRECTORY` -- the path of the directory that contains your IWAD file
 
-`IWAD_PREFIX` -- the actual IWAD filename prefix (one of `DOOM1`, `DOOM`, `DOOMU`, `DOOM2`, `PLUTONIA`, `TNT`)
+`IWAD_PREFIX` -- the actual IWAD filename prefix (one of `DOOM1`, `DOOM`, `DOOMU`, `DOOM2`, `PLUTONIA`, `TNT` - these are case sensitive. Must be uppercase and your wad filename must be uppercase i.e. `DOOM2.WAD`)
 
 And run make.
 
