@@ -54,6 +54,8 @@ static inline fixed_t __attribute__((always_inline)) FixedDiv(fixed_t a, fixed_t
     return (fixed_t) ((int64_t)((int64_t)a<<16) / ((int64_t)b));
 }
 
+// http://www.coranac.com/2009/07/sines/
+// third-order approximation
 static inline int32_t  __attribute__((always_inline)) finesine(int32_t x)
 {
     // original has qA = 12 (output range [-4095,4095])
@@ -78,7 +80,6 @@ static inline int32_t  __attribute__((always_inline)) finecosine(int32_t x)
 {
     return finesine(x + 2048);
 }
-
 
 #endif
 //-----------------------------------------------------------------------------

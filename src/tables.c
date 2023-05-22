@@ -40,7 +40,6 @@
 #include "doomdef.h"
 #include "tables.h"
 
-
 fixed_t __attribute__((aligned(64))) finetangent[4096] =
 {
     -170910304,-56965752,-34178904,-24413316,-18988036,-15535599,-13145455,-11392683,

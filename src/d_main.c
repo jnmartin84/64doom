@@ -367,6 +367,12 @@ void D_Display(void)
     NetUpdate(); // send out any new accumulation
 }
 
+// use this to hold _dc->buffer pointer whenever we get a surface in D_DoomLoop
+// now each R_DrawColumn/R_DrawSpan call only needs one "lw" instruction to get screen
+// instead of two
+// saves (num cols + num spans) "lw" instructions per rendered frame
+// that is 1000+ loads per frame
+void *bufptr;
 
 //
 //  D_DoomLoop
@@ -400,6 +406,8 @@ void D_DoomLoop(void)
         S_UpdateSounds(players[consoleplayer].mo);// move positional sounds
 
         _dc = lockVideo(1);
+        // get the buffer address pointer from the surface once per frame instead of per every column/span
+        bufptr = (void*)_dc->buffer;
         D_Display();
         unlockVideo(_dc);
     }

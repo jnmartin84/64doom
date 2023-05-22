@@ -39,6 +39,8 @@
 // State.
 #include "doomstat.h"
 
+extern void *bufptr;
+
 #define ytab(y) (((y)<<8)+((y)<<6))
 
 extern void I_SetPalette(byte* palette);
@@ -69,10 +71,10 @@ int             viewheight;
 int             viewwindowx;
 int             viewwindowy;
 
-int             ylookup[MAXHEIGHT];
-int             ylookup2[MAXHEIGHT];
+int             ylookup[200];//MAXHEIGHT];
+int             ylookup2[200];//MAXHEIGHT];
 
-int             columnofs[MAXWIDTH];
+int             columnofs[320];//MAXWIDTH];
 
 // Color tables for different players,
 //  translate a limited part to another
@@ -150,7 +152,7 @@ void R_DrawFuzzColumn (int cyl,int cyh,int cx)
         return;
     }
 
-    dest = (&((uint16_t *)_dc->buffer)[ylookup[cyl] + columnofs[cx]]);
+    dest = (uint16_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
 
     // Looks like an attempt at dithering,
     //  using the colormap #6 (of 0-31, a bit
@@ -185,7 +187,7 @@ void R_DrawFuzzColumn (int cyl,int cyh,int cx)
 void R_DrawFuzzColumnLow (int cyl,int cyh,int cx)
 {
     int              count;
-    uint32_t*        dest32;
+    uint32_t*        dest;
 
     // Adjust borders. Low...
     if (!cyl)
@@ -207,8 +209,7 @@ void R_DrawFuzzColumnLow (int cyl,int cyh,int cx)
         return;
     }
 
-    x = cx << 1;
-    dest32 = (uint32_t *)((uintptr_t)_dc->buffer + (( (x)+(ylookup2[cyl]) )<<1));
+    dest = (uint32_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + viewwindowx + (cx<<1));
 
     // Looks like an attempt at dithering,
     //  using the colormap #6 (of 0-31, a bit
@@ -221,7 +222,7 @@ void R_DrawFuzzColumnLow (int cyl,int cyh,int cx)
         // Add index from colormap to index.
         
         // 32-bit write, double-pixel write with one store instruction
-        *dest32 = dest32[fuzzoffset[fuzzpos] >> 1];
+        *dest = dest[fuzzoffset[fuzzpos] >> 1];
 
         // Clamp table lookup index.
         if (++fuzzpos == FUZZTABLE)
@@ -229,7 +230,7 @@ void R_DrawFuzzColumnLow (int cyl,int cyh,int cx)
             fuzzpos = 0;
         }
 
-        dest32 += SCREENWIDTH>>1;
+        dest += (SCREENWIDTH >> 1);
     }
     while (count--);
 }
@@ -266,9 +267,7 @@ void R_DrawTranslatedColumn (int cyl,int cyh,int cx)
     count = cyh - cyl;
 
     // Framebuffer destination address.
-    // Use ylookup LUT to avoid multiply with ScreenWidth.
-    // Use columnofs LUT for subwindows?
-    dest = (&((uint16_t *)_dc->buffer)[ylookup[cyl] + columnofs[cx]]);
+    dest = (uint16_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
 
     // Looks familiar.
     fracstep = dc_iscale;
@@ -306,7 +305,7 @@ void R_DrawTranslatedColumnLow (int cyl,int cyh,int cx)
     int              count;
     fixed_t          frac;
     fixed_t          fracstep;
-    uint32_t*        dest32;
+    uint32_t*        dest;
 
 #ifdef RANGECHECK
     if ((unsigned)cx >= SCREENWIDTH
@@ -319,8 +318,7 @@ void R_DrawTranslatedColumnLow (int cyl,int cyh,int cx)
 
     count = cyh - cyl;
 
-    x = cx << 1;
-    dest32 = (uint32_t *)((uintptr_t)_dc->buffer + (( (x)+(ylookup2[cyl]) )<<1));
+    dest = (uint32_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + viewwindowx + (cx<<1));
 
     // Looks familiar.
     fracstep = dc_iscale;
@@ -336,8 +334,8 @@ void R_DrawTranslatedColumnLow (int cyl,int cyh,int cx)
         //  is mapped to gray, red, black/indigo.
 
         // 32-bit write, double-pixel write with one store instruction
-        *dest32 = palarray[dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]];
-        dest32 += SCREENWIDTH>>1;
+        *dest = palarray[dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]];
+        dest += (SCREENWIDTH >> 1);
         frac += fracstep;
     }
     while (count--);
@@ -363,9 +361,19 @@ void R_DrawColumn (int cyl,int cyh,int cx)
     count = cyh - cyl;
 
     // Framebuffer destination address.
-    // Use ylookup LUT to avoid multiply with ScreenWidth.
-    // Use columnofs LUT for subwindows?
-    dest = ((uint16_t *)_dc->buffer) + ylookup[cyl] + columnofs[cx];
+
+    // MIPS gprel addressing
+    // ylookup and columnofs were arrays
+    // those required two loads and an offset computation each to get value
+
+    // viewwindowy and viewwindox still need to loaded from memory
+    // but these take one load to get value
+    // cyl and cx are already in registers at this point because we made them parameters to R_Draw functions
+    // and the other computation is less expensive than a load
+    // SCREENWIDTH is a nice combination of powers of two
+    // 320 is (2^8) + (2^6)
+    // the compiler turns *SCREENWIDTH into a few SLL, no MULT needed
+    dest = (uint16_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
 
     // Looks familiar.
     fracstep = dc_iscale;
@@ -386,7 +394,7 @@ void R_DrawColumnLow (int cyl,int cyh,int cx)
     int         count;
     fixed_t     frac;
     fixed_t     fracstep;
-    uint32_t    *dest32;
+    uint32_t    *dest;
 
 #ifdef RANGECHECK
     if ((unsigned)cx >= SCREENWIDTH
@@ -399,15 +407,15 @@ void R_DrawColumnLow (int cyl,int cyh,int cx)
 
     count = cyh - cyl;
 
-    dest32 = (uint32_t *)((uintptr_t)_dc->buffer + ((((cx<<1))+(ylookup2[cyl]))<<1));
+    dest = (uint32_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + viewwindowx + (cx<<1));
     // Looks familiar.
     fracstep = dc_iscale;
     frac = dc_texturemid + (cyl-centery)*fracstep;
 
     do
     {
-        *dest32 = palarray[dc_colormap[dc_source[(frac>>FRACBITS)&127]]];
-        dest32 += SCREENWIDTH>>1;
+        *dest = palarray[dc_colormap[dc_source[(frac>>FRACBITS)&127]]];
+        dest += (SCREENWIDTH >> 1);
         frac += fracstep;
     }
     while (count--);
@@ -466,7 +474,7 @@ void R_DrawSpan (int sx1, int sx2, int sy)
     xfrac = ds_xfrac; 
     yfrac = ds_yfrac; 
 
-    dest = (uint16_t*)(((uint16_t *)_dc->buffer) + ylookup[sy] + columnofs[sx1]);
+    dest = (uint16_t*)(((uint16_t *)bufptr) + ((viewwindowy + sy)*SCREENWIDTH) + (viewwindowx + sx1));
 
     do 
     {
@@ -504,8 +512,8 @@ void R_DrawSpanLow (int sx1, int sx2, int sy)
     
     xfrac = ds_xfrac; 
     yfrac = ds_yfrac; 
-     
-    dest = (uint32_t*)(((uint16_t *)_dc->buffer) + ylookup2[sy] + (sx1<<1));
+
+    dest = (uint32_t*)(((uint16_t *)bufptr) + ((viewwindowy + sy)*SCREENWIDTH) + viewwindowx + (sx1<<1));
 
     do 
     {
@@ -548,9 +556,7 @@ void R_InitTranslationTables (void)
         else
         {
             // Keep all other colors as is.
-            translationtables[i    ] =
-                translationtables[i+256] =
-                translationtables[i+512] = i;
+            translationtables[i] = translationtables[i+256] = translationtables[i+512] = i;
         }
     }
 }
@@ -620,7 +626,7 @@ static int drew_bg_before=0;
 
 void R_VideoErase ( unsigned ofs, int count )
 {
-    uint16_t* dst = (uint16_t *)((uintptr_t)_dc->buffer + ((ofs)<<1));
+    uint16_t* dst = (uint16_t *)((uintptr_t)bufptr + ((ofs)<<1));
 
     for (int i=0;i<count;i++)
     {
