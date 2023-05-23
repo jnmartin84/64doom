@@ -655,10 +655,12 @@ P_TouchSpecialThing
 	player->message = GOTSHOTGUN2;
 	sound = sfx_wpnup;	
 	break;
-#ifdef RANGECHECK
       default:
+#ifdef RANGECHECK
 	I_Error ("P_TouchSpecialThing: Unknown gettable thing");
 #endif
+    goto P_TouchSpecialThing_end;
+    break;
     }
 	
     if (special->flags & MF_COUNTITEM)
@@ -667,6 +669,8 @@ P_TouchSpecialThing
     player->bonuscount += BONUSADD;
     if (player == &players[consoleplayer])
 	S_StartSound (NULL, sound);
+P_TouchSpecialThing_end:
+	return;
 }
 
 
