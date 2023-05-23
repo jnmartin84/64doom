@@ -319,6 +319,7 @@ vissprite_t*	vissprite_p;
 int		newvissprite;
 
 
+static int num_vissprites;
 
 //
 // R_InitSprites
@@ -333,6 +334,8 @@ void R_InitSprites (char** namelist)
 	negonearray[i] = -1;
     }
 
+    num_vissprites = 0;
+
     R_InitSpriteDefs (namelist);
 }
 
@@ -344,6 +347,7 @@ void R_InitSprites (char** namelist)
 //
 void R_ClearSprites (void)
 {
+    num_vissprites = 0;
     vissprite_p = vissprites;
 }
 
@@ -359,6 +363,7 @@ vissprite_t* R_NewVisSprite (void)
 	return &overflowsprite;
 
     vissprite_p++;
+    num_vissprites++;
     return vissprite_p-1;
 }
 
@@ -825,64 +830,87 @@ void R_DrawPlayerSprites (void)
 //
 // R_SortVisSprites
 //
-vissprite_t	vsprsortedhead;
+#if 1
+static vissprite_t* vissprite_ptrs[128];
 
+static int compare (const void* l, const void* r)
+{
+    const vissprite_t* vl = *(const vissprite_t**)l;
+    const vissprite_t* vr = *(const vissprite_t**)r;
+
+    return vr->scale - vl->scale;
+}
+
+static void R_SortVisSprites (void)
+{
+    int i = num_vissprites;
+
+    if (i)
+    {
+        while (--i>=0)
+            vissprite_ptrs[i] = vissprites+i;
+
+        qsort(vissprite_ptrs, num_vissprites, sizeof (vissprite_t*), compare);
+    }
+}
+#endif
+#if 0
+vissprite_t	vsprsortedhead;
 
 void R_SortVisSprites (void)
 {
-    int			i;
-    int			count;
-    vissprite_t*	ds;
-//-Werror fix
-//r_things.c: In function 'R_SortVisSprites':
-//r_things.c:821: error: 'best' may be used uninitialized in this function
-//    vissprite_t*	best;
-    vissprite_t*	best = NULL;
-    vissprite_t		unsorted;
-    fixed_t		bestscale;
+    int             i;
+    int             count;
+    vissprite_t*    ds;
+
+    vissprite_t*    best = NULL;
+    vissprite_t     unsorted;
+    fixed_t         bestscale;
 
     count = vissprite_p - vissprites;
 
     unsorted.next = unsorted.prev = &unsorted;
 
     if (!count)
-	return;
+    {
+        return;
+    }
 
     for (ds=vissprites ; ds<vissprite_p ; ds++)
     {
-	ds->next = ds+1;
-	ds->prev = ds-1;
+        ds->next = ds + 1;
+        ds->prev = ds - 1;
     }
 
     vissprites[0].prev = &unsorted;
     unsorted.next = &vissprites[0];
-    (vissprite_p-1)->next = &unsorted;
+    (vissprite_p - 1)->next = &unsorted;
     unsorted.prev = vissprite_p-1;
 
     // pull the vissprites out by scale
-    //best = 0;		// shut up the compiler warning
+    //best = 0;        // shut up the compiler warning
     vsprsortedhead.next = vsprsortedhead.prev = &vsprsortedhead;
     for (i=0 ; i<count ; i++)
     {
-	bestscale = MAXINT;
-	for (ds=unsorted.next ; ds!= &unsorted ; ds=ds->next)
-	{
-	    if (ds->scale < bestscale)
-	    {
-		bestscale = ds->scale;
-		best = ds;
-	    }
-	}
-	best->next->prev = best->prev;
-	best->prev->next = best->next;
-	best->next = &vsprsortedhead;
-	best->prev = vsprsortedhead.prev;
-	vsprsortedhead.prev->next = best;
-	vsprsortedhead.prev = best;
+        bestscale = MAXINT;
+        for (ds=unsorted.next ; ds!= &unsorted ; ds=ds->next)
+        {
+            if (ds->scale < bestscale)
+            {
+                bestscale = ds->scale;
+                best = ds;
+            }
+        }
+
+        best->next->prev = best->prev;
+        best->prev->next = best->next;
+        best->next = &vsprsortedhead;
+        best->prev = vsprsortedhead.prev;
+        vsprsortedhead.prev->next = best;
+        vsprsortedhead.prev = best;
     }
 }
-
-
+#endif
 
 //
 // R_DrawSprite
@@ -905,7 +933,7 @@ void R_DrawSprite (vissprite_t* spr)
     // Scan drawsegs from end to start for obscuring segs.
     // The first drawseg that has a greater scale
     //  is the clip seg.
-    for (ds=ds_p/*-1*/ ; ds-- >/*=*/ drawsegs ; /*ds--*/)
+    for (ds=ds_p-1 ; ds >= drawsegs ; ds--)
     {
 	// determine if the drawseg obscures the sprite
 	if (ds->x1 > spr->x2
@@ -1002,11 +1030,11 @@ void R_DrawSprite (vissprite_t* spr)
 //
 void R_DrawMasked (void)
 {
-    vissprite_t*	spr;
     drawseg_t*		ds;
 
     R_SortVisSprites ();
-
+#if 0
+    vissprite_t*	spr;
     if (vissprite_p > vissprites)
     {
 	// draw all vissprites back to front
@@ -1017,9 +1045,15 @@ void R_DrawMasked (void)
 	    R_DrawSprite (spr);
 	}
     }
+#endif
+#if 1
+    int i;
+    for (i = num_vissprites ;--i>=0; )
+        R_DrawSprite(vissprite_ptrs[i]);         // killough
+#endif
 
     // render any remaining masked mid textures
-    for (ds=ds_p/*-1*/ ; ds-- >/*=*/ drawsegs ; /*ds--*/)
+    for (ds=ds_p-1 ; ds >= drawsegs ; ds--)
         if (ds->maskedtexturecol)
             R_RenderMaskedSegRange (ds, ds->x1, ds->x2);
 
