@@ -93,18 +93,18 @@ angle_t            clipangle;
 // maps the visible view angles to screen X coordinates,
 // flattening the arc to a flat projection plane.
 // There will be many angles mapped to the same X. 
-int            c_viewangletox[FINEANGLES/2];
+//int            c_viewangletox[FINEANGLES/2];
 
-//int            viewangletox[FINEANGLES/2];
-int*           viewangletox;
+int            viewangletox[FINEANGLES/2];
+//int*           viewangletox;
 
 // The xtoviewangleangle[] table maps a screen pixel
 // to the lowest viewangle that maps back to x ranges
 // from clipangle to -clipangle.
-angle_t            c_xtoviewangle[SCREENWIDTH+1];
+//angle_t            c_xtoviewangle[SCREENWIDTH+1];
 
-//angle_t            xtoviewangle[SCREENWIDTH+1];
-angle_t*           xtoviewangle;
+angle_t            xtoviewangle[SCREENWIDTH+1];
+//angle_t*           xtoviewangle;
 
 lighttable_t*        scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
 lighttable_t*        scalelightfixed[MAXLIGHTSCALE];
@@ -658,8 +658,8 @@ void R_Init (void)
     R_InitSkyMap ();
     R_InitTranslationTables ();
 
-    viewangletox = (int*)((uintptr_t)c_viewangletox | 0xA0000000);
-    xtoviewangle = (angle_t*)((uintptr_t)c_xtoviewangle | 0xA0000000);
+//    viewangletox = (int*)((uintptr_t)c_viewangletox | view);
+//    xtoviewangle = (angle_t*)((uintptr_t)c_xtoviewangle | 0xA0000000);
 
     // performance is equally good if not better when you access the math tables uncached
     finetan2 = (fixed_t *)((uintptr_t)finetangent | 0xA0000000);
