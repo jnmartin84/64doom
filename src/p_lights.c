@@ -232,8 +232,8 @@ void EV_StartLightStrobing(line_t*	line)
 //
 void EV_TurnTagLightsOff(line_t* line)
 {
+#if 0
     int			i;
-    int			j;
     int			min;
     sector_t*		sector;
     sector_t*		tsec;
@@ -258,6 +258,23 @@ void EV_TurnTagLightsOff(line_t* line)
 	    sector->lightlevel = min;
 	}
     }
+#endif
+    int    j;
+    // killough 10/98: replaced inefficient search with fast search
+    for (j = -1; (j = P_FindSectorFromLineTag(line,j)) >= 0;)
+    {
+        sector_t *sector = sectors + j, *tsec;
+        int i, min = sector->lightlevel;
+        // find min neighbor light level
+        for (i = 0;i < sector->linecount; i++)
+        {
+            if ((tsec = getNextSector(sector->lines[i], sector)) && tsec->lightlevel < min)
+            {
+                min = tsec->lightlevel;
+            }
+        }
+        sector->lightlevel = min;
+    }
 }
 
 
@@ -269,7 +286,7 @@ EV_LightTurnOn
 ( line_t*	line,
   int		bright )
 {
-    int		i;
+#if 0
     int		j;
     sector_t*	sector;
     sector_t*	temp;
@@ -300,6 +317,30 @@ EV_LightTurnOn
 	    }
 	    sector-> lightlevel = bright;
 	}
+    }
+#endif
+
+    int    i;
+    // search all sectors for ones with same tag as activating line
+
+    // killough 10/98: replace inefficient search with fast search
+    for (i = -1; (i = P_FindSectorFromLineTag(line,i)) >= 0;)
+    {
+        sector_t *temp, *sector = sectors+i;
+        int j, tbright = bright; //jff 5/17/98 search for maximum PER sector
+
+        // bright = 0 means to search for highest light level surrounding sector
+        if (!bright)
+        {
+            for (j = 0; j < sector->linecount; j++)
+            {
+                if ((temp = getNextSector(sector->lines[j],sector)) && temp->lightlevel > tbright)
+                {
+                   tbright = temp->lightlevel;
+                }
+            }
+        }
+        sector->lightlevel = tbright;
     }
 }
 

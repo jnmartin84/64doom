@@ -438,13 +438,15 @@ P_FindSectorFromLineTag
 ( line_t*	line,
   int		start )
 {
-    int	i;
-	
-    for (i=start+1;i<numsectors;i++)
-	if (sectors[i].tag == line->tag)
-	    return i;
-    
-    return -1;
+    int    i;
+    for (i = start + 1; i < numsectors; i++)
+    {
+        if (sectors[i].tag == line->tag)
+        {
+            return i;
+        }
+	}
+	return -1;
 }
 
 
