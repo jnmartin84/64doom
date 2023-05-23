@@ -1138,11 +1138,16 @@ void ST_doRefresh(void)
     else {
         st_firsttime = false;
     }
+
+    I_SavePalette();
+
     // draw status bar background to off-screen buff
     ST_refreshBackground();
 
     // and refresh all widgets
     ST_drawWidgets(true);
+
+    I_RestorePalette();
 }
 
 void ST_diffDraw(void)
