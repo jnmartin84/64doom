@@ -93,12 +93,18 @@ angle_t            clipangle;
 // maps the visible view angles to screen X coordinates,
 // flattening the arc to a flat projection plane.
 // There will be many angles mapped to the same X. 
-int            viewangletox[FINEANGLES/2];
+int            c_viewangletox[FINEANGLES/2];
+
+//int            viewangletox[FINEANGLES/2];
+int*           viewangletox;
 
 // The xtoviewangleangle[] table maps a screen pixel
 // to the lowest viewangle that maps back to x ranges
 // from clipangle to -clipangle.
-angle_t            xtoviewangle[SCREENWIDTH+1];
+angle_t            c_xtoviewangle[SCREENWIDTH+1];
+
+//angle_t            xtoviewangle[SCREENWIDTH+1];
+angle_t*           xtoviewangle;
 
 lighttable_t*        scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
 lighttable_t*        scalelightfixed[MAXLIGHTSCALE];
@@ -108,7 +114,7 @@ lighttable_t*        zlight[LIGHTLEVELS][MAXLIGHTZ];
 // The finetangentgent[angle+FINEANGLES/4] table
 // holds the fixed_t tangent values for view angles,
 // ranging from MININT to 0 to MAXINT.
-// fixed_t        finetangent[FINEANGLES/2];
+//fixed_t        finetangent[FINEANGLES/2];
 
 extern fixed_t *finetan2; // 4096
 
@@ -417,21 +423,21 @@ void R_InitTextureMapping (void)
     //
     // Calc focallength
     //  so FIELDOFVIEW angles covers SCREENWIDTH.
-    focallength = FixedDiv (centerxfrac, finetan2[FINEANGLES/4+FIELDOFVIEW/2]);
+    focallength = FixedDiv (centerxfrac, finetangent[FINEANGLES/4+FIELDOFVIEW/2]);
 
     for (i=0 ; i<FINEANGLES/2 ; i++)
     {
-        if (finetan2[i] > (FRACUNIT*2))
+        if (finetangent[i] > (FRACUNIT*2))
         {
             t = -1;
         }
-		else if (finetan2[i] < -(FRACUNIT*2))
+		else if (finetangent[i] < -(FRACUNIT*2))
         {
             t = viewwidth+1;
         }
         else
         {
-            t = FixedMul (finetan2[i], focallength);
+            t = FixedMul (finetangent[i], focallength);
             t = (centerxfrac - t+FRACUNIT-1)>>FRACBITS;
 
             if (t < -1)
@@ -459,8 +465,9 @@ void R_InitTextureMapping (void)
     // Take out the fencepost cases from viewangletox.
     for (i=0 ; i<FINEANGLES/2 ; i++)
     {
-        t = FixedMul (finetan2[i], focallength);
-        t = centerx - t;
+        // why was this code still here?
+        //t = FixedMul (finetangent[i], focallength);
+        //t = centerx - t;
 
         if (viewangletox[i] == -1)
             viewangletox[i] = 0;
@@ -650,6 +657,9 @@ void R_Init (void)
     R_InitLightTables ();
     R_InitSkyMap ();
     R_InitTranslationTables ();
+
+    viewangletox = (int*)((uintptr_t)c_viewangletox | 0xA0000000);
+    xtoviewangle = (angle_t*)((uintptr_t)c_xtoviewangle | 0xA0000000);
 
     // performance is equally good if not better when you access the math tables uncached
     finetan2 = (fixed_t *)((uintptr_t)finetangent | 0xA0000000);
