@@ -49,7 +49,7 @@
 static hashtable_t ht;
 
 
-void wadupr (char *s)
+void wadupr(char *s)
 {
     int    i;
 
@@ -134,7 +134,7 @@ char*    reloadname;
 
 
 // Hash table for fast lookups
-int comp_keys (void *el1, void *el2)
+int comp_keys(void *el1, void *el2)
 {
     char *t1 = ((lumpinfo_t *)el1)->name;
     char *t2 = ((lumpinfo_t *)el2)->name;
@@ -166,7 +166,7 @@ unsigned long int W_LumpNameHash(char *s)
 }
 
 
-unsigned long int hash (void *element, void *params)
+unsigned long int hash(void *element, void *params)
 {
     wadupr(((lumpinfo_t *)element)->name);
     return W_LumpNameHash(((lumpinfo_t *)element)->name) % 256;
@@ -206,7 +206,7 @@ void W_Init (void)
 }
 
 
-void W_AddFile (char *filename)
+void W_AddFile(char *filename)
 {
     wadinfo_t      header;
     lumpinfo_t*    lump_p;
@@ -390,7 +390,7 @@ void W_Reload (void)
 // The name searcher looks backwards, so a later file
 //  does override all earlier ones.
 //
-void W_InitMultipleFiles (char** filenames)
+void W_InitMultipleFiles(char** filenames)
 {
     int        size;
 
@@ -638,8 +638,9 @@ void* W_CacheLumpName (char* name, int tag)
         }
         else
         {
-            I_Error ("W_CacheLump: %s not found!", name);
-            return (void*)(0xDEADBEEF);
+            return W_CacheLumpNum(W_GetNumForName(name), tag);
+            //I_Error ("W_CacheLump: %s not found!", name);
+            //return (void*)(0xDEADBEEF);
         }
     }
 }

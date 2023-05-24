@@ -12,6 +12,10 @@ MKDFSPATH = $(ROOTDIR)/bin/mkdfs
 MKSPRITEPATH = $(ROOTDIR)/bin/mksprite
 HEADERPATH = $(ROOTDIR)/mips64-elf/lib
 N64TOOL = $(ROOTDIR)/bin/n64tool
+N64_SYM = $(ROOTDIR)/bin/n64sym
+N64_DSO = $(ROOTDIR)/bin/n64dso
+N64_DSOEXTERN = $(ROOTDIR)/bin/n64dso-extern
+N64_DSOMSYM = $(ROOTDIR)/bin/n64dso-msym
 HEADERNAME = header
 LIBS = -ldragon -lc -lm -ldragonsys
 PROG_NAME = $(IWAD_PREFIX)
@@ -19,7 +23,6 @@ OPTFLAG = -O3
 
 # function/data sections + gc-sections saves about ~200kb from output binary
 CFLAGS = -ffunction-sections -fdata-sections -falign-functions=32 -ffile-prefix-map=$(CURDIR)= -DN64 -fdiagnostics-color=always -Wno-error=switch -Wall -g -mabi=o64 -mno-shared -mno-abicalls -mno-branch-likely -mno-llsc -mno-check-zero-division -mfix4300 -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -G4 $(OPTFLAG) -I$(ROOTDIR)/mips64-elf/include
-# -DRANGECHECK
 LINK_FLAGS = --gc-sections -G4 -g -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64.ld
 
 CC = $(GCCN64PREFIX)gcc
@@ -102,16 +105,15 @@ OBJS=						\
 
 $(PROG_NAME).z64: $(PROG_NAME).elf
 	$(OBJCOPY) $(PROG_NAME).elf $(PROG_NAME).bin -O binary
+	$(N64_SYM) $(PROG_NAME).elf $(PROG_NAME).sym
+	$(N64_DSOMSYM) $(PROG_NAME).elf $(PROG_NAME).msym
 	rm -f $(PROG_NAME).z64
 	rm -f rom.dfs
 	cp $(IWAD_DIRECTORY)/$(IWAD_PREFIX).WAD filesystem
 	echo $(IWAD_PREFIX).WAD > filesystem/identifier
 	$(MKDFSPATH) rom.dfs ./filesystem/
 	$(N64TOOL) \
-		-h $(HEADERPATH)/$(HEADERNAME)			\
-		-o $(PROG_NAME).z64	\
-		-t DOOM	$(PROG_NAME).bin	\
-		-s 1M rom.dfs
+        --header $(HEADERPATH)/$(HEADERNAME) --title $(PROG_NAME) --toc --output $(PROG_NAME).z64 $(PROG_NAME).bin --align 8 $(PROG_NAME).sym --align 8 $(PROG_NAME).msym --align 16 rom.dfs
 	chmod ugo=rw $(PROG_NAME).z64
 	$(CHKSUM64PATH) $(PROG_NAME).z64
 
