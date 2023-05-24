@@ -638,6 +638,7 @@ void* W_CacheLumpName (char* name, int tag)
         }
         else
         {
+            I_Error ("W_CacheLump: %s not found!", name);
             return (void*)(0xDEADBEEF);
         }
     }
