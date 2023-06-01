@@ -40,6 +40,7 @@
 
 extern uint32_t*      palarray;
 extern surface_t*    _dc;
+extern void *bufptr;
 
 int                  usegamma;
 
@@ -179,7 +180,7 @@ void V_DrawPatch ( int x, int y, patch_t* patch )
     uint16_t*    desttop;
     uint16_t*    dest;
 
-    desttop = (uint16_t*)((uintptr_t)_dc->buffer + (uintptr_t)((((y)*SCREENWIDTH)+x)*2));
+    desttop = (uint16_t*)((uintptr_t)bufptr + (uintptr_t)((((y)*SCREENWIDTH)+x)*2));
 
     for ( ; col<w ; x++, col++, desttop++)
     { 
@@ -195,7 +196,7 @@ void V_DrawPatch ( int x, int y, patch_t* patch )
             while (count--) 
             { 
                 uint16_t next_spot = palarray[*source++];
-                *dest = next_spot; 
+                *dest = next_spot;
                 dest += SCREENWIDTH; 
             } 
             column = (column_t *)(  (byte *)column + column->length + 4 ); 
@@ -216,16 +217,28 @@ void V_DrawPatchFlipped ( int x, int y, patch_t* patch )
     column_t*    column;
     byte*        source;
     int          w;
-    uint16_t     *dest16;
+    uint16_t*    desttop;
+    uint16_t*    dest;
 
     y -= SHORT(patch->topoffset);
     x -= SHORT(patch->leftoffset);
-
-    uint32_t y_o = y;
-
     col = 0;
-
     w = SHORT(patch->width);
+
+#ifdef RANGECHECK 
+    if (x<0
+    ||x+SHORT(patch->width) >SCREENWIDTH
+    || y<0
+    || y+SHORT(patch->height)>SCREENHEIGHT )
+    {
+      I_Error("Patch at %d,%d exceeds LFB\n", x,y );
+      // No I_Error abort - what is up with TNT.WAD?
+      //fprintf( stderr, "V_DrawPatch: bad patch (ignored)\n");
+      //return;
+    }
+#endif 
+
+    desttop = (uint16_t*)((uintptr_t)bufptr + (uintptr_t)((((y)*SCREENWIDTH)+x)*2));
 
     for ( ; col<w ; x++, col++)
     {
@@ -237,22 +250,21 @@ void V_DrawPatchFlipped ( int x, int y, patch_t* patch )
             y+=column->topdelta;
 
             source = (byte *)column + 3;
-
+            dest = (uint16_t*)((uintptr_t)desttop + (uintptr_t)(column->topdelta*SCREENWIDTH*2)); 
             count = column->length;
 
             while (count--)
             {
                 uint16_t mapped_spot = palarray[*source++];
-                dest16 = (uint16_t *)((uintptr_t)_dc->buffer +(ytab(SCREENWIDTH>>3)) + (( (x)+(ytab(y)) )<<1));
-                *dest16 = mapped_spot;
-                y++;
+                *dest = mapped_spot;
+                dest += SCREENWIDTH; 
             }
 
-            y = y_o;
             column = (column_t *)(  (byte *)column + column->length + 4 );
         }
     }
 }
+
 
 //
 // V_DrawBlock
@@ -264,8 +276,10 @@ V_DrawBlock
   int		y,
   int		width,
   int		height,
-  byte*		src )
+  uint16_t*		src )
 {
+    // hack for f_wipe
+    memcpy(bufptr, src, 320*200*2);
 }
 
 
@@ -279,8 +293,10 @@ V_GetBlock
   int		y,
   int		width,
   int		height,
-  byte*		dest )
+  uint16_t*		dest )
 {
+    // hack for f_wipe
+    memcpy(dest, bufptr, 320*200*2);
 }
 
 

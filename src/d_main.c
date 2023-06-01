@@ -210,8 +210,11 @@ void D_Display(void)
     static  boolean        fullscreen = false;
     static  gamestate_t    oldgamestate = -1;
     static  int            borderdrawcount;
+            int            nowtime;
+            int            tics;
             int            y;
-//          boolean        done;
+            int            wipestart;
+            boolean        done;
             boolean        wipe;
             boolean        redrawsbar;
 
@@ -236,6 +239,9 @@ void D_Display(void)
     if (gamestate != wipegamestate)
     {
         wipe = true;
+#if 1        
+        wipe_StartScreen(0, 0, SCREENWIDTH, SCREENHEIGHT); 
+#endif
     }
     else
     {
@@ -365,6 +371,34 @@ void D_Display(void)
     M_Drawer(); // menu is drawn even on top of everything
 
     NetUpdate(); // send out any new accumulation
+
+    if (!wipe) {
+        I_FinishUpdate();
+        return;
+    }
+#if 1
+    // wipe update
+    wipe_EndScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
+
+    wipestart = I_GetTime () - 1;
+
+    do
+    {
+	do
+	{
+	    nowtime = I_GetTime ();
+	    tics = nowtime - wipestart;
+	} while (!tics);
+	wipestart = nowtime;
+	done = wipe_ScreenWipe(wipe_Melt
+			       , 0, 0, SCREENWIDTH, SCREENHEIGHT, tics);
+	M_Drawer ();                            // menu is drawn even on top of wipes
+    I_FinishUpdate();
+    I_StartFrame();
+    } while (!done);    
+
+    I_FinishUpdate();
+#endif
 }
 
 // use this to hold _dc->buffer pointer whenever we get a surface in D_DoomLoop
@@ -383,6 +417,7 @@ void D_DoomLoop(void)
 
     while (!return_from_D_DoomMain)
     {
+        I_StartFrame();
         // process one or more tics
         if (singletics)
         {
@@ -405,11 +440,7 @@ void D_DoomLoop(void)
 
         S_UpdateSounds(players[consoleplayer].mo);// move positional sounds
 
-        _dc = lockVideo(1);
-        // get the buffer address pointer from the surface once per frame instead of per every column/span
-        bufptr = (void*)_dc->buffer;
         D_Display();
-        unlockVideo(_dc);
     }
 }
 
@@ -574,14 +605,12 @@ char title[128];
 //
 void D_AddFile(char *file)
 {
-//    int numwadfiles;
-//    for (numwadfiles = 0 ; wadfiles[numwadfiles] ; numwadfiles++)
-//    {
-//        ;
-//    }
-//    wadfiles[numwadfiles] = file;
-
-    wadfiles[0] = file;
+    int numwadfiles;
+    for (numwadfiles = 0 ; wadfiles[numwadfiles] ; numwadfiles++)
+    {
+        ;
+    }
+    wadfiles[numwadfiles] = file;
 }
 
 static char __attribute__((aligned(8))) gameid[16];

@@ -169,8 +169,9 @@ unsigned long int W_LumpNameHash(char *s)
 unsigned long int hash(void *element, void *params)
 {
     wadupr(((lumpinfo_t *)element)->name);
-    return W_LumpNameHash(((lumpinfo_t *)element)->name) % 256;
+    return W_LumpNameHash(((lumpinfo_t *)element)->name) & 255;
 }
+
 
 // lumps for 64Doom-specific menu graphics (created with SLADE)
 static void* GAMMA_lmp;
@@ -639,8 +640,6 @@ void* W_CacheLumpName (char* name, int tag)
         else
         {
             return W_CacheLumpNum(W_GetNumForName(name), tag);
-            //I_Error ("W_CacheLump: %s not found!", name);
-            //return (void*)(0xDEADBEEF);
         }
     }
 }

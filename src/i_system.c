@@ -50,9 +50,9 @@ void DebugOutput_String_For_IError(const char *str, int lineNumber, int good);
 
 volatile uint32_t timekeeping;
 
-// give 5 MB to zone
-// anything more and music starts to fail to allocate samples
-const size_t zone_size = 5242880;
+// freed up enough space through gc-sections to give 5.5 MB to zone
+// this also allowed me to get screen wipe working again
+const size_t zone_size = 5767168;
 int based_zone = 0;
 
 void I_Tactile(int on, int off, int total)
@@ -218,6 +218,7 @@ void I_Error(const char *fmt, ...)
     vsnprintf(errstr, sizeof(errstr), fmt, args);
     // in case we haven't reached I_InitGraphics yet
     printf("I_Error: %s\n", errstr);
+#if 1
     unlockVideo(_dc);
     for(int i=0;i<2;i++)
     {
@@ -225,6 +226,7 @@ void I_Error(const char *fmt, ...)
         DebugOutput_String_For_IError(errstr, 0, 0);
         unlockVideo(_dc);
     }    
+#endif
     D_QuitNetGame();
     I_ShutdownMusic();
     I_ShutdownSound();

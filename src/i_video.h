@@ -31,6 +31,7 @@
 #pragma interface
 #endif
 
+#include <stdint.h>
 
 // Called by D_DoomMain,
 // determines the hardware configuration
@@ -49,7 +50,7 @@ void I_FinishUpdate (void);
 // Wait for vertical retrace or pause a bit.
 void I_WaitVBL(int count);
 
-void I_ReadScreen (byte* scr);
+void I_ReadScreen (uint16_t* scr);
 
 void I_BeginRead (void);
 void I_EndRead (void);

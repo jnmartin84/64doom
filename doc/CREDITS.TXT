@@ -1,9 +1,11 @@
 Doom source from here: https://github.com/id-Software/DOOM
 
-Sample-based MUS playback and digital sound code along with tons of moral and technical support from: ChillyWilly @ Everdrive forums
+Sample-based MUS playback and digital sound code along with tons of moral and technical support from: ChillyWilly
 
 Generic C hashtable from here: https://github.com/dennisfrancis/generic-hashtable
 
-LZFX codec from here: http://lzfx.googlecode.com
+LZFX codec from here: http://lzfx.googlecode.com (dead link)
 
-NEW IMPROVEMENTS: thekovic
+screen wipe code from Chocolate Doom: https://github.com/chocolate-doom/chocolate-doom/blob/master/src/doom/f_wipe.c
+
+more improvements and testing: thekovic, Immorpher

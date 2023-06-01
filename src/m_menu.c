@@ -60,6 +60,7 @@
 
 #include "m_menu.h"
 
+
 extern patch_t*		hu_font[HU_FONTSIZE];
 extern boolean		message_dontfuckwithme;
 
@@ -372,7 +373,7 @@ enum
     detail,
     scrnsize,
     vid_empty0,
-    gamma,
+    gammae,
 	vid_empty1,
     vid_end
 } videoset_e;
@@ -1030,7 +1031,7 @@ void M_DrawVideoSettings(void)
     M_DrawThermo(VideoSettingsDef.x,VideoSettingsDef.y+LINEHEIGHT*(scrnsize+1),
                  9,screenSize);
 
-    M_DrawThermo(VideoSettingsDef.x,VideoSettingsDef.y+LINEHEIGHT*(gamma+1),
+    M_DrawThermo(VideoSettingsDef.x,VideoSettingsDef.y+LINEHEIGHT*(gammae+1),
                  5,usegamma);
 }
 

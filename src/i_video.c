@@ -69,6 +69,14 @@ void unlockVideo(surface_t *dc)
     }
 }
 
+extern void* bufptr;
+
+void I_StartFrame(void)
+{
+    _dc = lockVideo(1);
+    // get the buffer address pointer from the surface once per frame instead of per every column/span
+    bufptr = (void*)_dc->buffer;
+}
 
 void I_ShutdownGraphics(void)
 {
@@ -81,13 +89,15 @@ void I_UpdateNoBlit(void)
 
 void I_FinishUpdate(void)
 {
+    unlockVideo(_dc);
 }
-
+extern void* bufptr;
 //
 // I_ReadScreen
 //
-void I_ReadScreen(byte* scr)
+void I_ReadScreen(uint16_t* scr)
 {
+    memcpy(scr,bufptr,320*200*2);
 }
 
 //

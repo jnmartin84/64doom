@@ -55,10 +55,10 @@ typedef struct
 //
 typedef struct
 {
-    char	name[9];
     int		handle;
     int		position;
     int		size;
+    char	name[9];
 } lumpinfo_t;
 
 

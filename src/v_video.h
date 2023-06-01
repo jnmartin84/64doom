@@ -83,7 +83,7 @@ V_DrawBlock
   int		y,
   int		width,
   int		height,
-  byte*		src );
+  uint16_t*		src );
 
 
 // Reads a linear block of pixels into the view buffer.
@@ -93,7 +93,7 @@ V_GetBlock
   int		y,
   int		width,
   int		height,
-  byte*		dest );
+  uint16_t*		dest );
 
 
 void
