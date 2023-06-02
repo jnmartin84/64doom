@@ -239,9 +239,7 @@ void D_Display(void)
     if (gamestate != wipegamestate)
     {
         wipe = true;
-#if 1        
         wipe_StartScreen(0, 0, SCREENWIDTH, SCREENHEIGHT); 
-#endif
     }
     else
     {
@@ -290,21 +288,18 @@ void D_Display(void)
 
         case GS_INTERMISSION:
         {
-            I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
             WI_Drawer();
             break;
         }
 
         case GS_FINALE:
         {
-            I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
             F_Drawer();
             break;
         }
 
         case GS_DEMOSCREEN:
         {
-            I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
             D_PageDrawer();
             break;
         }
@@ -324,6 +319,7 @@ void D_Display(void)
     // clean up border stuff
     if ((gamestate != oldgamestate) && (gamestate != GS_LEVEL))
     {
+        I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
     }
 
     // see if the border needs to be initially drawn
@@ -372,11 +368,13 @@ void D_Display(void)
 
     NetUpdate(); // send out any new accumulation
 
-    if (!wipe) {
-        I_FinishUpdate();
+    I_FinishUpdate();
+
+    if (!wipe)
+    {
         return;
     }
-#if 1
+
     // wipe update
     wipe_EndScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
 
@@ -384,21 +382,22 @@ void D_Display(void)
 
     do
     {
-	do
-	{
-	    nowtime = I_GetTime ();
-	    tics = nowtime - wipestart;
-	} while (!tics);
-	wipestart = nowtime;
-	done = wipe_ScreenWipe(wipe_Melt
-			       , 0, 0, SCREENWIDTH, SCREENHEIGHT, tics);
-	M_Drawer ();                            // menu is drawn even on top of wipes
-    I_FinishUpdate();
-    I_StartFrame();
-    } while (!done);    
+        I_StartFrame();
+        do
+        {
+            nowtime = I_GetTime ();
+            tics = nowtime - wipestart;
+        }
+        while (!tics);
 
-    I_FinishUpdate();
-#endif
+        wipestart = nowtime;
+        done = wipe_ScreenWipe(wipe_Melt, 0, 0, SCREENWIDTH, SCREENHEIGHT, tics);
+
+        M_Drawer ();    // menu is drawn even on top of wipes
+
+        I_FinishUpdate();
+    }
+    while (!done);    
 }
 
 // use this to hold _dc->buffer pointer whenever we get a surface in D_DoomLoop
