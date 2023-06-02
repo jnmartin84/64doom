@@ -62,10 +62,8 @@
 // STATUS BAR DATA
 //
 
+static uint16_t __attribute__((aligned(8))) stbar_pald[ST_WIDTH * ST_HEIGHT];
 
-//extern byte *big_pal;
-
-static uint16_t stbar_pald[ST_WIDTH * ST_HEIGHT]; 
 // Palette indices.
 // For damage/bonus red-/gold-shifts
 #define STARTREDPALS        1
