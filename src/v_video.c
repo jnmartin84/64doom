@@ -39,8 +39,7 @@
 #define ytab(y) (((y)<<8)+((y)<<6))
 
 extern uint32_t*      palarray;
-extern surface_t*    _dc;
-extern void *bufptr;
+extern void*          bufptr;
 
 int                  usegamma;
 
@@ -156,31 +155,29 @@ void V_DrawPatch ( int x, int y, patch_t* patch )
     int          count;
     int          col; 
     column_t*    column; 
+    uint16_t*    desttop;
+    uint16_t*    dest;
     byte*        source; 
     int          w; 
 
     y -= SHORT(patch->topoffset); 
     x -= SHORT(patch->leftoffset); 
-    col = 0; 
-    w = SHORT(patch->width); 
-
 #ifdef RANGECHECK 
     if (x<0
-    ||x+SHORT(patch->width) >SCREENWIDTH
-    || y<0
-    || y+SHORT(patch->height)>SCREENHEIGHT )
+        ||x+SHORT(patch->width) >SCREENWIDTH
+        || y<0
+        || y+SHORT(patch->height)>SCREENHEIGHT)
     {
-      I_Error("Patch at %d,%d exceeds LFB\n", x,y );
-      // No I_Error abort - what is up with TNT.WAD?
-      //fprintf( stderr, "V_DrawPatch: bad patch (ignored)\n");
-      //return;
+        fprintf( stderr, "Patch at %d,%d exceeds LFB\n", x,y );
+        // No I_Error abort - what is up with TNT.WAD?
+        fprintf( stderr, "V_DrawPatch: bad patch (ignored)\n");
     }
-#endif 
+#endif
 
-    uint16_t*    desttop;
-    uint16_t*    dest;
-
+    col = 0; 
     desttop = (uint16_t*)((uintptr_t)bufptr + (uintptr_t)((((y)*SCREENWIDTH)+x)*2));
+
+    w = SHORT(patch->width); 
 
     for ( ; col<w ; x++, col++, desttop++)
     { 
@@ -195,8 +192,7 @@ void V_DrawPatch ( int x, int y, patch_t* patch )
 
             while (count--) 
             { 
-                uint16_t next_spot = palarray[*source++];
-                *dest = next_spot;
+                *dest = palarray[*source++];
                 dest += SCREENWIDTH; 
             } 
             column = (column_t *)(  (byte *)column + column->length + 4 ); 
@@ -209,32 +205,30 @@ void V_DrawPatchBuf ( int x, int y, patch_t* patch, uint16_t *buf)
 {
     int          count;
     int          col; 
-    column_t*    column; 
+    column_t*    column;
+    uint16_t*    desttop;
+    uint16_t*    dest;
     byte*        source; 
     int          w; 
 
     y -= SHORT(patch->topoffset); 
     x -= SHORT(patch->leftoffset); 
-    col = 0; 
-    w = SHORT(patch->width); 
-
 #ifdef RANGECHECK 
     if (x<0
-    ||x+SHORT(patch->width) >SCREENWIDTH
-    || y<0
-    || y+SHORT(patch->height)>SCREENHEIGHT )
+        ||x+SHORT(patch->width) >SCREENWIDTH
+        || y<0
+        || y+SHORT(patch->height)>SCREENHEIGHT)
     {
-      I_Error("Patch at %d,%d exceeds LFB\n", x,y );
-      // No I_Error abort - what is up with TNT.WAD?
-      //fprintf( stderr, "V_DrawPatch: bad patch (ignored)\n");
-      //return;
+        fprintf( stderr, "Patch at %d,%d exceeds LFB\n", x,y );
+        // No I_Error abort - what is up with TNT.WAD?
+        fprintf( stderr, "V_DrawPatch: bad patch (ignored)\n");
     }
 #endif 
 
-    uint16_t*    desttop;
-    uint16_t*    dest;
-
+    col = 0; 
     desttop = (uint16_t*)((uintptr_t)buf + (uintptr_t)((((y)*SCREENWIDTH)+x)*2));
+
+    w = SHORT(patch->width); 
 
     for ( ; col<w ; x++, col++, desttop++)
     { 
@@ -249,8 +243,7 @@ void V_DrawPatchBuf ( int x, int y, patch_t* patch, uint16_t *buf)
 
             while (count--) 
             { 
-                uint16_t next_spot = palarray[*source++];
-                *dest = next_spot;
+                *dest = palarray[*source++];
                 dest += SCREENWIDTH; 
             } 
             column = (column_t *)(  (byte *)column + column->length + 4 ); 
@@ -269,32 +262,30 @@ void V_DrawPatchFlipped ( int x, int y, patch_t* patch )
     int          count;
     int          col;
     column_t*    column;
-    byte*        source;
-    int          w;
     uint16_t*    desttop;
     uint16_t*    dest;
+    byte*        source;
+    int          w;
 
     y -= SHORT(patch->topoffset);
     x -= SHORT(patch->leftoffset);
-    col = 0;
-    w = SHORT(patch->width);
-
 #ifdef RANGECHECK 
     if (x<0
-    ||x+SHORT(patch->width) >SCREENWIDTH
-    || y<0
-    || y+SHORT(patch->height)>SCREENHEIGHT )
+        ||x+SHORT(patch->width) >SCREENWIDTH
+        || y<0
+        || y+SHORT(patch->height)>SCREENHEIGHT)
     {
-      I_Error("Patch at %d,%d exceeds LFB\n", x,y );
-      // No I_Error abort - what is up with TNT.WAD?
-      //fprintf( stderr, "V_DrawPatch: bad patch (ignored)\n");
-      //return;
+        fprintf( stderr, "Patch origin %d,%d exceeds LFB\n", x,y );
+        I_Error ("Bad V_DrawPatch in V_DrawPatchFlipped");
     }
-#endif 
+#endif
 
+    col = 0;
     desttop = (uint16_t*)((uintptr_t)bufptr + (uintptr_t)((((y)*SCREENWIDTH)+x)*2));
 
-    for ( ; col<w ; x++, col++)
+    w = SHORT(patch->width);
+
+    for ( ; col<w ; x++, col++, desttop++)
     {
         column = (column_t *)((byte *)patch + LONG(patch->columnofs[w-1-col]));
 
@@ -309,8 +300,7 @@ void V_DrawPatchFlipped ( int x, int y, patch_t* patch )
 
             while (count--)
             {
-                uint16_t mapped_spot = palarray[*source++];
-                *dest = mapped_spot;
+                *dest = palarray[*source++];
                 dest += SCREENWIDTH; 
             }
 
