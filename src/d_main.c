@@ -368,10 +368,9 @@ void D_Display(void)
 
     NetUpdate(); // send out any new accumulation
 
-    I_FinishUpdate();
-
     if (!wipe)
     {
+        I_FinishUpdate();
         return;
     }
 
@@ -382,7 +381,6 @@ void D_Display(void)
 
     do
     {
-        I_StartFrame();
         do
         {
             nowtime = I_GetTime ();
@@ -396,8 +394,11 @@ void D_Display(void)
         M_Drawer ();    // menu is drawn even on top of wipes
 
         I_FinishUpdate();
+        I_StartFrame();
     }
     while (!done);    
+
+    I_FinishUpdate();
 }
 
 // use this to hold _dc->buffer pointer whenever we get a surface in D_DoomLoop
