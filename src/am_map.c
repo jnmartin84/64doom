@@ -49,9 +49,11 @@
 
 #include <libdragon.h>
 
-extern void graphics_draw_line( display_context_t disp, int x0, int y0, int x1, int y1, uint32_t color );
-extern uint32_t* palarray;
-extern surface_t *_dc;
+extern void graphics_draw_line(surface_t* disp, int x0, int y0, int x1, int y1, uint32_t color);
+
+extern uint32_t*     palarray;
+extern surface_t*    _dc;
+extern void*         bufptr;
 
 // For use if I do walls with outsides/insides
 #define REDS        (256-5*16)
@@ -311,13 +313,6 @@ static boolean stopped = true;
 extern boolean viewactive;
 
 //extern void V_MarkRect(int x, int y, int width, int height);
-
-
-
-
-extern int *finetan2; // 4096
-
-
 
 // Calculates the slope and slope according to the x-axis of a line
 // segment in map coordinates (with the upright y-axis n' all) so
@@ -896,12 +891,13 @@ void AM_Ticker (void)
 // status bar height at bottom of screen
 #define SBARHEIGHT            32
 
+
 //
 // Clear automap frame buffer.
 //
 void AM_clearFB(int color)
 {
-    memset((uint16_t *)((uintptr_t)_dc->buffer), 0, SCREENWIDTH*(SCREENHEIGHT-SBARHEIGHT)*2);
+    memset(bufptr, 0, SCREENWIDTH*(SCREENHEIGHT-SBARHEIGHT)*2);
 }
 
 
