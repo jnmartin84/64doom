@@ -247,19 +247,18 @@ void F_Ticker (void)
     }
 }
 
-extern uint32_t* palarray;
-extern surface_t *_dc;
-
 //
 // F_TextWrite
 //
 
 #include "hu_stuff.h"
+extern uint32_t*   palarray;
+extern void*       bufptr;
 extern patch_t*    hu_font[HU_FONTSIZE];
        byte*       bgsrc = 0;
 
 static inline void F_bgpart(void) {
-    uint32_t *dest32 = (uint32_t *)((uintptr_t)_dc->buffer);
+    uint32_t *dest32 = (uint32_t *)bufptr;
     bgsrc = W_CacheLumpName (finaleflat , PU_CACHE);
 
     for (size_t y = 0 ; y < SCREENHEIGHT ; y++)
@@ -611,7 +610,7 @@ void F_DrawPatchCol (int x, patch_t* patch, int col)
     byte*        source;
     int          count;
     uint16_t*    dest;
-    uint16_t*    desttop = (uint16_t *)(_dc->buffer + (x << 1));
+    uint16_t*    desttop = (uint16_t *)(bufptr + (x << 1));
 
     column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
 
