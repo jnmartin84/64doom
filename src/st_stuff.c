@@ -65,7 +65,7 @@
 
 //extern byte *big_pal;
 
-
+static uint16_t stbar_pald[ST_WIDTH * ST_HEIGHT]; 
 // Palette indices.
 // For damage/bonus red-/gold-shifts
 #define STARTREDPALS        1
@@ -489,24 +489,18 @@ cheatseq_t    cheat_mypos = { cheat_mypos_seq, 0 };
 // 
 extern char*    mapnames[];
 
-
-extern display_context_t _dc;
-extern void graphics_draw_text( display_context_t disp, int x, int y, const char * const msg );
-
 //
 // STATUS BAR CODE
 //
 void ST_Stop(void);
 
-//static uint16_t stbar16[320*32];
-
+extern void* bufptr;
 static inline void ST_refreshBackground()
 {
     if (st_statusbaron)
-    {// ST_X,0,BG
-        V_DrawPatch(ST_X, ST_Y, sbar);
+    {
+        memcpy((uint16_t*)((uintptr_t)bufptr + (((ST_Y*SCREENWIDTH) + ST_X)*2)), stbar_pald, ST_WIDTH*ST_HEIGHT*2);
     }
-//    }
 }
 
 
@@ -1512,5 +1506,6 @@ void ST_Init (void)
 {
     veryfirsttime = 0;
     ST_loadData();
+    V_DrawPatchBuf(0, 0, sbar, stbar_pald);
     //screens[4] = (byte *) Z_Malloc(ST_WIDTH*ST_HEIGHT, PU_STATIC, 0);
 }

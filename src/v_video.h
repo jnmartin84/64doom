@@ -75,6 +75,12 @@ V_DrawPatch
   int		y,
   patch_t*	patch);
 
+void
+V_DrawPatchBuf
+( int		x,
+  int		y,
+  patch_t*	patch,
+  uint16_t* buf);
 
 // Draw a linear block of pixels into the view buffer.
 void
