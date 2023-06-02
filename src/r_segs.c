@@ -32,7 +32,6 @@
 #include "r_local.h"
 #include "r_sky.h"
 
-extern fixed_t *finetan2; // 4096
 #define tantoangle(x) ((angle_t)((-47*((x)*(x))) + (359628*(x)) - 3150270))
 
 // OPTIMIZE: closed two sided lines as single sided
@@ -288,7 +287,7 @@ void R_RenderSegLoop (void)
         {
             // calculate texture offset
             angle = (rw_centerangle + xtoviewangle[rw_x])>>ANGLETOFINESHIFT;
-            texturecolumn = rw_offset-FixedMul(finetan2[angle],rw_distance);
+            texturecolumn = rw_offset-FixedMul(finetangentf(angle),rw_distance);
             texturecolumn >>= FRACBITS;
             // calculate lighting
             index = rw_scale>>LIGHTSCALESHIFT;

@@ -60,27 +60,47 @@ static inline int32_t  __attribute__((always_inline)) finesine(int32_t x)
 {
     // original has qA = 12 (output range [-4095,4095])
     // we need 16 (output range [-65535,65535])
-    static const int qN = 13, qA= 16, qP= 15, qR= 2*qN-qP, qS= qN+qP+1-qA;
+//    static const int qN = 13, qA= 16, qP= 15, qR= 2*qN-qP, qS= qN+qP+1-qA;
 
     // scale the input range
     // this makes it work as a replacement for the old finesine table
-    x <<= 2;
+//    x <<= 2;
+//    x = (x << (30 - qN));
 
-    x = (x << (30 - qN));
+    x = x << 19;
 
     if ((x ^ (x << 1)) < 0)
         x = (1 << 31) - x;
 
-    x = x >> (30 - qN);
+//    x = x >> (30 - qN);
+    x = x >> 17;
 
-    return x * ((3 << qP) - ((x * x) >> qR)) >> qS;
+//    return x * ((3 << qP) - ((x * x) >> qR)) >> qS;
+    return x * (98304 - ((x * x) >> 11)) >> 13;
 }
 
-static inline int32_t  __attribute__((always_inline)) finecosine(int32_t x)
+static inline int32_t __attribute__((always_inline)) finecosine(int32_t x)
 {
     return finesine(x + 2048);
 }
 
+#if 0
+extern int32_t finetangentf(int32_t x);
+#endif
+#if 1
+// I don't want this to use floating point but I haven't figured out how to convert it to fixed-point yet
+static inline int32_t  __attribute__((always_inline)) finetangentf(int32_t x)
+{
+    // [0,4095] -> [-2048,2047] -> [-1.0,1.0]
+    float inx = (((float)x - 2048.0f)/2048.0f);
+    float y = (1.0f - (inx*inx));
+    // avoid div by zero
+    if(y == 0) y = 0.0001f;
+    float ret = inx * ((-0.0187108f * y) + 0.31583526f + (1.27365776f / y));
+    // float to fixed
+    return (int32_t)(ret*65536);
+}
+#endif
 #endif
 //-----------------------------------------------------------------------------
 //

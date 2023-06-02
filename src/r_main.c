@@ -110,15 +110,6 @@ lighttable_t*        scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
 lighttable_t*        scalelightfixed[MAXLIGHTSCALE];
 lighttable_t*        zlight[LIGHTLEVELS][MAXLIGHTZ];
 
-// UNUSED.
-// The finetangentgent[angle+FINEANGLES/4] table
-// holds the fixed_t tangent values for view angles,
-// ranging from MININT to 0 to MAXINT.
-//fixed_t        finetangent[FINEANGLES/2];
-
-extern fixed_t *finetan2; // 4096
-
-
 void (*colfunc) (int yl, int yh, int x);
 void (*skycolfunc) (int yl, int yh, int x);
 void (*basecolfunc) (int yl, int yh, int x);
@@ -373,8 +364,6 @@ fixed_t R_ScaleFromGlobalAngle (angle_t visangle)
     angleb = ANG90 + (visangle-rw_normalangle);
 
     // both sines are allways positive
- //   sinea = finesine((anglea>>ANGLETOFINESHIFT));
-   // sineb = finesine((angleb>>ANGLETOFINESHIFT));
     sinea = finesine((anglea>>ANGLETOFINESHIFT));
     sineb = finesine((angleb>>ANGLETOFINESHIFT));
     num = FixedMul(projection, sineb) << detailshift;
@@ -423,21 +412,24 @@ void R_InitTextureMapping (void)
     //
     // Calc focallength
     //  so FIELDOFVIEW angles covers SCREENWIDTH.
-    focallength = FixedDiv (centerxfrac, finetangent[FINEANGLES/4+FIELDOFVIEW/2]);
+
+    // FixedDiv(centerxfrac, finetangent[3072])
+    // centerxfrac * 65536 / roughly 65536
+    focallength = centerxfrac; //FixedDiv (centerxfrac, finetangentf(FINEANGLES/4+FIELDOFVIEW/2));
 
     for (i=0 ; i<FINEANGLES/2 ; i++)
     {
-        if (finetangent[i] > (FRACUNIT*2))
+        if (finetangentf(i) > (FRACUNIT*2))
         {
             t = -1;
         }
-		else if (finetangent[i] < -(FRACUNIT*2))
+		else if (finetangentf(i) < -(FRACUNIT*2))
         {
             t = viewwidth+1;
         }
         else
         {
-            t = FixedMul (finetangent[i], focallength);
+            t = FixedMul (finetangentf(i), focallength);
             t = (centerxfrac - t+FRACUNIT-1)>>FRACBITS;
 
             if (t < -1)
@@ -644,9 +636,11 @@ void R_ExecuteSetViewSize (void)
 extern int    detailLevel;
 extern int    screenblocks;
 
+//extern void setup_finetangent_fpconst();
 
 void R_Init (void)
 {
+//    setup_finetangent_fpconst();
     R_InitData ();
     R_InitPointToAngle ();
     R_InitTables ();
@@ -657,12 +651,6 @@ void R_Init (void)
     R_InitLightTables ();
     R_InitSkyMap ();
     R_InitTranslationTables ();
-
-//    viewangletox = (int*)((uintptr_t)c_viewangletox | view);
-//    xtoviewangle = (angle_t*)((uintptr_t)c_xtoviewangle | 0xA0000000);
-
-    // performance is equally good if not better when you access the math tables uncached
-    finetan2 = (fixed_t *)((uintptr_t)finetangent | 0xA0000000);
 }
 
 

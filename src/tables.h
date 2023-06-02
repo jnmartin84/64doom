@@ -36,8 +36,6 @@
 #ifndef __TABLES__
 #define __TABLES__
 
-
-
 #ifdef LINUX
 #include <math.h>
 #else
@@ -54,9 +52,6 @@
 // 0x100000000 to 0x2000
 #define ANGLETOFINESHIFT	19		
 
-// Effective size is 4096.
-extern fixed_t		__attribute__((aligned(64))) finetangent[FINEANGLES/2];
-
 // Binary Angle Measument, BAM.
 #define ANG45			0x20000000
 #define ANG90			0x40000000
@@ -69,14 +64,6 @@ extern fixed_t		__attribute__((aligned(64))) finetangent[FINEANGLES/2];
 #define DBITS			(FRACBITS-SLOPEBITS)
 
 typedef unsigned angle_t;
-
-// Utility function,
-//  called by R_PointToAngle.
-/*int
-SlopeDiv
-( unsigned	num,
-  unsigned	den);*/
-
 
 #endif
 //-----------------------------------------------------------------------------
