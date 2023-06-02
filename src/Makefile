@@ -121,17 +121,13 @@ $(PROG_NAME).z64: $(PROG_NAME).elf
 $(PROG_NAME).elf : $(OBJS)
 	$(LD) -o $(PROG_NAME).elf $(OBJS) $(LINK_FLAGS)
 
-# I used these for debugging in the past
-#	$(OBJDUMP) -t $(PROG_NAME).elf > $(PROG_NAME)_symbols.txt
-#	cat $(PROG_NAME)_symbols.txt | grep 'F .text' > $(PROG_NAME)_functions.txt
-
 copy: $(PROG_NAME).z64
 	cp $(PROG_NAME).z64 ~/
 
 all: $(PROG_NAME).z64
 
 clean:
-	rm -f *.z64 *.elf *.o *.bin *.dfs *.txt
+	rm -f *.z64 *.elf *.o *.msym *.sym *.bin *.dfs
 	rm -f $(O)/*
 
 $(O)/%.o:	%.c
