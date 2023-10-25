@@ -129,7 +129,7 @@ int    fuzzpos = 0;
 void R_DrawFuzzColumn (int cyl,int cyh,int cx)
 {
     int              count;
-    uint16_t*        dest;
+    uint8_t*        dest;
 
     // Adjust borders. Low...
     if (!cyl)
@@ -151,7 +151,8 @@ void R_DrawFuzzColumn (int cyl,int cyh,int cx)
         return;
     }
 
-    dest = (uint16_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
+//    dest = (uint16_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
+    dest = (uint8_t*)(((uint8_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
 
     // Looks like an attempt at dithering,
     //  using the colormap #6 (of 0-31, a bit
@@ -186,7 +187,7 @@ void R_DrawFuzzColumn (int cyl,int cyh,int cx)
 void R_DrawFuzzColumnLow (int cyl,int cyh,int cx)
 {
     int              count;
-    uint32_t*        dest;
+    uint16_t*        dest;
 
     // Adjust borders. Low...
     if (!cyl)
@@ -208,7 +209,8 @@ void R_DrawFuzzColumnLow (int cyl,int cyh,int cx)
         return;
     }
 
-    dest = (uint32_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + viewwindowx + (cx<<1));
+//    dest = (uint32_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + viewwindowx + (cx<<1));
+    dest = (uint16_t*)(((uint8_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + viewwindowx + (cx<<1));
 
     // Looks like an attempt at dithering,
     //  using the colormap #6 (of 0-31, a bit
@@ -220,7 +222,7 @@ void R_DrawFuzzColumnLow (int cyl,int cyh,int cx)
         //  left or right of the current one.
         // Add index from colormap to index.
         
-        // 32-bit write, double-pixel write with one store instruction
+        // 16-bit write, double-pixel write with one store instruction
         *dest = dest[fuzzoffset[fuzzpos] >> 1];
 
         // Clamp table lookup index.
@@ -252,7 +254,7 @@ void R_DrawTranslatedColumn (int cyl,int cyh,int cx)
     int              count;
     fixed_t          frac;
     fixed_t          fracstep;
-    uint16_t*        dest;
+    uint8_t*        dest;
 
 #ifdef RANGECHECK
     if ((unsigned)cx >= SCREENWIDTH
@@ -266,7 +268,8 @@ void R_DrawTranslatedColumn (int cyl,int cyh,int cx)
     count = cyh - cyl;
 
     // Framebuffer destination address.
-    dest = (uint16_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
+//    dest = (uint16_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
+    dest = (uint8_t*)(((uint8_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
 
     // Looks familiar.
     fracstep = dc_iscale;
@@ -280,7 +283,7 @@ void R_DrawTranslatedColumn (int cyl,int cyh,int cx)
         //  used with PLAY sprites.
         // Thus the "green" ramp of the player 0 sprite
         //  is mapped to gray, red, black/indigo.
-        *dest = palarray[dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]];
+        *dest = /*palarray[*/dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]/*]*/;
         dest += SCREENWIDTH;
         frac += fracstep;
     }
@@ -304,7 +307,7 @@ void R_DrawTranslatedColumnLow (int cyl,int cyh,int cx)
     int              count;
     fixed_t          frac;
     fixed_t          fracstep;
-    uint32_t*        dest;
+    uint16_t*        dest;
 
 #ifdef RANGECHECK
     if ((unsigned)cx >= SCREENWIDTH
@@ -317,7 +320,7 @@ void R_DrawTranslatedColumnLow (int cyl,int cyh,int cx)
 
     count = cyh - cyl;
 
-    dest = (uint32_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + viewwindowx + (cx<<1));
+    dest = (uint16_t*)(((uint8_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + viewwindowx + (cx<<1));
 
     // Looks familiar.
     fracstep = dc_iscale;
@@ -333,7 +336,11 @@ void R_DrawTranslatedColumnLow (int cyl,int cyh,int cx)
         //  is mapped to gray, red, black/indigo.
 
         // 32-bit write, double-pixel write with one store instruction
-        *dest = palarray[dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]]];
+	uint8_t spot = 
+//        *dest = /*palarray[*/
+dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]];//];
+	uint16_t widespot = (spot << 8) | spot;
+	*dest = widespot;
         dest += (SCREENWIDTH >> 1);
         frac += fracstep;
     }
@@ -346,7 +353,7 @@ void R_DrawColumn (int cyl,int cyh,int cx)
     int              count;
     fixed_t          frac;
     fixed_t          fracstep;
-    uint16_t*        dest;
+    uint8_t*        dest;
 
 #ifdef RANGECHECK
     if ((unsigned)cx >= SCREENWIDTH
@@ -372,7 +379,7 @@ void R_DrawColumn (int cyl,int cyh,int cx)
     // SCREENWIDTH is a nice combination of powers of two
     // 320 is (2^8) + (2^6)
     // the compiler turns *SCREENWIDTH into a few SLL, no MULT needed
-    dest = (uint16_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
+    dest = (uint8_t*)(((uint8_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
 
     // Looks familiar.
     fracstep = dc_iscale;
@@ -380,7 +387,7 @@ void R_DrawColumn (int cyl,int cyh,int cx)
 
     do
     {
-        *dest = palarray[dc_colormap[dc_source[(frac>>FRACBITS)&127]]];
+        *dest = /*palarray[*/dc_colormap[dc_source[(frac>>FRACBITS)&127]]/*]*/;
         dest += SCREENWIDTH;
         frac += fracstep;
     }
@@ -393,7 +400,7 @@ void R_DrawColumnLow (int cyl,int cyh,int cx)
     int         count;
     fixed_t     frac;
     fixed_t     fracstep;
-    uint32_t    *dest;
+    uint16_t    *dest;
 
 #ifdef RANGECHECK
     if ((unsigned)cx >= SCREENWIDTH
@@ -406,14 +413,17 @@ void R_DrawColumnLow (int cyl,int cyh,int cx)
 
     count = cyh - cyl;
 
-    dest = (uint32_t*)(((uint16_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + viewwindowx + (cx<<1));
+    dest = (uint16_t*)(((uint8_t *)bufptr) + ((viewwindowy + cyl)*SCREENWIDTH) + viewwindowx + (cx<<1));
     // Looks familiar.
     fracstep = dc_iscale;
     frac = dc_texturemid + (cyl-centery)*fracstep;
 
     do
     {
-        *dest = palarray[dc_colormap[dc_source[(frac>>FRACBITS)&127]]];
+        // *dest = 
+	uint8_t spot = /*palarray[*/dc_colormap[dc_source[(frac>>FRACBITS)&127]]/*]*/;
+	uint16_t widespot = (spot << 8) | spot;
+	*dest = widespot;
         dest += (SCREENWIDTH >> 1);
         frac += fracstep;
     }
@@ -453,7 +463,7 @@ void R_DrawSpan (int sx1, int sx2, int sy)
 { 
     fixed_t          xfrac;
     fixed_t          yfrac;
-    uint16_t*        dest;
+    uint8_t*        dest;
     int              count;
     int              spot;
 
@@ -473,7 +483,7 @@ void R_DrawSpan (int sx1, int sx2, int sy)
     xfrac = ds_xfrac; 
     yfrac = ds_yfrac; 
 
-    dest = (uint16_t*)(((uint16_t *)bufptr) + ((viewwindowy + sy)*SCREENWIDTH) + (viewwindowx + sx1));
+    dest = (uint8_t*)(((uint8_t *)bufptr) + ((viewwindowy + sy)*SCREENWIDTH) + (viewwindowx + sx1));
 
     do 
     {
@@ -484,7 +494,7 @@ void R_DrawSpan (int sx1, int sx2, int sy)
 
         // Lookup pixel from flat texture tile,
         //  re-index using light/colormap.
-        *dest++ = palarray[ds_colormap[ds_source[spot]]];
+        *dest++ = /*palarray[*/ds_colormap[ds_source[spot]]/*]*/;
     } while (count--); 
 }
 
@@ -493,7 +503,7 @@ void R_DrawSpanLow (int sx1, int sx2, int sy)
 { 
     fixed_t      xfrac;
     fixed_t      yfrac; 
-    uint32_t*    dest; 
+    uint16_t*    dest; 
     int          count;
     int          spot; 
 
@@ -512,7 +522,7 @@ void R_DrawSpanLow (int sx1, int sx2, int sy)
     xfrac = ds_xfrac; 
     yfrac = ds_yfrac; 
 
-    dest = (uint32_t*)(((uint16_t *)bufptr) + ((viewwindowy + sy)*SCREENWIDTH) + viewwindowx + (sx1<<1));
+    dest = (uint16_t*)(((uint8_t *)bufptr) + ((viewwindowy + sy)*SCREENWIDTH) + viewwindowx + (sx1<<1));
 
     do 
     {
@@ -524,7 +534,9 @@ void R_DrawSpanLow (int sx1, int sx2, int sy)
     
         // Lookup pixel from flat texture tile,
         //  re-index using light/colormap.
-        *dest++ = palarray[ds_colormap[ds_source[spot]]];
+	uint8_t spotspot = ds_colormap[ds_source[spot]];
+	uint16_t widespot = (spotspot << 8) | spot;
+        *dest++ = widespot;//palarray[ds_colormap[ds_source[spot]]];
     } while (count--); 
 } 
 
