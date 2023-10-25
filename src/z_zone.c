@@ -42,16 +42,16 @@ typedef struct
 {
     // total bytes malloced, including header
     int32_t        size;
-    int32_t        pad0;
+    //int32_t        pad0;
 
     // start / end cap for linked list
     memblock_t    blocklist;
 
     memblock_t*    rover;
 
-    int32_t pad1;
-    int32_t pad2;
-    int32_t pad3;
+    //int32_t pad1;
+    //int32_t pad2;
+    //int32_t pad3;
 } memzone_t;
 memzone_t*    mainzone;
 

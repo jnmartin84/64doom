@@ -236,15 +236,15 @@ void D_Display(void)
     }
 
     // save the current screen if about to wipe
-    if (gamestate != wipegamestate)
-    {
-        wipe = true;
-        wipe_StartScreen(0, 0, SCREENWIDTH, SCREENHEIGHT); 
-    }
-    else
-    {
+//    if (gamestate != wipegamestate)
+//    {
+//        wipe = true;
+//        wipe_StartScreen(0, 0, SCREENWIDTH, SCREENHEIGHT); 
+//    }
+//    else
+//    {
         wipe = false;
-    }
+//    }
 
     if ((gamestate == GS_LEVEL) && gametic)
     {
@@ -266,7 +266,7 @@ void D_Display(void)
                 AM_Drawer();
             }
 
-            if (wipe || ((viewheight != SCREENHEIGHT) && fullscreen))
+            if (/*wipe ||*/ ((viewheight != SCREENHEIGHT) && fullscreen))
             {
                 redrawsbar = true;
             }
@@ -368,12 +368,12 @@ void D_Display(void)
 
     NetUpdate(); // send out any new accumulation
 
-    if (!wipe)
-    {
+//    if (!wipe)
+//    {
         I_FinishUpdate();
-        return;
-    }
-
+//        return;
+//    }
+#if 0
     // wipe update
     wipe_EndScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
 
@@ -399,6 +399,7 @@ void D_Display(void)
     while (!done);    
 
     I_FinishUpdate();
+#endif
 }
 
 // use this to hold _dc->buffer pointer whenever we get a surface in D_DoomLoop
@@ -891,9 +892,9 @@ void D_DoomMain(void)
     }
 
     // clear the console as part of clearing screen before game starts
-    console_clear();
-    console_close();
-
+    //console_clear();
+    //console_close();
+#if 0
     // clear screen before game starts
     for(int i=0;i<2;i++)
     {
@@ -901,6 +902,6 @@ void D_DoomMain(void)
         memset(_dc->buffer, 0, SCREENWIDTH*SCREENHEIGHT*2);
         unlockVideo(_dc);
     }
-
+#endif
     D_DoomLoop();  // never returns
 }

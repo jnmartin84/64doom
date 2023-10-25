@@ -32,6 +32,10 @@
 #include "d_main.h"
 
 #include "doomdef.h"
+extern void* bufptr;
+uint8_t *screens[5];
+//uint8_t __attribute__((aligned(64))) screen[0];//320*200];
+uint16_t*  palarray;
 
 // function prototypes
 
@@ -39,6 +43,7 @@ void I_SetPalette(byte* palette);
 
 void I_FinishUpdate(void);
 
+int display_ready = 0;
 
 // globals
 
@@ -71,11 +76,15 @@ void unlockVideo(surface_t *dc)
 
 extern void* bufptr;
 
+static    surface_t *disp;
+surface_t *_surface;
+
 void I_StartFrame(void)
 {
-    _dc = lockVideo(1);
+//if(!display_ready) return;
+//    _dc = lockVideo(1);
     // get the buffer address pointer from the surface once per frame instead of per every column/span
-    bufptr = (void*)_dc->buffer;
+    bufptr = screens[0];//s[0];//(void*)_dc->buffer;
 }
 
 void I_ShutdownGraphics(void)
@@ -89,15 +98,93 @@ void I_UpdateNoBlit(void)
 
 void I_FinishUpdate(void)
 {
-    unlockVideo(_dc);
+#if 1
+if(!display_ready) return;
+    while( !(disp = display_get()) );
+    // Attach the RDP to the display buffer
+    rdpq_attach_clear(disp, NULL);
+
+    data_cache_hit_writeback(screens[0], 320*200);
+
+    // Load the palette
+    data_cache_hit_writeback(palarray, 256*2);
+    rdpq_tex_load_tlut(palarray, 0, 256);
+
+    // Set copy render mode, with palette lookup
+    rdpq_set_mode_copy(false);
+    rdpq_mode_tlut(TLUT_RGBA16);
+
+    // Blit the surface onto the display
+    surface_t src = surface_make(screens[0], FMT_CI8, 320, 200, 320);
+    rdpq_tex_blit(&src, 0, 0, NULL);
+
+    // Detach from the surface and display it once done
+    rdpq_detach_show();
+    return;
+#endif
+
+_surface = lockVideo(1);
+#if 0
+        // Nintendo 64 frame buffer, 64-bit pointer to 20th row
+        uint64_t *dst64 = (uint64_t *)((uintptr_t)_surface->buffer + (uintptr_t)12800);
+        // OpenTyrian frame buffer, 32-bit pointer to 1st row
+        uint32_t *src32 = (uint32_t *)VGAScreen;
+
+        // 64000 8-bit pixels
+        // /
+        // 16 pixels per loop
+        // =
+        // 4000 iterations
+        for (uint n=0;n<4000;n++)
+        {
+                // read 4 pixels from 8-bit frame buffer
+                uint32_t src_four1 = *src32++;
+                // read 4 more pixels from 8-bit frame buffer
+                uint32_t src_four2 = *src32++;
+                // read 4 more pixels from 8-bit frame buffer
+                uint32_t src_four3 = *src32++;
+                // read 4 more pixels from 8-bit frame buffer
+                uint32_t src_four4 = *src32++;
+                // color index first two pixels to get 2 16-bit pixels
+                uint32_t src12 = tworgb_palette[(src_four1 >> 16)];
+                // color index second two pixels to get 2 more 16-bit pixels
+                uint32_t src34 = tworgb_palette[(src_four1 & 0xffff)];
+                // write 4 16-bit pixels to 16-bit frame buffer
+                *dst64++ = (uint64_t)(((uint64_t)src12<<32)|(uint64_t)src34);
+                // color index two more pixels to get 2 16-bit pixels
+                src12 = tworgb_palette[(src_four2 >> 16)];
+                // color index two more pixels to get 2 16-bit pixels
+                src34 = tworgb_palette[(src_four2 & 0xffff)];
+                // write 4 more 16-bit pixels to 16-bit frame buffer
+                *dst64++ = (uint64_t)(((uint64_t)src12<<32)|(uint64_t)src34);
+                // color index two more pixels to get 2 16-bit pixels
+                src12 = tworgb_palette[(src_four3 >> 16)];
+                // color index two more pixels to get 2 16-bit pixels
+                src34 = tworgb_palette[(src_four3 & 0xffff)];
+                // write 4 more 16-bit pixels to 16-bit frame buffer
+                *dst64++ = (uint64_t)(((uint64_t)src12<<32)|(uint64_t)src34);
+                // color index two more pixels to get 2 16-bit pixels
+                src12 = tworgb_palette[(src_four4 >> 16)];
+                // color index two more pixels to get 2 16-bit pixels
+                src34 = tworgb_palette[(src_four4 & 0xffff)];
+                // write 4 more 16-bit pixels to 16-bit frame buffer
+                *dst64++ = (uint64_t)(((uint64_t)src12<<32)|(uint64_t)src34);
+        }
+#endif
+for(int y=0;y<200;y++) {
+for(int x=0;x<320;x++) {
+((uint16_t*)_surface->buffer)[(y*320)+x] = palarray[screens[0][(y*320)+x]];
 }
-extern void* bufptr;
+}
+unlockVideo(_surface);
+}
+
 //
 // I_ReadScreen
 //
-void I_ReadScreen(uint16_t* scr)
+void I_ReadScreen(uint8_t* scr)
 {
-    memcpy(scr,bufptr,320*200*2);
+    memcpy(scr,bufptr,320*200);//*2);
 }
 
 //
@@ -119,10 +206,10 @@ void I_ForcePaletteUpdate(void)
 // the color lookup is a single index into palarray
 // no shifting and masking necessary to create a doubled pixel
 // and it gets written to the 16-bit framebuffer as two pixels with a single 32-bit write
-uint32_t*  palarray;
-static uint32_t __attribute__((aligned(8))) default_palarray[256];
-static uint32_t __attribute__((aligned(8))) current_palarray[256];
-static uint32_t *old_palarray = NULL;
+//uint32_t*  palarray;
+static uint16_t __attribute__((aligned(64))) default_palarray[256];
+static uint16_t __attribute__((aligned(64))) current_palarray[256];
+static uint16_t *old_palarray = NULL;
 
 void I_SavePalette(void)
 {
@@ -153,8 +240,8 @@ void I_SetPalette(byte* palette)
         b = gammaptr[b];
 
         uint16_t unpackedcol = ((r >> 3) << 11) | ((g >> 3) << 6) | ((b >> 3) << 1);
-        uint32_t packedcol = (unpackedcol << 16) | unpackedcol;
-        current_palarray[i] = packedcol;
+        //uint32_t packedcol = (unpackedcol << 16) | unpackedcol;
+        current_palarray[i] = unpackedcol;
     }
 }
 
@@ -174,8 +261,12 @@ void I_InitGraphics(void)
 		.height = SCREENHEIGHT,
 		.interlaced = false,
 	}, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE );
+        rdpq_init();
+        rdpq_debug_start();
 
     I_SetDefaultPalette();
 
     palarray = current_palarray;
+display_ready = 1;
+printf("I_InitGraphics: Initialized display and RDPQ.\n");
 }

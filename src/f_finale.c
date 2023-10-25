@@ -252,27 +252,35 @@ void F_Ticker (void)
 //
 
 #include "hu_stuff.h"
-extern uint32_t*   palarray;
-extern void*       bufptr;
 extern patch_t*    hu_font[HU_FONTSIZE];
+extern void*       bufptr;
+
+#if 0
+extern uint32_t*   palarray;
        byte*       bgsrc = 0;
 
 static inline void F_bgpart(void) {
-    uint32_t *dest32 = (uint32_t *)bufptr;
+    uint8_t *dest32 = (uint8_t *)bufptr;
     bgsrc = W_CacheLumpName (finaleflat , PU_CACHE);
 
     for (size_t y = 0 ; y < SCREENHEIGHT ; y++)
     {
         int sy = ytab(y);
         int asy = (y&63)<<6;
-        for (size_t x = 0; x < 64; x+=2)
+        for (size_t x = 0; x < 64; x++)
         {
-            uint32_t curpix = ((palarray[bgsrc[asy+x]]) << 16) | (palarray[bgsrc[asy+x+1]] & 0xFFFF);
-            dest32[(x+sy)>>1] = curpix;
-            dest32[(x+64+sy)>>1] = curpix;
-            dest32[(x+128+sy)>>1] = curpix;
-            dest32[(x+192+sy)>>1] = curpix;
-            dest32[(x+256+sy)>>1] = curpix;
+            //uint32_t curpix = ((palarray[bgsrc[asy+x]]) << 16) | (palarray[bgsrc[asy+x+1]] & 0xFFFF);
+            uint8_t curpix = bgsrc[asy+x];
+            dest32[(x+sy)] = curpix;
+            dest32[(x+sy)+1] = curpix;
+            dest32[(x+64+sy)] = curpix;
+            dest32[(x+64+sy)+1] = curpix;
+            dest32[(x+128+sy)] = curpix;
+            dest32[(x+128+sy)+1] = curpix;
+            dest32[(x+192+sy)] = curpix;
+            dest32[(x+192+sy)+1] = curpix;
+            dest32[(x+256+sy)] = curpix;
+            dest32[(x+256+sy)+1] = curpix;
         }
     }
 }
@@ -323,6 +331,75 @@ void F_TextWrite (void)
         V_DrawPatch(cx, cy, hu_font[c]);
         cx+=w;
     }
+}
+#endif
+
+void F_TextWrite (void)
+{
+    byte*	src;
+    byte*	dest;
+    
+    int		x,y,w;
+    int		count;
+    char*	ch;
+    int		c;
+    int		cx;
+    int		cy;
+    
+    // erase the entire screen to a tiled background
+    src = W_CacheLumpName ( finaleflat , PU_CACHE);
+    dest = screens[0];
+	
+    for (y=0 ; y<SCREENHEIGHT ; y++)
+    {
+	for (x=0 ; x<SCREENWIDTH/64 ; x++)
+	{
+	    memcpy (dest, src+((y&63)<<6), 64);
+	    dest += 64;
+	}
+	if (SCREENWIDTH&63)
+	{
+	    memcpy (dest, src+((y&63)<<6), SCREENWIDTH&63);
+	    dest += (SCREENWIDTH&63);
+	}
+    }
+
+    V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
+    
+    // draw some of the text onto the screen
+    cx = 10;
+    cy = 10;
+    ch = finaletext;
+	
+    count = (finalecount - 10)/TEXTSPEED;
+    if (count < 0)
+	count = 0;
+    for ( ; count ; count-- )
+    {
+	c = *ch++;
+	if (!c)
+	    break;
+	if (c == '\n')
+	{
+	    cx = 10;
+	    cy += 11;
+	    continue;
+	}
+		
+	c = toupper(c) - HU_FONTSTART;
+	if (c < 0 || c> HU_FONTSIZE)
+	{
+	    cx += 4;
+	    continue;
+	}
+		
+	w = SHORT (hu_font[c]->width);
+	if (cx+w > SCREENWIDTH)
+	    break;
+	V_DrawPatch(cx, cy, hu_font[c]);
+	cx+=w;
+    }
+	
 }
 
 //
@@ -609,8 +686,8 @@ void F_DrawPatchCol (int x, patch_t* patch, int col)
     column_t*    column;
     byte*        source;
     int          count;
-    uint16_t*    dest;
-    uint16_t*    desttop = (uint16_t *)(bufptr + (x << 1));
+    uint8_t*    dest;
+    uint8_t*    desttop = (uint8_t *)(bufptr + (x /* << 1 */ ));
 
     column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
 
@@ -620,11 +697,11 @@ void F_DrawPatchCol (int x, patch_t* patch, int col)
         source = (byte *)column + 3;
         count = column->length;
 
-        dest = (uint16_t *)((uintptr_t)desttop + (ytab(column->topdelta) << 1)); 
+        dest = (uint8_t *)((uintptr_t)desttop + (ytab(column->topdelta) /*<< 1*/)); 
 
         while (count--)
         {
-            *dest = palarray[*source++];
+            *dest = /*palarray[*/*source++/*]*/;
             dest += SCREENWIDTH;
         }
         column = (column_t *)( (byte *)column + column->length + 4 );

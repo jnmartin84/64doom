@@ -1134,7 +1134,7 @@ void G_DoCompleted (void)
     memcpy (statcopy, &wminfo, sizeof(wminfo));
 
     // free enough space for melt screen wipe to work
-    Z_FreeTags(PU_CACHE, PU_CACHE);
+    //Z_FreeTags(PU_CACHE, PU_CACHE);
 
     WI_Start (&wminfo); 
 } 

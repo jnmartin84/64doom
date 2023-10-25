@@ -168,6 +168,7 @@ int GetLocalAddress (void)
 //
 // I_InitNetwork
 //
+doomcom_t adoomcom;
 void I_InitNetwork (void)
 {
 /*    boolean		trueval = true;
@@ -175,7 +176,7 @@ void I_InitNetwork (void)
     int			p;
 */
 	
-    doomcom = (doomcom_t*)malloc (sizeof (*doomcom));
+    doomcom = &adoomcom;//(doomcom_t*)malloc (sizeof (*doomcom));
     memset (doomcom, 0, sizeof(*doomcom));
     
     // set up for network

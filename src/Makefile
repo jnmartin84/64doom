@@ -21,9 +21,13 @@ LIBS = -ldragon -lc -lm -ldragonsys
 PROG_NAME = $(IWAD_PREFIX)
 OPTFLAG = -O3
 
+
+
 # function/data sections + gc-sections saves about ~200kb from output binary
-CFLAGS = -ffunction-sections -fdata-sections -falign-functions=32 -ffile-prefix-map=$(CURDIR)= -DN64 -fdiagnostics-color=always -Wno-error=switch -Wall -g -mabi=o64 -mno-shared -mno-abicalls -mno-branch-likely -mno-llsc -mno-check-zero-division -mfix4300 -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -G4 $(OPTFLAG) -I$(ROOTDIR)/mips64-elf/include
-#-DRANGECHECK
+#CFLAGS = -falign-functions=16 -ffile-prefix-map=$(CURDIR)= -DN64 -fdiagnostics-color=always -Wno-error=switch -Wall -g -mabi=o64 -mno-shared -mno-abicalls -mno-branch-likely -mno-llsc -mno-check-zero-division -mfix4300 -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -G4 $(OPTFLAG) -I$(ROOTDIR)/mips64-elf/include -DRANGECHECK
+#LINK_FLAGS = -G4 -g -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64.ld
+CFLAGS = -ffunction-sections -fdata-sections -falign-functions=16 -ffile-prefix-map=$(CURDIR)= -DN64 -fdiagnostics-color=always -Wno-error=switch -Wall -g -mabi=o64 -mno-shared -mno-abicalls -mno-branch-likely -mno-llsc -mno-check-zero-division -mfix4300 -std=gnu99 -march=vr4300 -mtune=vr4300 -mips3 -G4 $(OPTFLAG) -I$(ROOTDIR)/mips64-elf/include
+# -DRANGECHECK
 LINK_FLAGS = --gc-sections -G4 -g -L$(ROOTDIR)/mips64-elf/lib $(LIBS) -Tn64.ld
 
 CC = $(GCCN64PREFIX)gcc
@@ -37,6 +41,7 @@ OBJDUMP = $(GCCN64PREFIX)objdump
 O=obj
 
 OBJS=						\
+		$(O)/r_draw.o			\
 		$(O)/i_sound.o			\
 		$(O)/endoom.o			\
 		$(O)/dll.o			\
@@ -49,7 +54,6 @@ OBJS=						\
 		$(O)/dstrings.o			\
 		$(O)/i_system.o			\
 		$(O)/i_net.o			\
-		$(O)/r_draw.o			\
 		$(O)/v_video.o			\
 		$(O)/f_finale.o			\
 		$(O)/f_wipe.o 			\

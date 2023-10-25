@@ -80,7 +80,8 @@ V_DrawPatchBuf
 ( int		x,
   int		y,
   patch_t*	patch,
-  uint16_t* buf);
+uint8_t *buf);
+  //uint16_t* buf);
 
 // Draw a linear block of pixels into the view buffer.
 void
@@ -89,7 +90,8 @@ V_DrawBlock
   int		y,
   int		width,
   int		height,
-  uint16_t*		src );
+uint8_t *src);
+  //uint16_t*		src );
 
 
 // Reads a linear block of pixels into the view buffer.
@@ -99,7 +101,8 @@ V_GetBlock
   int		y,
   int		width,
   int		height,
-  uint16_t*		dest );
+uint8_t *dest);
+//  uint16_t*		dest );
 
 
 void

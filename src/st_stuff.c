@@ -62,7 +62,7 @@
 // STATUS BAR DATA
 //
 
-static uint16_t __attribute__((aligned(8))) stbar_pald[ST_WIDTH * ST_HEIGHT];
+uint8_t __attribute__((aligned(8))) stbar_pald[ST_WIDTH * ST_HEIGHT];
 
 // Palette indices.
 // For damage/bonus red-/gold-shifts
@@ -495,9 +495,13 @@ void ST_Stop(void);
 extern void* bufptr;
 static inline void ST_refreshBackground()
 {
+//if(bufptr == 0) {
+//I_Error("why is bufptr NULL");
+//}
+//if(1) return;
     if (st_statusbaron)
     {
-        memcpy((uint16_t*)((uintptr_t)bufptr + (((ST_Y*SCREENWIDTH) + ST_X)*2)), stbar_pald, ST_WIDTH*ST_HEIGHT*2);
+        memcpy((uint8_t*)((uintptr_t)bufptr + (((ST_Y*SCREENWIDTH) + ST_X)/**2*/)), stbar_pald, ST_WIDTH*ST_HEIGHT/**2*/);
     }
 }
 
@@ -1152,7 +1156,7 @@ void ST_diffDraw(void)
 
 void ST_Drawer (boolean fullscreen, boolean refresh)
 {
-  if(refresh) { st_ft_c = 0; st_firsttime = true; }
+  //if(refresh) { st_ft_c = 0; st_firsttime = true; }
     st_statusbaron = (!fullscreen) || automapactive;
     st_firsttime = st_firsttime || refresh;
 
@@ -1160,11 +1164,11 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
     ST_doPaletteStuff();
 
     // If just after ST_Start(), refresh all
-//    if (st_firsttime)
+    if (st_firsttime)
         ST_doRefresh();
     // Otherwise, update as little as possible
-  //  else
-   //     ST_diffDraw();
+    else
+        ST_diffDraw();
 }
 
 void ST_loadGraphics(void)

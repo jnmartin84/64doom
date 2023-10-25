@@ -504,7 +504,7 @@ void AM_initVariables(void)
     static event_t st_notify = { ev_keyup, AM_MSGENTERED };
 
     automapactive = true;
-    fb = screens[0];
+    fb = (byte*)bufptr;
 
     f_oldloc.x = MAXINT;
     amclock = 0;
@@ -897,7 +897,7 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    memset(bufptr, 0, SCREENWIDTH*(SCREENHEIGHT-SBARHEIGHT)*2);
+    memset(bufptr, 0, SCREENWIDTH*(SCREENHEIGHT-SBARHEIGHT));//*2);
 }
 
 
@@ -1037,7 +1037,70 @@ AM_clipMline
 }
 #undef DOOUTCODE
 
+//
+// Classic Bresenham w/ whatever optimizations needed for speed
+//
+void
+AM_drawFline
+( fline_t*	fl,
+  int		color )
+{
+    register int x;
+    register int y;
+    register int dx;
+    register int dy;
+    register int sx;
+    register int sy;
+    register int ax;
+    register int ay;
+    register int d;
+    
+#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
 
+    dx = fl->b.x - fl->a.x;
+    ax = 2 * (dx<0 ? -dx : dx);
+    sx = dx<0 ? -1 : 1;
+
+    dy = fl->b.y - fl->a.y;
+    ay = 2 * (dy<0 ? -dy : dy);
+    sy = dy<0 ? -1 : 1;
+
+    x = fl->a.x;
+    y = fl->a.y;
+
+    if (ax > ay)
+    {
+	d = ay - ax/2;
+	while (1)
+	{
+	    PUTDOT(x,y,color);
+	    if (x == fl->b.x) return;
+	    if (d>=0)
+	    {
+		y += sy;
+		d -= ax;
+	    }
+	    x += sx;
+	    d += ay;
+	}
+    }
+    else
+    {
+	d = ax - ay/2;
+	while (1)
+	{
+	    PUTDOT(x, y, color);
+	    if (y == fl->b.y) return;
+	    if (d >= 0)
+	    {
+		x += sx;
+		d -= ay;
+	    }
+	    y += sy;
+	    d += ax;
+	}
+    }
+}
 //
 // Clip lines, draw visible part sof lines.
 //
@@ -1050,7 +1113,7 @@ AM_drawMline
 
     if (AM_clipMline(ml, &fl))
     {
-        graphics_draw_line(_dc, fl.a.x, fl.a.y, fl.b.x, fl.b.y, palarray[color]);
+        AM_drawFline(&fl,color);//graphics_draw_line(_dc, fl.a.x, fl.a.y, fl.b.x, fl.b.y, palarray[color]);
     }
 }
 

@@ -79,6 +79,7 @@ void STlib_drawNum(st_number_t* n, boolean refresh)
     int    x = n->x;
     int    y = n->y;
     int    w = SHORT(n->p[0]->width);
+int		h = SHORT(n->p[0]->height);
     int    neg;
     int    numdigits = n->width;
     int    num = *n->num;
@@ -113,6 +114,9 @@ void STlib_drawNum(st_number_t* n, boolean refresh)
         I_Error("STlib_drawNum: n->y - ST_Y < 0; %d - %d < 0", y, ST_Y);
     }
 #endif
+
+//    for(
+V_CopyRect(x, n->y - ST_Y, 5, w*numdigits, h, x, n->y, 0);
 
     // if non-number, do not draw it
     if (num == 1994)
@@ -186,6 +190,24 @@ void STlib_updateMultIcon(st_multicon_t* mi, boolean refresh)
 {
     if (*mi->on && (mi->oldinum != *mi->inum || refresh) && (*mi->inum!=-1))
     {
+//        if (mi->oldinum != 1)
+	if (mi->oldinum != -1)
+	{
+    int			w;
+    int			h;
+    int			x;
+    int			y;
+
+	    x = mi->x - SHORT(mi->p[mi->oldinum]->leftoffset);
+	    y = mi->y - SHORT(mi->p[mi->oldinum]->topoffset);
+	    w = SHORT(mi->p[mi->oldinum]->width);
+	    h = SHORT(mi->p[mi->oldinum]->height);
+
+	    if (y - ST_Y < 0)
+		I_Error("updateMultIcon: y - ST_Y < 0");
+
+	    V_CopyRect(x, y-ST_Y, 5, w, h, x, y, 0);
+	}
         V_DrawPatch(mi->x, mi->y, mi->p[*mi->inum]);
         mi->oldinum = *mi->inum;
     }
@@ -205,12 +227,24 @@ void STlib_initBinIcon(st_binicon_t* b, int x, int y, patch_t* i, boolean* val, 
 
 void STlib_updateBinIcon(st_binicon_t* bi, boolean refresh)
 {
+    int			x;
+    int			y;
+    int			w;
+    int			h;
+
     if (*bi->on && (bi->oldval != *bi->val || refresh))
     {
+x = bi->x - SHORT(bi->p->leftoffset);
+	y = bi->y - SHORT(bi->p->topoffset);
+	w = SHORT(bi->p->width);
+	h = SHORT(bi->p->height);
+
         if (*bi->val)
         {
             V_DrawPatch(bi->x, bi->y, bi->p);
         }
+        else
+	    V_CopyRect(x, y-ST_Y, 5, w, h, x, y, 0);
         bi->oldval = *bi->val;
     }
 }
