@@ -356,6 +356,7 @@ dc_colormap[dc_translation[dc_source[frac>>FRACBITS]]];//];
 }
 
 
+#if 0
 void R_DrawColumn (int cyl,int cyh,int cx)
 {
 //if(1)
@@ -394,6 +395,21 @@ void R_DrawColumn (int cyl,int cyh,int cx)
     // Looks familiar.
     fracstep = dc_iscale;
     frac = dc_texturemid + (cyl-centery)*fracstep;
+#if 0
+do
+{
+uint8_t spot1 = dc_source[(frac>>FRACBITS)&127];
+uint8_t spot2;
+spot2 = dc_source[((frac+fracstep)>>FRACBITS)&127];
+        frac += (fracstep<<1);
+
+        *dest = dc_colormap[spot1];
+        dest += SCREENWIDTH;
+        *dest = dc_colormap[spot2];
+        dest += SCREENWIDTH;
+count -=2;
+} while (count > 2);
+#endif
 
     do
     {
@@ -403,7 +419,61 @@ void R_DrawColumn (int cyl,int cyh,int cx)
     }
     while (count--);
 }
+#endif
+void R_DrawColumn (int cyl,int cyh,int cx)
+{ 
+    int			count; 
+//    byte*		source;
+    byte*		dest;
+//    byte*		colormap;
+    
+    unsigned		frac;
+    unsigned		fracstep;
+    unsigned		fracstep2;
+    unsigned		fracstep3;
+    unsigned		fracstep4;	 
+ 
+    count = cyh - cyl + 1; 
 
+//    source = dc_source;
+//    colormap = dc_colormap;		 
+//    dest = ylookup[dc_yl] + columnofs[dc_x];  
+    dest = (uint8_t*)(bufptr + ((viewwindowy + cyl)*SCREENWIDTH) + (viewwindowx + cx));
+	 
+    fracstep = dc_iscale<<9; 
+    frac = (dc_texturemid + (cyl-centery)*dc_iscale)<<9; 
+ 
+    fracstep2 = fracstep+fracstep;
+    fracstep3 = fracstep2+fracstep;
+    fracstep4 = fracstep3+fracstep;
+	
+    while (count >= 8) 
+    { 
+	dest[0] = dc_colormap[dc_source[frac>>25]]; 
+	dest[SCREENWIDTH] = dc_colormap[dc_source[(frac+fracstep)>>25]]; 
+	dest[SCREENWIDTH*2] = dc_colormap[dc_source[(frac+fracstep2)>>25]]; 
+	dest[SCREENWIDTH*3] = dc_colormap[dc_source[(frac+fracstep3)>>25]];
+	
+	frac += fracstep4; 
+
+	dest[SCREENWIDTH*4] = dc_colormap[dc_source[frac>>25]]; 
+	dest[SCREENWIDTH*5] = dc_colormap[dc_source[(frac+fracstep)>>25]]; 
+	dest[SCREENWIDTH*6] = dc_colormap[dc_source[(frac+fracstep2)>>25]]; 
+	dest[SCREENWIDTH*7] = dc_colormap[dc_source[(frac+fracstep3)>>25]]; 
+
+	frac += fracstep4; 
+	dest += SCREENWIDTH*8; 
+	count -= 8;
+    } 
+	
+    while (count > 0)
+    { 
+	*dest = dc_colormap[dc_source[frac>>25]]; 
+	dest += SCREENWIDTH; 
+	frac += fracstep; 
+	count--;
+    } 
+}
 
 void R_DrawColumnLow (int cyl,int cyh,int cx)
 {
@@ -429,6 +499,26 @@ void R_DrawColumnLow (int cyl,int cyh,int cx)
     // Looks familiar.
     fracstep = dc_iscale;
     frac = dc_texturemid + (cyl-centery)*fracstep;
+#if 0
+do
+{
+uint16_t spot1 = dc_source[(frac>>FRACBITS)&127];
+uint16_t spot2;
+spot2 = dc_source[((frac+fracstep)>>FRACBITS)&127];
+spot1 = dc_colormap[spot1];
+spot2 = dc_colormap[spot2];
+
+spot1 |= (spot1 << 8);
+spot2 |= (spot2 << 8);
+
+        *dest = spot1;//dc_colormap[spot1];
+        dest += SCREENWIDTH>>1;
+        *dest = spot2;//dc_colormap[spot2];
+        dest += SCREENWIDTH>>1;
+        frac += (fracstep<<1);
+count -=2;
+} while (count > 2);
+#endif
 
     do
     {
@@ -468,7 +558,7 @@ fixed_t              ds_ystep;
 lighttable_t*        ds_colormap;
 byte*                ds_source;
 
-
+#if 0
 //
 // Draws the actual span.
 void R_DrawSpan (int sx1, int sx2, int sy) 
@@ -551,7 +641,76 @@ dest = (uint8_t *)dest2;
     } while (count--); 
 #endif
 }
+#endif
+void R_DrawSpan (int sx1, int sx2, int sy) 
+{ 
+    unsigned	position, step;
 
+//    byte*	source;
+//    byte*	colormap;
+    byte*	dest;
+    
+    unsigned	count;
+    unsigned	spot; 
+//    unsigned	value;
+//    unsigned	temp;
+    unsigned	xtemp;
+    unsigned	ytemp;
+		
+    position = ((ds_xfrac<<10)&0xffff0000) | ((ds_yfrac>>6)&0xffff);
+    step = ((ds_xstep<<10)&0xffff0000) | ((ds_ystep>>6)&0xffff);
+		
+//    source = ds_source;
+//    colormap = ds_colormap;
+//    dest = ylookup[ds_y] + columnofs[ds_x1];	 
+    dest = (uint8_t*)(bufptr + ((viewwindowy + sy)*SCREENWIDTH) + (viewwindowx + sx1));
+
+    count = sx2 - sx1 + 1; 
+	
+    while (count >= 4) 
+    { 
+	ytemp = position>>4;
+	ytemp = ytemp & 4032;
+	xtemp = position>>26;
+	spot = xtemp | ytemp;
+	position += step;
+	dest[0] = ds_colormap[ds_source[spot]]; 
+
+	ytemp = position>>4;
+	ytemp = ytemp & 4032;
+	xtemp = position>>26;
+	spot = xtemp | ytemp;
+	position += step;
+	dest[1] = ds_colormap[ds_source[spot]];
+	
+	ytemp = position>>4;
+	ytemp = ytemp & 4032;
+	xtemp = position>>26;
+	spot = xtemp | ytemp;
+	position += step;
+	dest[2] = ds_colormap[ds_source[spot]];
+	
+	ytemp = position>>4;
+	ytemp = ytemp & 4032;
+	xtemp = position>>26;
+	spot = xtemp | ytemp;
+	position += step;
+	dest[3] = ds_colormap[ds_source[spot]]; 
+		
+	count -= 4;
+	dest += 4;
+    } 
+    while (count > 0) 
+    { 
+	ytemp = position>>4;
+	ytemp = ytemp & 4032;
+	xtemp = position>>26;
+	spot = xtemp | ytemp;
+	position += step;
+	*dest++ = ds_colormap[ds_source[spot]]; 
+	count--;
+    } 
+} 
 
 void R_DrawSpanLow (int sx1, int sx2, int sy) 
 { 

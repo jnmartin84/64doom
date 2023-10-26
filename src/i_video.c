@@ -84,7 +84,6 @@ void I_StartFrame(void)
 //if(!display_ready) return;
 //    _dc = lockVideo(1);
     // get the buffer address pointer from the surface once per frame instead of per every column/span
-    bufptr = screens[0];//s[0];//(void*)_dc->buffer;
 }
 
 void I_ShutdownGraphics(void)
@@ -96,6 +95,7 @@ void I_UpdateNoBlit(void)
 {
 }
 
+
 void I_FinishUpdate(void)
 {
 #if 1
@@ -104,10 +104,9 @@ if(!display_ready) return;
     // Attach the RDP to the display buffer
     rdpq_attach_clear(disp, NULL);
 
-    data_cache_hit_writeback(screens[0], 320*200);
+//    data_cache_hit_writeback(screens[0], 320*200);
 
     // Load the palette
-    data_cache_hit_writeback(palarray, 256*2);
     rdpq_tex_load_tlut(palarray, 0, 256);
 
     // Set copy render mode, with palette lookup
@@ -115,7 +114,7 @@ if(!display_ready) return;
     rdpq_mode_tlut(TLUT_RGBA16);
 
     // Blit the surface onto the display
-    surface_t src = surface_make(screens[0], FMT_CI8, 320, 200, 320);
+    surface_t src = surface_make(bufptr, FMT_CI8, 320, 200, 320);
     rdpq_tex_blit(&src, 0, 0, NULL);
 
     // Detach from the surface and display it once done
@@ -243,6 +242,8 @@ void I_SetPalette(byte* palette)
         //uint32_t packedcol = (unpackedcol << 16) | unpackedcol;
         current_palarray[i] = unpackedcol;
     }
+
+    data_cache_hit_writeback(current_palarray, 256*2);
 }
 
 #include "z_zone.h"
@@ -262,11 +263,13 @@ void I_InitGraphics(void)
 		.interlaced = false,
 	}, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE );
         rdpq_init();
-        rdpq_debug_start();
+//        rdpq_debug_start();
 
     I_SetDefaultPalette();
 
     palarray = current_palarray;
 display_ready = 1;
 printf("I_InitGraphics: Initialized display and RDPQ.\n");
+    bufptr = (void*)((uintptr_t)screens[0] | 0xA0000000);//s[0];//(void*)_dc->buffer;
+
 }

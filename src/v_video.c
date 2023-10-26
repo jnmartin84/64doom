@@ -147,7 +147,7 @@ void V_CopyRect( int srcx, int srcy, int srcscrn, int width, int height, int des
     byte*	src;
     byte*	dest; 
     src = stbar_pald + SCREENWIDTH*srcy+srcx; 
-    dest = screens[destscrn]+SCREENWIDTH*desty+destx; 
+    dest = (uint8_t*)bufptr+SCREENWIDTH*desty+destx; 
 
     for ( ; height>0 ; height--) 
     { 
