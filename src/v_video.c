@@ -420,21 +420,13 @@ V_GetBlock
 //    memcpy(dest, bufptr, 320*200*2);
 }
 
-//extern uint8_t screen[320*200];
+
+uint8_t *screens[2];
 //
 // V_Init
 //
 void V_Init (void)
 {
-    int		i;
-    byte*	base;
-		
-    // stick these in low dos memory on PCs
-
-    base = I_AllocLow (SCREENWIDTH*SCREENHEIGHT);
-if(base == NULL) {
-I_Error("couldn't malloc for screens[0]\n");
-}
-    for (i=0 ; i<4 ; i++)
-	screens[i] = base;// + i*SCREENWIDTH*SCREENHEIGHT;
+    screens[0] = I_AllocLow (SCREENWIDTH*SCREENHEIGHT);
+    screens[1] = I_AllocLow (SCREENWIDTH*SCREENHEIGHT);
 }

@@ -39,6 +39,7 @@
 #include "st_lib.h"
 #include "r_local.h"
 
+extern uint8_t *screens[2];
 
 // in AM_map.c
 extern boolean        automapactive;
@@ -128,21 +129,24 @@ V_CopyRect(x, n->y - ST_Y, 5, w*numdigits, h, x, n->y, 0);
     // in the special case of 0, you draw 0
     if (!num)
     {
-        V_DrawPatch(x - w, y, n->p[0]);
+        V_DrawPatchBuf(x - w, y, n->p[0], screens[0]);
+        V_DrawPatchBuf(x - w, y, n->p[0], screens[1]);
     }
 
     // draw the new number
     while (num && numdigits--)
     {
         x -= w;
-        V_DrawPatch(x, y, n->p[ num % 10 ]);
+        V_DrawPatchBuf(x, y, n->p[ num % 10 ], screens[0]);
+        V_DrawPatchBuf(x, y, n->p[ num % 10 ], screens[1]);
         num /= 10;
     }
 
     // draw a minus sign if necessary
     if (neg)
     {
-        V_DrawPatch(x - 8, y, sttminus);
+        V_DrawPatchBuf(x - 8, y, sttminus, screens[0]);
+        V_DrawPatchBuf(x - 8, y, sttminus, screens[1]);
     }
 }
 
@@ -169,7 +173,8 @@ void STlib_updatePercent(st_percent_t* per, int refresh)
 {
     if (refresh && *per->n.on)
     {
-        V_DrawPatch(per->n.x, per->n.y, per->p);
+        V_DrawPatchBuf(per->n.x, per->n.y, per->p, screens[0]);
+        V_DrawPatchBuf(per->n.x, per->n.y, per->p, screens[1]);
     }
 
     STlib_updateNum(&per->n, refresh);
@@ -191,24 +196,32 @@ void STlib_updateMultIcon(st_multicon_t* mi, boolean refresh)
     if (*mi->on && (mi->oldinum != *mi->inum || refresh) && (*mi->inum!=-1))
     {
 //        if (mi->oldinum != 1)
-	if (mi->oldinum != -1)
+//	if (mi->oldinum != -1)
 	{
     int			w;
     int			h;
     int			x;
     int			y;
 
-	    x = mi->x - SHORT(mi->p[mi->oldinum]->leftoffset);
-	    y = mi->y - SHORT(mi->p[mi->oldinum]->topoffset);
-	    w = SHORT(mi->p[mi->oldinum]->width);
-	    h = SHORT(mi->p[mi->oldinum]->height);
+#if 0
+	    x = mi->x - SHORT(mi->p[mi->/*old*/inum]->leftoffset);
+	    y = mi->y - SHORT(mi->p[mi->/*old*/inum]->topoffset);
+	    w = SHORT(mi->p[mi->/*old*/inum]->width);
+	    h = SHORT(mi->p[mi->/*old*/inum]->height);
+#endif
+	    x = mi->x - SHORT(mi->p[*mi->inum]->leftoffset);
+	    y = mi->y - SHORT(mi->p[*mi->inum]->topoffset);
+	    w = SHORT(mi->p[*mi->inum]->width);
+	    h = SHORT(mi->p[*mi->inum]->height);
 
 	    if (y - ST_Y < 0)
 		I_Error("updateMultIcon: y - ST_Y < 0");
 
 	    V_CopyRect(x, y-ST_Y, 5, w, h, x, y, 0);
 	}
-        V_DrawPatch(mi->x, mi->y, mi->p[*mi->inum]);
+
+        V_DrawPatchBuf(mi->x, mi->y, mi->p[*mi->inum], screens[0]);
+        V_DrawPatchBuf(mi->x, mi->y, mi->p[*mi->inum], screens[1]);
         mi->oldinum = *mi->inum;
     }
 }

@@ -254,7 +254,6 @@ static int     f_w;
 static int    f_h;
 
 static int     lightlev;         // used for funky strobing effect
-static byte*    fb;             // pseudo-frame buffer
 static int     amclock;
 
 static mpoint_t m_paninc; // how far the window pans each tic (map coords)
@@ -504,7 +503,6 @@ void AM_initVariables(void)
     static event_t st_notify = { ev_keyup, AM_MSGENTERED };
 
     automapactive = true;
-    fb = (byte*)bufptr;
 
     f_oldloc.x = MAXINT;
     amclock = 0;
@@ -1055,7 +1053,7 @@ AM_drawFline
     register int ay;
     register int d;
     
-#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
+#define PUTDOT(xx,yy,cc) ((uint8_t *)bufptr)[(yy)*f_w+(xx)]=(cc)
 
     dx = fl->b.x - fl->a.x;
     ax = 2 * (dx<0 ? -dx : dx);

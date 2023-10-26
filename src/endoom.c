@@ -8,10 +8,11 @@
 
 extern void unlockVideo(surface_t* _dc);
 extern surface_t* lockVideo(int i);
-extern surface_t* _dc;
+surface_t* _dc;
 
 extern int mus_playing;
 extern void *mainzone;
+extern void *screens[2];
 
 static uint32_t __attribute__((aligned(8))) cga_pal[16];
 static uint8_t ENDOOM_BYTES[2*25*80];
@@ -46,6 +47,8 @@ void DoomIsOver(void)
         I_Error("DoomIsOver: Could not load ENDOOM lump.\n");
     }
 
+    rdpq_close();
+    console_close();
     display_close();
 
     // last thing we do with any of the Doom engine, get the text data lump
@@ -53,6 +56,9 @@ void DoomIsOver(void)
     // done with using Doom subsystems here
     // need to free the entire zone memory block that got allocated during init
     free((void*)((uintptr_t)mainzone & (uintptr_t)0x8FFFFFFF));
+    // also free the 8-bit framebuffer(s)
+    free((void*)((uintptr_t)screens[0]   & (uintptr_t)0x8FFFFFFF));
+    free((void*)((uintptr_t)screens[1]   & (uintptr_t)0x8FFFFFFF));
     // otherwise there isn't enough memory to reallocate the frame buffers
     // and nothing else works
     display_init(RESOLUTION_640x480, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);

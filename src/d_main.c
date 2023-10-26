@@ -274,15 +274,10 @@ void D_Display(void)
             if (inhelpscreensstate && !inhelpscreens)
             {
                 redrawsbar = false; // just put away the help screen
-            }   
-
-            //if(!automapactive) 
-            {
-                ST_Drawer((viewheight == SCREENHEIGHT), redrawsbar );
             }
 
+            ST_Drawer((viewheight == SCREENHEIGHT), redrawsbar );
             fullscreen = (viewheight == SCREENHEIGHT);
-
             break;
         }
 
@@ -370,9 +365,10 @@ void D_Display(void)
 
 //    if (!wipe)
 //    {
-        I_FinishUpdate();
+    I_FinishUpdate();
 //        return;
 //    }
+
 #if 0
     // wipe update
     wipe_EndScreen(0, 0, SCREENWIDTH, SCREENHEIGHT);
@@ -418,7 +414,7 @@ void D_DoomLoop(void)
 
     while (!return_from_D_DoomMain)
     {
-        I_StartFrame();
+        //I_StartFrame();
         // process one or more tics
         if (singletics)
         {
@@ -892,16 +888,7 @@ void D_DoomMain(void)
     }
 
     // clear the console as part of clearing screen before game starts
-    //console_clear();
-    //console_close();
-#if 0
-    // clear screen before game starts
-    for(int i=0;i<2;i++)
-    {
-        _dc = lockVideo(1);
-        memset(_dc->buffer, 0, SCREENWIDTH*SCREENHEIGHT*2);
-        unlockVideo(_dc);
-    }
-#endif
+    console_clear();
+    memset(bufptr, 0, SCREENWIDTH*SCREENHEIGHT);
     D_DoomLoop();  // never returns
 }

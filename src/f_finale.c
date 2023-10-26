@@ -112,7 +112,7 @@ void F_StartFinale (void)
       case retail:
       {
         S_ChangeMusic(mus_victor, true);
-        
+
         switch (gameepisode)
         {
           case 1:
@@ -137,7 +137,7 @@ void F_StartFinale (void)
         }
         break;
       }
-      
+
       // DOOM II and missions packs with E1, M34
       case commercial:
       {
@@ -174,9 +174,8 @@ void F_StartFinale (void)
           break;
       }
       break;
-    }    
+    }
 
-   
       // Indeterminate.
       default:
     S_ChangeMusic(mus_read_m, true);
@@ -184,7 +183,7 @@ void F_StartFinale (void)
     finaletext = c1text;  // FIXME - other text, music?
     break;
     }
-    
+
     finalestage = 0;
     finalecount = 0;
     lastcount = -1;
@@ -207,7 +206,7 @@ boolean F_Responder (event_t *event)
 void F_Ticker (void)
 {
     int        i;
-    
+
     // check for skipping
     if ( (gamemode == commercial) && ( finalecount > 50) )
     {
@@ -224,7 +223,7 @@ void F_Ticker (void)
                 gameaction = ga_worlddone;
         }
     }
-    
+
     // advance animation
     finalecount++;
 
@@ -255,101 +254,22 @@ void F_Ticker (void)
 extern patch_t*    hu_font[HU_FONTSIZE];
 extern void*       bufptr;
 
-#if 0
-extern uint32_t*   palarray;
-       byte*       bgsrc = 0;
-
-static inline void F_bgpart(void) {
-    uint8_t *dest32 = (uint8_t *)bufptr;
-    bgsrc = W_CacheLumpName (finaleflat , PU_CACHE);
-
-    for (size_t y = 0 ; y < SCREENHEIGHT ; y++)
-    {
-        int sy = ytab(y);
-        int asy = (y&63)<<6;
-        for (size_t x = 0; x < 64; x++)
-        {
-            //uint32_t curpix = ((palarray[bgsrc[asy+x]]) << 16) | (palarray[bgsrc[asy+x+1]] & 0xFFFF);
-            uint8_t curpix = bgsrc[asy+x];
-            dest32[(x+sy)] = curpix;
-            dest32[(x+sy)+1] = curpix;
-            dest32[(x+64+sy)] = curpix;
-            dest32[(x+64+sy)+1] = curpix;
-            dest32[(x+128+sy)] = curpix;
-            dest32[(x+128+sy)+1] = curpix;
-            dest32[(x+192+sy)] = curpix;
-            dest32[(x+192+sy)+1] = curpix;
-            dest32[(x+256+sy)] = curpix;
-            dest32[(x+256+sy)+1] = curpix;
-        }
-    }
-}
-
-void F_TextWrite (void)
-{
-    int      w;
-    int      count;
-    char*    ch;
-    int      c;
-    int      cx;
-    int      cy;
-
-    // erase the entire screen to a tiled background
-    F_bgpart();
-
-    // draw some of the text onto the screen
-    cx = 10;
-    cy = 10;
-    ch = finaletext;
-    count = (finalecount - 10)/TEXTSPEED;
-    if (count < 0)
-        count = 0;
-
-    while(count > 0)
-    {
-        count--;
-        c = *ch++;
-        if (!c)
-            break;
-        if (c == '\n')
-        {
-            cx = 10;
-            cy += 11;
-            continue;
-        }
-
-        c = toupper(c) - HU_FONTSTART;
-        if (c < 0 || c> HU_FONTSIZE)
-        {
-            cx += 4;
-            continue;
-        }
-
-        w = SHORT (hu_font[c]->width);
-        if (cx+w > SCREENWIDTH)
-            break;
-        V_DrawPatch(cx, cy, hu_font[c]);
-        cx+=w;
-    }
-}
-#endif
-
 void F_TextWrite (void)
 {
     byte*	src;
     byte*	dest;
-    
+
     int		x,y,w;
     int		count;
     char*	ch;
     int		c;
     int		cx;
     int		cy;
-    
+
     // erase the entire screen to a tiled background
     src = W_CacheLumpName ( finaleflat , PU_CACHE);
-    dest = (uint8_t*)bufptr;//screens[0];
-	
+    dest = (uint8_t*)bufptr;
+
     for (y=0 ; y<SCREENHEIGHT ; y++)
     {
 	for (x=0 ; x<SCREENWIDTH/64 ; x++)
@@ -365,12 +285,12 @@ void F_TextWrite (void)
     }
 
     V_MarkRect (0, 0, SCREENWIDTH, SCREENHEIGHT);
-    
+
     // draw some of the text onto the screen
     cx = 10;
     cy = 10;
     ch = finaletext;
-	
+
     count = (finalecount - 10)/TEXTSPEED;
     if (count < 0)
 	count = 0;
@@ -385,21 +305,20 @@ void F_TextWrite (void)
 	    cy += 11;
 	    continue;
 	}
-		
+
 	c = toupper(c) - HU_FONTSTART;
 	if (c < 0 || c> HU_FONTSIZE)
 	{
 	    cx += 4;
 	    continue;
 	}
-		
+
 	w = SHORT (hu_font[c]->width);
 	if (cx+w > SCREENWIDTH)
 	    break;
 	V_DrawPatch(cx, cy, hu_font[c]);
 	cx+=w;
     }
-	
 }
 
 //

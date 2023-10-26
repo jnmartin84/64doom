@@ -1137,7 +1137,7 @@ void ST_doRefresh(void)
         st_firsttime = false;
     }
 
-    I_SavePalette();
+//    I_SavePalette();
 
     // draw status bar background to off-screen buff
     ST_refreshBackground();
@@ -1145,7 +1145,7 @@ void ST_doRefresh(void)
     // and refresh all widgets
     ST_drawWidgets(true);
 
-    I_RestorePalette();
+//    I_RestorePalette();
 }
 
 void ST_diffDraw(void)
@@ -1156,7 +1156,7 @@ void ST_diffDraw(void)
 
 void ST_Drawer (boolean fullscreen, boolean refresh)
 {
-  //if(refresh) { st_ft_c = 0; st_firsttime = true; }
+    if(refresh || (st_firsttime && st_ft_c != 0)) { st_ft_c = 0; st_firsttime = true; }
     st_statusbaron = (!fullscreen) || automapactive;
     st_firsttime = st_firsttime || refresh;
 
