@@ -38,10 +38,11 @@
 
 #define ytab(y) (((y)<<8)+((y)<<6))
 
-extern uint32_t*      palarray;
 extern void*          bufptr;
 
 int                  usegamma;
+
+uint8_t *screens[2];
 
 // Now where did these came from?
 byte  __attribute__((aligned(8))) gammatable[5][256] =
@@ -161,69 +162,12 @@ void V_CopyRect( int srcx, int srcy, int srcscrn, int width, int height, int des
 // V_DrawPatch
 // Masks a column based masked pic to the screen.
 //
-//__attribute__ ((optimize(1)))
-#if 0
-void V_DrawPatch ( int x, int y, patch_t* patch )
-{
-//if(1) return;
-    int          count;
-    int          col; 
-    column_t*    column; 
-    uint8_t*    desttop;
-    uint8_t*    dest;
-    byte*        source; 
-    int          w; 
-
-    y -= SHORT(patch->topoffset); 
-    x -= SHORT(patch->leftoffset); 
-#ifdef RANGECHECK 
-    if (x<0
-        ||x+SHORT(patch->width) >SCREENWIDTH
-        || y<0
-        || y+SHORT(patch->height)>SCREENHEIGHT)
-    {
-        fprintf( stderr, "Patch at %d,%d exceeds LFB\n", x,y );
-        // No I_Error abort - what is up with TNT.WAD?
-        fprintf( stderr, "V_DrawPatch: bad patch (ignored)\n");
-    }
-#endif
-
-    col = 0; 
-    desttop = (uint8_t*)((uintptr_t)bufptr + (uintptr_t)((((y)*SCREENWIDTH)+x)/**2*/));
-
-    w = SHORT(patch->width); 
-
-    for ( ; col<w ; x++, col++, desttop++)
-    { 
-        column = (column_t *)((byte *)patch + LONG(patch->columnofs[col])); 
-
-        // step through the posts in a column 
-        while (column->topdelta != 0xff ) 
-        { 
-            source = (byte *)column + 3; 
-            dest = (uint8_t*)((uintptr_t)desttop + (uintptr_t)(column->topdelta*SCREENWIDTH/**2*/)); 
-            count = column->length; 
-
-            while (count--) 
-            { 
-                *dest = /*palarray[*/*source++/*]*/;
-                dest += SCREENWIDTH; 
-            } 
-            column = (column_t *)(  (byte *)column + column->length + 4 ); 
-        } 
-    }
-}
-#endif
-//
-// V_DrawPatch
-// Masks a column based masked pic to the screen. 
-//
 void
 V_DrawPatch
 ( int		x,
   int		y,
-  patch_t*	patch ) 
-{ 
+  patch_t*	patch )
+{
 
     int		count;
     int		col; 
@@ -278,8 +222,6 @@ V_DrawPatch
 
 void V_DrawPatchBuf ( int x, int y, patch_t* patch, uint8_t *buf)
 {
-//if(1)
-//return;
     int          count;
     int          col; 
     column_t*    column;
@@ -303,7 +245,7 @@ void V_DrawPatchBuf ( int x, int y, patch_t* patch, uint8_t *buf)
 #endif 
 
     col = 0; 
-    desttop = (uint8_t*)((uintptr_t)buf + (uintptr_t)((((y)*SCREENWIDTH)+x) /**2*/ ));
+    desttop = (uint8_t*)((uintptr_t)buf + (uintptr_t)((((y)*SCREENWIDTH)+x)));
 
     w = SHORT(patch->width); 
 
@@ -315,12 +257,12 @@ void V_DrawPatchBuf ( int x, int y, patch_t* patch, uint8_t *buf)
         while (column->topdelta != 0xff ) 
         { 
             source = (byte *)column + 3; 
-            dest = (uint8_t*)((uintptr_t)desttop + (uintptr_t)(column->topdelta*SCREENWIDTH/**2*/)); 
+            dest = (uint8_t*)((uintptr_t)desttop + (uintptr_t)(column->topdelta*SCREENWIDTH)); 
             count = column->length; 
 
             while (count--) 
             { 
-                *dest = /*palarray[*/ *source++/*]*/;
+                *dest = *source++;
                 dest += SCREENWIDTH; 
             } 
             column = (column_t *)(  (byte *)column + column->length + 4 ); 
@@ -358,7 +300,7 @@ void V_DrawPatchFlipped ( int x, int y, patch_t* patch )
 #endif
 
     col = 0;
-    desttop = (uint8_t*)((uintptr_t)bufptr + (uintptr_t)((((y)*SCREENWIDTH)+x)/* *2*/));
+    desttop = (uint8_t*)((uintptr_t)bufptr + (uintptr_t)((((y)*SCREENWIDTH)+x)));
 
     w = SHORT(patch->width);
 
@@ -372,12 +314,12 @@ void V_DrawPatchFlipped ( int x, int y, patch_t* patch )
             y+=column->topdelta;
 
             source = (byte *)column + 3;
-            dest = (uint8_t*)((uintptr_t)desttop + (uintptr_t)(column->topdelta*SCREENWIDTH/* *2 */)); 
+            dest = (uint8_t*)((uintptr_t)desttop + (uintptr_t)(column->topdelta*SCREENWIDTH)); 
             count = column->length;
 
             while (count--)
             {
-                *dest = /*palarray[*/ *source++ /*]*/;
+                *dest = *source++;
                 dest += SCREENWIDTH; 
             }
 
@@ -399,8 +341,6 @@ V_DrawBlock
   int		height,
   uint8_t*		src )
 {
-    // hack for f_wipe
-//    memcpy(bufptr, src, 320*200*2);
 }
 
 
@@ -416,12 +356,8 @@ V_GetBlock
   int		height,
   uint8_t*		dest )
 {
-    // hack for f_wipe
-//    memcpy(dest, bufptr, 320*200*2);
 }
 
-
-uint8_t *screens[2];
 //
 // V_Init
 //

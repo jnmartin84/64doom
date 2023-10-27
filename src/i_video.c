@@ -37,21 +37,21 @@
 #include "doomdef.h"
 
 // externs
-
 extern void* bufptr;
-int curscr = 0;
 extern uint8_t *screens[2];
 
 // function prototypes
-
 void I_SetPalette(byte* palette);
-
 void I_FinishUpdate(void);
 
-// locals
+// globals
+int curscr = 0;
 
-static uint16_t* palarray;
+// locals
 static surface_t* disp;
+static uint16_t __attribute__((aligned(64))) current_palarray[256];
+
+// functions
 
 surface_t *lockVideo(int wait)
 {
@@ -98,13 +98,6 @@ void I_FinishUpdate(void)
     // we do all drawing to uncached view of bufptr
     //data_cache_hit_writeback(bufptr, SCREENWIDTH*SCREENHEIGHT);
 
-    // Load the palette
-    rdpq_tex_load_tlut(palarray, 0, 256);
-
-    // Set copy render mode, with palette lookup
-    rdpq_set_mode_copy(false);
-    rdpq_mode_tlut(TLUT_RGBA16);
-
     // Blit the surface onto the display
     surface_t src = surface_make(screens[curscr], FMT_CI8, SCREENWIDTH, SCREENHEIGHT, SCREENWIDTH);
     curscr = (curscr + 1) & 1;
@@ -138,24 +131,6 @@ void I_ForcePaletteUpdate(void)
 //
 // I_SetPalette
 //
-
-// palarray is used for TLUT load
-static uint16_t __attribute__((aligned(64))) default_palarray[256];
-static uint16_t __attribute__((aligned(64))) current_palarray[256];
-static uint16_t *old_palarray = NULL;
-
-void I_SavePalette(void)
-{
-    old_palarray = current_palarray;
-    palarray = default_palarray;
-}
-
-void I_RestorePalette(void)
-{
-    palarray = current_palarray;
-    old_palarray = default_palarray;
-}
-
 void I_SetPalette(byte* palette)
 {
     const byte *gammaptr = gammatable[usegamma];
@@ -178,12 +153,13 @@ void I_SetPalette(byte* palette)
 
     // do the writeback here so we don't have to every time we submit the screen
     data_cache_hit_writeback(current_palarray, 256*2);
+    // Load the palette
+    rdpq_tex_load_tlut(current_palarray, 0, 256);
 }
 
 void I_SetDefaultPalette(void)
 {
     I_SetPalette(W_CacheLumpName ("PLAYPAL",PU_CACHE));
-    memcpy(default_palarray, current_palarray, sizeof(current_palarray));
 }
 
 void I_InitGraphics(void)
@@ -199,14 +175,16 @@ void I_InitGraphics(void)
 
     I_SetDefaultPalette();
 
-    palarray = current_palarray;
-
     // use it uncached everywhere so we don't have to writeback every time we submit the screen
     screens[0] = (void*)((uintptr_t)screens[0] | 0xA0000000);
     screens[1] = (void*)((uintptr_t)screens[1] | 0xA0000000);
 
     curscr = 0;
     bufptr = screens[curscr];
+
+    // Set copy render mode, with palette lookup
+    rdpq_set_mode_copy(false);
+    rdpq_mode_tlut(TLUT_RGBA16);
 
     printf("I_InitGraphics: Initialized display and RDPQ.\n");
 }

@@ -137,8 +137,8 @@ HUlib_drawTextLine
 #include "w_wad.h"
 #include "z_zone.h"
 
-extern void I_SavePalette(void);
-extern void I_RestorePalette(void);
+//extern void I_SavePalette(void);
+//extern void I_RestorePalette(void);
 
 // sorta called by HU_Erase and just better darn get things straight
 void HUlib_eraseTextLine(hu_textline_t* l)
@@ -153,7 +153,7 @@ void HUlib_eraseTextLine(hu_textline_t* l)
     {
 		lh = SHORT(l->f[0]->height) + 1;
 
-    I_SavePalette();
+    //I_SavePalette();
 		for (y=l->y,yoffset=y*SCREENWIDTH ; y<l->y+(lh) ; y++,yoffset+=SCREENWIDTH)
 		{
 
@@ -181,7 +181,7 @@ void HUlib_eraseTextLine(hu_textline_t* l)
     V_DrawPatch (viewwindowx+scaledviewwidth,
        viewwindowy-8,
        W_CacheLumpName ("brdr_tr",PU_CACHE));
-    I_RestorePalette();
+    //I_RestorePalette();
     }
 
     if (l->needsupdate)

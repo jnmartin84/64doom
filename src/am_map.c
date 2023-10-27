@@ -51,7 +51,6 @@
 
 extern void graphics_draw_line(surface_t* disp, int x0, int y0, int x1, int y1, uint32_t color);
 
-extern uint32_t*     palarray;
 extern surface_t*    _dc;
 extern void*         bufptr;
 
@@ -1111,7 +1110,7 @@ AM_drawMline
 
     if (AM_clipMline(ml, &fl))
     {
-        AM_drawFline(&fl,color);//graphics_draw_line(_dc, fl.a.x, fl.a.y, fl.b.x, fl.b.y, palarray[color]);
+        AM_drawFline(&fl,color);
     }
 }
 

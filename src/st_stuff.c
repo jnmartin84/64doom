@@ -1123,8 +1123,8 @@ void ST_drawWidgets(boolean refresh)
     STlib_updateNum(&w_frags, refresh);
 }
 
-extern void I_SavePalette(void);
-extern void I_RestorePalette(void);
+//extern void I_SavePalette(void);
+//extern void I_RestorePalette(void);
 
 int st_ft_c = 0;
 

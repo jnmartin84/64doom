@@ -404,6 +404,7 @@ void D_Display(void)
 // saves (num cols + num spans) "lw" instructions per rendered frame
 // that is 1000+ loads per frame
 void *bufptr;
+extern uint8_t *screens[2];
 
 //
 //  D_DoomLoop
@@ -889,6 +890,7 @@ void D_DoomMain(void)
 
     // clear the console as part of clearing screen before game starts
     console_clear();
-    memset(bufptr, 0, SCREENWIDTH*SCREENHEIGHT);
+    memset(screens[0], 0, SCREENWIDTH*SCREENHEIGHT);
+    memset(screens[1], 0, SCREENWIDTH*SCREENHEIGHT);
     D_DoomLoop();  // never returns
 }

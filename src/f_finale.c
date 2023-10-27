@@ -602,11 +602,11 @@ void F_CastDrawer (void)
 //
 void F_DrawPatchCol (int x, patch_t* patch, int col)
 {
-    column_t*    column;
-    byte*        source;
-    int          count;
-    uint8_t*    dest;
-    uint8_t*    desttop = (uint8_t *)(bufptr + (x /* << 1 */ ));
+    column_t*     column;
+    byte*         source;
+    int           count;
+    uint8_t*      dest;
+    uint8_t*      desttop = (uint8_t *)(bufptr + x);
 
     column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
 
@@ -616,11 +616,11 @@ void F_DrawPatchCol (int x, patch_t* patch, int col)
         source = (byte *)column + 3;
         count = column->length;
 
-        dest = (uint8_t *)((uintptr_t)desttop + (ytab(column->topdelta) /*<< 1*/)); 
+        dest = (uint8_t *)((uintptr_t)desttop + (ytab(column->topdelta)));
 
         while (count--)
         {
-            *dest = /*palarray[*/*source++/*]*/;
+            *dest = *source++;
             dest += SCREENWIDTH;
         }
         column = (column_t *)( (byte *)column + column->length + 4 );

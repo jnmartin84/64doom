@@ -44,7 +44,6 @@ extern void *bufptr;
 
 extern void I_SetPalette(byte* palette);
 
-extern uint32_t*   palarray;
 extern surface_t* _dc;
 
 // ?
@@ -641,8 +640,6 @@ void R_InitBuffer ( int width, int height )
 //  for variable screen sizes
 // Also draws a beveled edge.
 //
-extern void I_SavePalette(void);
-extern void I_RestorePalette(void);
 
 // pre-color-indexed back screen flat for easier R_VideoErase
 static uint8_t srcp[64*64];
@@ -691,8 +688,6 @@ void R_DrawViewBorder (void)
         return;
     }
 
-    I_SavePalette();
-
     if (!drew_bg_before)
     {
         // DOOM border patch.
@@ -712,14 +707,15 @@ void R_DrawViewBorder (void)
         }
 
         byte* src = W_CacheLumpName (name, PU_CACHE);
-        
-        for (i=0;i<64*64;i++)
-        {
-            srcp[i] = /*palarray[*/src[i]/*]*/;
-        }
-        
+
+//        for (i=0;i<64*64;i++)
+//        {
+//            srcp[i] = src[i];
+//        }
+        memcpy(srcp, src, 4096);
+
         Z_Free(src);
-        
+
         drew_bg_before = 1;
     }
 
@@ -785,9 +781,4 @@ void R_DrawViewBorder (void)
     V_DrawPatch (viewwindowx+scaledviewwidth,
          viewwindowy+viewheight,
          W_CacheLumpName ("brdr_br",PU_CACHE));    
-
-    // ?
-    //V_MarkRect (0,0,SCREENWIDTH, SCREENHEIGHT-SBARHEIGHT);
-
-    I_RestorePalette();
 }
