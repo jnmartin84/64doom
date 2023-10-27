@@ -50,6 +50,8 @@ int curscr = 0;
 // locals
 static surface_t* disp;
 static uint16_t __attribute__((aligned(64))) current_palarray[256];
+// uncached view of current_palarray
+static uint16_t *palarray;
 
 // functions
 
@@ -148,13 +150,13 @@ void I_SetPalette(byte* palette)
         b = gammaptr[b];
 
         uint16_t col = ((r >> 3) << 11) | ((g >> 3) << 6) | ((b >> 3) << 1);
-        current_palarray[i] = col;
+        /*current_*/palarray[i] = col;
     }
 
     // do the writeback here so we don't have to every time we submit the screen
-    data_cache_hit_writeback(current_palarray, 256*2);
+//    data_cache_hit_writeback(current_palarray, 256*2);
     // Load the palette
-    rdpq_tex_load_tlut(current_palarray, 0, 256);
+    rdpq_tex_load_tlut(/*current_*/palarray, 0, 256);
 }
 
 void I_SetDefaultPalette(void)
@@ -172,19 +174,20 @@ void I_InitGraphics(void)
         }, DEPTH_16_BPP, 2, GAMMA_NONE, ANTIALIAS_RESAMPLE);
 
     rdpq_init();
+    // Set copy render mode, with palette lookup
+    rdpq_set_mode_copy(false);
+    rdpq_mode_tlut(TLUT_RGBA16);
 
-    I_SetDefaultPalette();
-
-    // use it uncached everywhere so we don't have to writeback every time we submit the screen
+    // use uncached everywhere so we don't have to writeback every time we submit the screen or palette
     screens[0] = (void*)((uintptr_t)screens[0] | 0xA0000000);
     screens[1] = (void*)((uintptr_t)screens[1] | 0xA0000000);
+    palarray = (uint16_t *)((uintptr_t)current_palarray | 0xA0000000);
+
+    I_SetDefaultPalette();
 
     curscr = 0;
     bufptr = screens[curscr];
 
-    // Set copy render mode, with palette lookup
-    rdpq_set_mode_copy(false);
-    rdpq_mode_tlut(TLUT_RGBA16);
 
     printf("I_InitGraphics: Initialized display and RDPQ.\n");
 }
