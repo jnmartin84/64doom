@@ -286,7 +286,6 @@ void *getsfx (char *sfxname, int *len)
 
 void sound_callback(void)
 {
-    memset(pcmbuf, 0, (NUM_SAMPLES << 2));
     // Sound mixing for the buffer is synchronous.
     // Synchronous sound output is explicitly called.
     I_UpdateSound();
@@ -640,7 +639,7 @@ int Mus_Register(void *musdata)
     for (i=0;i<inst_cnt;i++)
     {
         uint8_t instrument = (uint8_t)SHORT(musheader->instruments[i]);
-        
+
         // fix TNT crash with one of the 10s levels
         if (!midi_pointers[instrument])
             continue;
@@ -910,8 +909,8 @@ void I_MixSound (void)
 
             uint32_t sample = FixedMul(wvbuff[index >> 16],master_vol);
 
-            uint32_t ssmp1 = FixedMul(sample, ltvol)<<16;
-            uint32_t ssmp2 = FixedMul(sample, rtvol)&0xFFFF;
+            uint32_t ssmp1 = FixedMul(sample, ltvol) << 16;
+            uint32_t ssmp2 = FixedMul(sample, rtvol) & 0xFFFF;
 
             next_mixed_sample += (ssmp1 | ssmp2);
 
@@ -1097,8 +1096,10 @@ nextEvent:
                     // Change control
                     case 4:
                     {
-                        ctrl = *score_ptr++;
+                        ctrl = (*score_ptr++)&0x7f;
                         value = *score_ptr++;
+                        if (value > 0x7f)
+                            value = 0x7f;
                         channel = (int)(event & 15);
                         switch (ctrl)
                         {
